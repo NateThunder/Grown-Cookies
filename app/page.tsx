@@ -1,65 +1,145 @@
 import Image from "next/image";
+import Link from "next/link";
+import SearchModalTrigger from "@/components/search-modal-trigger";
+import { FiPlus, FiShoppingBag, FiUser } from "react-icons/fi";
+import { SHOP_PRODUCTS } from "./shop/products";
+import styles from "./page.module.css";
+
+const featuredProducts = SHOP_PRODUCTS.slice(0, 3);
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
+    <main className={`${styles.page} ${styles.pageWidthWide}`}>
+      <header className={styles.header}>
+        <nav className={styles.leftNav} aria-label="Primary navigation">
+          <Link href="/">HOME</Link>
+          <Link href="/shop">SHOP</Link>
+          <Link href="/contact">CONTACT US</Link>
+          <Link href="/faqs">FAQ&apos;s</Link>
+        </nav>
+
+        <Link href="/" className={styles.logo} aria-label="Grown Cookies home">
+          <span className={styles.logoMain}>
+            grown
+            <br />
+            cookies
+          </span>
+          <span className={styles.logoTagline}>flavour refined</span>
+        </Link>
+
+        <div className={styles.iconNav} aria-label="Actions">
+          <SearchModalTrigger />
+          <Link href="/account" aria-label="Account">
+            <FiUser />
+          </Link>
+          <Link href="/cart" aria-label="Cart">
+            <FiShoppingBag />
+          </Link>
+        </div>
+      </header>
+
+      <div className={styles.announcement}>Shop our latest arrivals</div>
+
+      <section className={styles.hero}>
         <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
+          src="/images/cookie-stack.jpg"
+          alt="Stacked artisan cookies"
+          fill
           priority
+          className={styles.heroImage}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+        <div className={styles.overlay} />
+        <div className={styles.heroContent}>
+          <h1>Order your cookies today!</h1>
+          <p>Artisan cookies for, &apos;Grown folks!&apos;</p>
+          <Link href="/shop" className={styles.cta}>
+            Shop now
+          </Link>
+        </div>
+      </section>
+
+      <section className={styles.featured}>
+        <h2>Featured products</h2>
+        <div className={styles.grid}>
+          {featuredProducts.map((product) => (
+            <Link
+              key={product.slug}
+              href={`/shop/${product.slug}`}
+              className={styles.card}
+              aria-label={`View ${product.name}`}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+              {product.isGiftCard ? (
+                <div className={styles.giftCardTile}>
+                  <span className={styles.giftBrand}>grown cookies</span>
+                  <span className={styles.giftText}>GIFT CARD</span>
+                </div>
+              ) : (
+                <div className={styles.cardImageWrap}>
+                  <Image
+                    src={product.image}
+                    alt={product.name}
+                    fill
+                    className={styles.cardImage}
+                  />
+                  <span className={styles.quickAdd} aria-hidden="true">
+                    <FiShoppingBag />
+                    <FiPlus />
+                  </span>
+                </div>
+              )}
+              <h3>{product.name}</h3>
+              <p>{product.price}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.monthSection}>
+        <div className={styles.monthImagePanel}>
+          <Image
+            src="/Box_Shots/_DSC6382.jpg"
+            alt="Cookie box with matcha cookies"
+            fill
+            className={styles.monthImage}
+          />
+        </div>
+
+        <div className={styles.monthImagePanel}>
+          <Image
+            src="/Hands_Milk_Shot/_DSC6537.jpg"
+            alt="Cookie dipped in milk"
+            fill
+            className={styles.monthImage}
+          />
+        </div>
+
+        <div className={styles.monthTextPanel}>
+          <h2 className={styles.monthTitle}>
+            Our Cookie of the Month is a limited-edition artisan flavour
+            inspired by the season, celebrating the ingredients at their best.
+          </h2>
+          <Link href="/shop" className={styles.monthButton}>
+            Cookie of the Month
+          </Link>
+        </div>
+      </section>
+
+      <section className={styles.brandStory}>
+        <Image
+          src="/Box_Shots/_DSC6378.jpg"
+          alt="Grown Cookies box background"
+          fill
+          className={styles.brandStoryImage}
+        />
+        <div className={styles.brandStoryOverlay} />
+        <div className={styles.brandStoryContent}>
+          <p>
+            We don&apos;t just make your classic cookies, we reimagine them -
+            staying faithful to creating great flavours while elevating every
+            detail
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </section>
+    </main>
   );
 }

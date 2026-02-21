@@ -1,15 +1,33 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Abril_Fatface, Anonymous_Pro, Besley, Fraunces } from "next/font/google";
+import Link from "next/link";
+import { FaTiktok } from "react-icons/fa6";
+import { FiInstagram } from "react-icons/fi";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const besley = Besley({
+  variable: "--font-besley",
   subsets: ["latin"],
+  weight: ["500", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
+  weight: ["300", "700"],
+});
+
+const anonymousPro = Anonymous_Pro({
+  variable: "--font-anonymous-pro",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
+});
+
+const abrilFatface = Abril_Fatface({
+  variable: "--font-abril-fatface",
+  subsets: ["latin"],
+  weight: ["400"],
 });
 
 export const metadata: Metadata = {
@@ -25,9 +43,50 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${besley.variable} ${fraunces.variable} ${anonymousPro.variable} ${abrilFatface.variable} antialiased`}
       >
         {children}
+        <footer className="site-footer">
+          <div className="site-footer-main">
+            <div className="site-footer-upper">
+              <div className="site-footer-copy">
+                <h2>Join our cookie community</h2>
+                <p>Subscribe now for exclusive offers and mouthwatering recipes!</p>
+              </div>
+
+              <form className="site-footer-form" aria-label="Newsletter signup">
+                <label htmlFor="footer-email" className="sr-only">
+                  Email address
+                </label>
+                <input
+                  id="footer-email"
+                  type="email"
+                  placeholder="Email address"
+                  className="site-footer-input"
+                />
+                <button type="submit" className="site-footer-button">
+                  Sign up
+                </button>
+              </form>
+            </div>
+
+            <div className="site-footer-bottom-row">
+              <p>
+                {"\u00A9"} 2026 <span className="site-footer-brand">Grown Cookies</span>, Powered by
+                Shopify
+              </p>
+              <Link href="/terms">Terms and Policies</Link>
+              <div className="site-footer-social">
+                <Link href="#" aria-label="Instagram">
+                  <FiInstagram />
+                </Link>
+                <Link href="#" aria-label="TikTok">
+                  <FaTiktok />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </footer>
       </body>
     </html>
   );
