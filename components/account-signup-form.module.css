@@ -1,0 +1,134 @@
+.form {
+  display: grid;
+  gap: 18px;
+}
+
+.identityGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  color: #2c1832;
+  font-family: var(--font-body--family);
+  font-size: 0.95rem;
+}
+
+.field span {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.field input {
+  width: 100%;
+  border: 1px solid rgba(118, 26, 108, 0.22);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #1d1021;
+  font: inherit;
+  padding: 15px 16px;
+  box-sizing: border-box;
+}
+
+.field input:focus {
+  outline: 2px solid rgba(118, 26, 108, 0.25);
+  outline-offset: 2px;
+}
+
+.submit,
+.facebookButton {
+  border: 0;
+  color: #ffffff;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    opacity 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.submit {
+  border-radius: 999px;
+  background: #761A6C;
+  font-family: var(--font-header--family);
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 15px 22px;
+}
+
+.facebookButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  border-radius: 12px;
+  background: #3b82f6;
+  box-shadow: 0 6px 14px rgba(59, 130, 246, 0.22);
+  font-family: var(--font-body--family);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 18px 24px;
+}
+
+.facebookIconBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: #ffffff;
+  flex: 0 0 auto;
+}
+
+.facebookIconBadge svg {
+  width: 20px;
+  height: 20px;
+  color: #3b82f6;
+}
+
+.submit:hover,
+.submit:focus-visible,
+.facebookButton:hover,
+.facebookButton:focus-visible {
+  transform: translateY(-1px);
+}
+
+.submit:disabled,
+.facebookButton:disabled {
+  opacity: 0.7;
+  cursor: wait;
+  transform: none;
+  box-shadow: none;
+}
+
+.status {
+  min-height: 1.4em;
+  margin: 0;
+  color: #534357;
+  font-size: 0.92rem;
+}
+
+.error {
+  color: #9a2035;
+}
+
+.success {
+  color: #1f6a45;
+}
+
+@media (max-width: 640px) {
+  .identityGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .facebookButton {
+    padding: 16px 20px;
+    font-size: 0.95rem;
+  }
+}

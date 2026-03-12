@@ -1,49 +1,22 @@
 import Image from "next/image";
 import Link from "next/link";
-import SearchModalTrigger from "@/components/search-modal-trigger";
-import { FiPlus, FiShoppingBag, FiUser } from "react-icons/fi";
-import { SHOP_PRODUCTS } from "./shop/products";
+import { FiPlus, FiShoppingBag } from "react-icons/fi";
+import GiftCardTile from "@/components/gift-card-tile";
+import SiteHeader from "@/components/site-header";
+import { getFeaturedProducts } from "@/lib/products";
 import styles from "./page.module.css";
 
-const featuredProducts = SHOP_PRODUCTS.slice(0, 3);
+export default async function Home() {
+  const featuredProducts = await getFeaturedProducts(3);
 
-export default function Home() {
   return (
     <main className={`${styles.page} ${styles.pageWidthWide}`}>
-      <header className={styles.header}>
-        <nav className={styles.leftNav} aria-label="Primary navigation">
-          <Link href="/">HOME</Link>
-          <Link href="/shop">SHOP</Link>
-          <Link href="/contact">CONTACT US</Link>
-          <Link href="/faqs">FAQ&apos;s</Link>
-        </nav>
-
-        <Link href="/" className={styles.logo} aria-label="Grown Cookies home">
-          <span className={styles.logoMain}>
-            grown
-            <br />
-            cookies
-          </span>
-          <span className={styles.logoTagline}>flavour refined</span>
-        </Link>
-
-        <div className={styles.iconNav} aria-label="Actions">
-          <SearchModalTrigger />
-          <Link href="/account" aria-label="Account">
-            <FiUser />
-          </Link>
-          <Link href="/cart" aria-label="Cart">
-            <FiShoppingBag />
-          </Link>
-        </div>
-      </header>
-
-      <div className={styles.announcement}>Shop our latest arrivals</div>
+      <SiteHeader activeRoute="home" />
 
       <section className={styles.hero}>
         <Image
-          src="/images/cookie-stack.jpg"
-          alt="Stacked artisan cookies"
+          src="/Hands_Milk_Shot/_DSC6461.jpg"
+          alt="Stacked artisan cookies held in hand"
           fill
           priority
           className={styles.heroImage}
@@ -65,14 +38,13 @@ export default function Home() {
             <Link
               key={product.slug}
               href={`/shop/${product.slug}`}
-              className={styles.card}
+              className={`${styles.card} ${
+                product.isGiftCard ? styles.giftCardPositioned : ""
+              }`}
               aria-label={`View ${product.name}`}
             >
               {product.isGiftCard ? (
-                <div className={styles.giftCardTile}>
-                  <span className={styles.giftBrand}>grown cookies</span>
-                  <span className={styles.giftText}>GIFT CARD</span>
-                </div>
+                <GiftCardTile className={styles.giftCardTile} />
               ) : (
                 <div className={styles.cardImageWrap}>
                   <Image
@@ -120,6 +92,29 @@ export default function Home() {
           </h2>
           <Link href="/shop" className={styles.monthButton}>
             Cookie of the Month
+          </Link>
+        </div>
+      </section>
+
+      <section className={styles.shopIntro}>
+        <div className={styles.shopIntroInner}>
+          <p className={styles.shopIntroEyebrow}>Our shop</p>
+          <h2 className={styles.shopIntroTitle}>
+            Grown Cookies are the ideal treat for any event, adding a touch of
+            sweetness to every celebration. Whether you&apos;re planning a
+            birthday party, a wedding, a corporate event, or just a casual
+            get-together, our cookies are sure to impress your guests.
+          </h2>
+          <p className={styles.shopIntroBody}>
+            Our cookies come in a variety of flavours, ensuring there&apos;s
+            something for everyone. From classic favourites like chocolate
+            cookies to unique creations like matcha white chocolate, our
+            selection caters to diverse tastes and preferences. These
+            delectable cookies are baked to perfection by our professional
+            bakers, making them a highlight at any gathering.
+          </p>
+          <Link href="/shop" className={styles.shopIntroLink}>
+            Learn more
           </Link>
         </div>
       </section>

@@ -1,0 +1,59 @@
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⨯ ./lib/products.ts
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 785
+
+Import trace:
+  Server Component:
+    ./lib/products.ts
+    ./components/site-header.tsx
+    ./app/account/page.tsx
+
+
+⨯ ./lib/products.ts
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 785
+
+Import trace:
+  Server Component:
+    ./lib/products.ts
+    ./components/site-header.tsx
+    ./app/account/page.tsx
+
+
+⨯ ./lib/products.ts
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 785
+
+Import trace:
+  Server Component:
+    ./lib/products.ts
+    ./components/site-header.tsx
+    ./app/account/page.tsx
+
+
+⨯ ./lib/products.ts
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 785
+
+Import trace:
+  Server Component:
+    ./lib/products.ts
+    ./components/site-header.tsx
+    ./app/account/page.tsx
+
+
