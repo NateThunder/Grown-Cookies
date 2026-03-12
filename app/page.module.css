@@ -88,7 +88,7 @@
 .leftNav {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 18px;
   flex-wrap: wrap;
   font-family: var(--font-header--family);
   font-size: 0.9rem;
@@ -109,7 +109,7 @@
 }
 
 .logoMain {
-  color: #8D029B;
+  color: #761A6C;
   font-family: var(--font-abril-fatface), Georgia, "Times New Roman", serif;
   font-size: clamp(2.4rem, 3vw, 4rem);
   font-weight: 700;
@@ -119,7 +119,7 @@
 
 .logoTagline {
   margin-top: 8px;
-  color: #8D029B;
+  color: #761A6C;
   font-family: var(--font-header--family);
   font-size: 0.72rem;
   letter-spacing: 0.24em;
@@ -151,7 +151,7 @@
 .announcement {
   width: 100%;
   text-align: center;
-  background: #8D029B;
+  background: #761A6C;
   color: #ffffff;
   font-size: 16px;
   font-weight: 500;
@@ -161,13 +161,15 @@
 
 .hero {
   position: relative;
-  min-height: min(72vh, 760px);
+  min-height: min(54vh, 570px);
   overflow: hidden;
 }
 
 .heroImage {
   object-fit: cover;
-  object-position: center 28%;
+  object-position: center 55%;
+  transform: scale(1.05);
+  transform-origin: center;
 }
 
 .overlay {
@@ -179,7 +181,7 @@
 .heroContent {
   position: relative;
   z-index: 1;
-  min-height: min(72vh, 760px);
+  min-height: min(54vh, 570px);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -215,21 +217,71 @@
 
 .featured {
   background: #ececec;
-  padding: 56px 48px 72px;
+  padding: 42px 36px 54px;
 }
 
 .featured h2 {
-  margin: 0 0 28px;
+  margin: 0 0 21px;
   font-family: var(--font-heading--family);
-  font-size: clamp(2rem, 4.2vw, 4.4rem);
+  font-size: clamp(1.5rem, 3.15vw, 3.3rem);
   font-weight: 600;
+}
+
+.shopIntro {
+  background: #ececec;
+  padding: 54px 36px 72px;
+}
+
+.shopIntroInner {
+  max-width: 980px;
+}
+
+.shopIntroEyebrow {
+  margin: 0 0 18px;
+  font-family: var(--font-body--family);
+  font-size: clamp(1rem, 1.2vw, 1.25rem);
+  font-weight: 700;
+  color: #101710;
+}
+
+.shopIntroTitle {
+  margin: 0;
+  max-width: 940px;
+  font-family: var(--font-heading--family);
+  font-size: clamp(0.744rem, 1.44vw, 1.656rem);
+  line-height: 1.04;
+  font-weight: 400;
+  color: #121212;
+}
+
+.shopIntroBody {
+  margin: 20px 0 0;
+  max-width: 940px;
+  font-family: var(--font-heading--family);
+  font-size: clamp(0.744rem, 1.44vw, 1.656rem);
+  line-height: 1.04;
+  color: #121212;
+}
+
+.shopIntroLink {
+  display: inline-block;
+  margin-top: 20px;
+  color: #405243;
+  text-decoration: none;
+  font-family: var(--font-body--family);
+  font-size: clamp(0.95rem, 1.1vw, 1.1rem);
+}
+
+.shopIntroLink:hover,
+.shopIntroLink:focus-visible {
+  text-decoration: underline;
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
-  max-width: 1400px;
+  gap: 18px;
+  max-width: 1050px;
 }
 
 .card {
@@ -243,6 +295,14 @@
   transition:
     transform var(--hover-transition-duration) var(--hover-transition-timing),
     filter var(--hover-transition-duration) ease;
+}
+
+.giftCardPositioned {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100%;
+  padding-top: clamp(48px, 7vw, 112px);
 }
 
 .cardImageWrap {
@@ -277,10 +337,10 @@
 .quickAdd {
   position: absolute;
   z-index: 2;
-  right: 14px;
-  bottom: 14px;
-  width: 44px;
-  height: 44px;
+  right: 11px;
+  bottom: 11px;
+  width: 33px;
+  height: 33px;
   border: 1px solid #8D029B;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.95);
@@ -299,13 +359,13 @@
 }
 
 .quickAdd svg:first-child {
-  width: 17px;
-  height: 17px;
+  width: 13px;
+  height: 13px;
 }
 
 .quickAdd svg:last-child {
-  width: 12px;
-  height: 12px;
+  width: 9px;
+  height: 9px;
 }
 
 .quickAdd:hover,
@@ -315,67 +375,22 @@
 }
 
 .giftCardTile {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1.62 / 1;
-  overflow: hidden;
-  border-radius: 12px;
-  border: 1px solid rgba(38, 8, 45, 0.34);
-  background: #65206f;
-  color: #f07ad6;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  transform: translateY(0);
-  transition:
-    transform calc(var(--surface-transition-duration) + 0.08s)
-      cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow calc(var(--surface-transition-duration) + 0.04s) ease,
-    filter var(--surface-transition-duration) ease;
-  box-shadow:
-    0 10px 18px rgba(33, 10, 39, 0.22),
-    0 1px 0 rgba(33, 10, 39, 0.25);
-  will-change: transform, box-shadow;
-}
-
-.giftCardTile::before {
-  content: none;
-}
-
-.giftCardTile::after {
-  content: "";
-  position: absolute;
-  left: 10%;
-  right: 10%;
-  bottom: -8px;
-  height: 12px;
-  border-radius: 999px;
-  background: rgba(40, 7, 56, 0.38);
-  filter: blur(8px);
-  z-index: -1;
-  transition: transform calc(var(--surface-transition-duration) + 0.08s) ease;
-}
-
-.giftBrand {
-  font-family: var(--font-heading--family);
-  font-size: clamp(2.6rem, 4.2vw, 5.4rem);
-  font-weight: 700;
-  line-height: 0.9;
-  text-transform: lowercase;
-  text-align: center;
-}
-
-.giftText {
-  font-family: var(--font-body--family);
-  letter-spacing: 0.18em;
-  font-size: clamp(1rem, 1.5vw, 2.1rem);
+  --gift-card-aspect-ratio: 1.62 / 1;
+  --gift-card-radius: 9px;
+  --gift-card-gap: 10px;
+  --gift-card-brand-size: clamp(1.95rem, 3.15vw, 4.05rem);
+  --gift-card-text-size: clamp(0.75rem, 1.125vw, 1.575rem);
+  --gift-card-shadow-after-bg: rgba(40, 7, 56, 0.38);
+  --gift-card-transform-transition:
+    calc(var(--surface-transition-duration) + 0.08s) cubic-bezier(0.22, 1, 0.36, 1);
+  --gift-card-shadow-transition:
+    calc(var(--surface-transition-duration) + 0.04s) ease;
+  --gift-card-filter-transition: var(--surface-transition-duration) ease;
 }
 
 .card h3 {
-  margin: 12px 0 6px;
-  font-size: clamp(1.1rem, 1.8vw, 2.9rem);
+  margin: 9px 0 5px;
+  font-size: clamp(0.825rem, 1.35vw, 2.175rem);
   font-family: var(--font-body--family);
   font-weight: 500;
   transition: color 220ms ease;
@@ -385,7 +400,7 @@
   margin: 0;
   font-family: var(--font-body--family);
   color: #4a4a4a;
-  font-size: clamp(1rem, 1.2vw, 2rem);
+  font-size: clamp(0.75rem, 0.9vw, 1.5rem);
   transition: color 220ms ease;
 }
 
@@ -450,13 +465,13 @@
   display: grid;
   grid-template-columns: 1.05fr 1.05fr 0.9fr;
   width: 100%;
-  min-height: 620px;
-  background: #8D029B;
+  min-height: 465px;
+  background: #FFA7BC;
 }
 
 .monthImagePanel {
   position: relative;
-  min-height: 620px;
+  min-height: 465px;
 }
 
 .monthImage {
@@ -464,31 +479,31 @@
 }
 
 .monthTextPanel {
-  background: #8D029B;
+  background: #FFA7BC;
   color: #ffffff;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
-  padding: 56px 64px;
+  padding: 42px 48px;
 }
 
 .monthTitle {
   margin: 0;
   font-family: var(--font-heading--family);
-  font-size: clamp(2rem, 3vw, 4.8rem);
+  font-size: clamp(1.36rem, 1.96vw, 2.88rem);
   line-height: 1.12;
   font-weight: 700;
 }
 
 .monthButton {
-  margin-top: 28px;
+  margin-top: 22px;
   border: 1px solid #ffffff;
   color: #ffffff;
   text-decoration: none;
   font-family: var(--font-body--family);
-  font-size: clamp(1rem, 1.1vw, 1.7rem);
-  padding: 18px 30px;
+  font-size: clamp(0.95rem, 1vw, 1.35rem);
+  padding: 14px 24px;
 }
 
 .brandStory {
@@ -528,7 +543,7 @@
   max-width: 980px;
   color: #ffffff;
   font-family: var(--font-heading--family);
-  font-size: clamp(2rem, 3.2vw, 4.9rem);
+  font-size: clamp(1.5rem, 2.4vw, 3.675rem);
   line-height: 1.12;
   font-weight: 700;
 }
@@ -554,7 +569,27 @@
   }
 
   .featured {
-    padding: 36px 20px 56px;
+    padding: 27px 15px 42px;
+  }
+
+  .shopIntro {
+    padding: 42px 15px 56px;
+  }
+
+  .shopIntroTitle {
+    max-width: 100%;
+    font-size: clamp(0.672rem, 1.728vw, 1.2rem);
+    line-height: 1.04;
+    font-weight: 400;
+  }
+
+  .shopIntroBody {
+    max-width: 100%;
+    font-size: clamp(0.672rem, 1.728vw, 1.2rem);
+  }
+
+  .giftCardPositioned {
+    padding-top: 24px;
   }
 
   .monthSection {
@@ -563,12 +598,12 @@
   }
 
   .monthImagePanel {
-    min-height: 430px;
+    min-height: 322px;
   }
 
   .monthTextPanel {
     grid-column: 1 / -1;
-    padding: 36px 24px 44px;
+    padding: 28px 24px 34px;
   }
 
   .brandStory,
@@ -587,16 +622,45 @@
     font-size: 0.82rem;
   }
 
+  .heroImage {
+    object-position: center 56%;
+    transform: scale(1.42);
+  }
+
   .hero {
-    min-height: 62vh;
+    min-height: 46.5vh;
   }
 
   .heroContent {
-    min-height: 62vh;
+    min-height: 46.5vh;
   }
 
   .grid {
     grid-template-columns: 1fr;
+  }
+
+  .shopIntro {
+    padding: 32px 15px 42px;
+  }
+
+  .shopIntroEyebrow {
+    margin-bottom: 14px;
+  }
+
+  .shopIntroTitle {
+    font-size: clamp(0.576rem, 3.264vw, 0.84rem);
+    line-height: 1.08;
+    font-weight: 400;
+  }
+
+  .shopIntroBody {
+    margin-top: 16px;
+    font-size: clamp(0.576rem, 3.264vw, 0.84rem);
+    line-height: 1.08;
+  }
+
+  .giftCardPositioned {
+    padding-top: 0;
   }
 
   .monthSection {
@@ -604,11 +668,11 @@
   }
 
   .monthImagePanel {
-    min-height: 360px;
+    min-height: 270px;
   }
 
   .monthTextPanel {
-    padding: 28px 20px 36px;
+    padding: 22px 20px 28px;
   }
 
   .brandStory,
@@ -620,5 +684,17 @@
     padding-top: 56px;
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 

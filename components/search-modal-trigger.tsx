@@ -4,67 +4,26 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { FiSearch, FiShoppingBag, FiX } from "react-icons/fi";
+import type { ShopProduct } from "@/lib/products";
+import GiftCardTile from "./gift-card-tile";
 import styles from "./search-modal-trigger.module.css";
 
-type SearchProduct =
-  | {
-      name: string;
-      price: string;
-      image: string;
-      isGiftCard?: false;
-    }
-  | {
-      name: string;
-      price: string;
-      isGiftCard: true;
-    };
+type SearchModalTriggerProps = {
+  products: ShopProduct[];
+};
 
-const allProducts: SearchProduct[] = [
-  {
-    name: "Dark Choc & Maldon Salt",
-    price: "\u00A322.00",
-    image: "/Dark_Choc-_Salt/_DSC6327.jpg",
-  },
-  {
-    name: "Gift Card",
-    price: "\u00A310.00",
-    isGiftCard: true,
-  },
-  {
-    name: "Red Velvet",
-    price: "\u00A321.00",
-    image: "/Red_Velvet/_DSC6161.jpg",
-  },
-  {
-    name: "Double Chocolate & Hazelnut",
-    price: "\u00A322.00",
-    image: "/Double_Choc_Hazelnut/_DSC6200.jpg",
-  },
-  {
-    name: "Crunchy Granola",
-    price: "\u00A322.00",
-    image: "/Crunchy_Granola/_DSC6127.jpg",
-  },
-  {
-    name: "Matcha White Choc",
-    price: "\u00A322.00",
-    image: "/Matcha/_DSC6441.jpg",
-  },
-  {
-    name: "Double Choc Box",
-    price: "\u00A322.00",
-    image: "/Box_Shots/_DSC6145.jpg",
-  },
-];
-
-const defaultRecentlyViewed: SearchProduct[] = allProducts
-  .filter((product) => !product.isGiftCard)
-  .slice(0, 3);
-
-export default function SearchModalTrigger() {
+export default function SearchModalTrigger({ products: allProducts }: SearchModalTriggerProps) {
+  const defaultRecentlyViewed = useMemo(
+    () => allProducts.filter((product) => !product.isGiftCard).slice(0, 3),
+    [allProducts],
+  );
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [recentlyViewed, setRecentlyViewed] = useState<SearchProduct[]>(defaultRecentlyViewed);
+  const [recentlyViewed, setRecentlyViewed] = useState<ShopProduct[]>(defaultRecentlyViewed);
+
+  useEffect(() => {
+    setRecentlyViewed(defaultRecentlyViewed);
+  }, [defaultRecentlyViewed]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -93,14 +52,12 @@ export default function SearchModalTrigger() {
       return allProducts;
     }
 
-    return allProducts.filter((product) =>
-      product.name.toLowerCase().includes(normalized),
-    );
-  }, [query]);
+    return allProducts.filter((product) => product.name.toLowerCase().includes(normalized));
+  }, [allProducts, query]);
 
   const close = () => setIsOpen(false);
 
-  const handleProductClick = (product: SearchProduct) => {
+  const handleProductClick = (product: ShopProduct) => {
     setRecentlyViewed((current) => {
       const next = [product, ...current.filter((item) => item.name !== product.name)];
       return next.slice(0, 3);
@@ -168,7 +125,7 @@ export default function SearchModalTrigger() {
                   <div className={`${styles.grid} ${styles.recentGrid}`}>
                     {recentlyViewed.map((product) => (
                       <ProductCard
-                        key={`recent-${product.name}`}
+                        key={`recent-${product.slug}`}
                         product={product}
                         onSelect={handleProductClick}
                       />
@@ -189,7 +146,7 @@ export default function SearchModalTrigger() {
                   <div className={styles.grid}>
                     {products.map((product) => (
                       <ProductCard
-                        key={product.name}
+                        key={product.slug}
                         product={product}
                         onSelect={handleProductClick}
                       />
@@ -211,21 +168,18 @@ function ProductCard({
   product,
   onSelect,
 }: {
-  product: SearchProduct;
-  onSelect: (product: SearchProduct) => void;
+  product: ShopProduct;
+  onSelect: (product: ShopProduct) => void;
 }) {
   return (
     <Link
-      href="/shop"
-      className={styles.card}
+      href={`/shop/${product.slug}`}
+      className={`${styles.card} ${product.isGiftCard ? styles.giftCardPositioned : ""}`}
       onClick={() => onSelect(product)}
       aria-label={product.name}
     >
       {product.isGiftCard ? (
-        <div className={styles.giftCardTile}>
-          <span className={styles.giftBrand}>grown cookies</span>
-          <span className={styles.giftText}>GIFT CARD</span>
-        </div>
+        <GiftCardTile className={styles.giftCardTile} />
       ) : (
         <div className={styles.imageWrap}>
           <Image src={product.image} alt={product.name} fill className={styles.image} />
