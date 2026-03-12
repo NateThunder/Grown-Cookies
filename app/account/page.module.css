@@ -1,0 +1,126 @@
+.page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(255, 167, 188, 0.45), transparent 30%),
+    linear-gradient(180deg, #fff8fb 0%, #f5edf6 100%);
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  gap: 40px;
+  align-items: start;
+  padding: 72px 48px 96px;
+}
+
+.copy {
+  padding-top: 24px;
+}
+
+.eyebrow,
+.panelEyebrow {
+  margin: 0 0 14px;
+  color: #761A6C;
+  font-family: var(--font-header--family);
+  font-size: 0.85rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.copy h1 {
+  margin: 0;
+  max-width: 12ch;
+  color: #240f26;
+  font-family: var(--font-heading--family);
+  font-size: clamp(2.6rem, 5vw, 5.4rem);
+  line-height: 0.98;
+}
+
+.description {
+  max-width: 38rem;
+  margin: 24px 0 0;
+  color: #4f3c51;
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.perks {
+  display: grid;
+  gap: 14px;
+  padding: 28px 0 0;
+  margin: 0;
+  list-style: none;
+}
+
+.perks li {
+  position: relative;
+  padding-left: 26px;
+  color: #321d37;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.perks li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #FFA7BC;
+  box-shadow: 0 0 0 5px rgba(255, 167, 188, 0.28);
+}
+
+.panel {
+  border: 1px solid rgba(118, 26, 108, 0.12);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 28px 60px rgba(118, 26, 108, 0.1);
+  padding: 32px;
+  backdrop-filter: blur(10px);
+}
+
+.panelHeader {
+  margin-bottom: 24px;
+}
+
+.panelHeader h2 {
+  margin: 0;
+  color: #240f26;
+  font-family: var(--font-heading--family);
+  font-size: clamp(1.7rem, 2vw, 2.4rem);
+}
+
+.panelHeader p:last-child {
+  margin: 12px 0 0;
+  color: #5c495f;
+  line-height: 1.65;
+}
+
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+    padding: 48px 24px 72px;
+  }
+
+  .copy {
+    padding-top: 0;
+  }
+
+  .copy h1 {
+    max-width: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero {
+    gap: 28px;
+    padding: 36px 16px 56px;
+  }
+
+  .panel {
+    padding: 24px 18px;
+    border-radius: 22px;
+  }
+}
