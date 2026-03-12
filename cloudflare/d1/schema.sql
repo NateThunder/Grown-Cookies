@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS products (
+  slug TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  price TEXT NOT NULL,
+  description TEXT NOT NULL,
+  image_url TEXT,
+  is_gift_card INTEGER NOT NULL DEFAULT 0,
+  featured INTEGER NOT NULL DEFAULT 0,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  related_slugs TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

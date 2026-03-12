@@ -1,13 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import SearchModalTrigger from "@/components/search-modal-trigger";
-import { FiShoppingBag, FiUser } from "react-icons/fi";
-import { getRelatedProducts, getShopProduct, SHOP_PRODUCTS } from "../products";
+import { FiShoppingBag } from "react-icons/fi";
+import GiftCardTile from "@/components/gift-card-tile";
+import { getAllProducts, getRelatedProducts, getShopProduct } from "@/lib/products";
+import SiteHeader from "@/components/site-header";
 import styles from "./page.module.css";
 
-export function generateStaticParams() {
-  return SHOP_PRODUCTS.map((product) => ({ slug: product.slug }));
+export async function generateStaticParams() {
+  const products = await getAllProducts();
+  return products.map((product) => ({ slug: product.slug }));
 }
 
 export default async function ProductPage({
@@ -16,55 +18,22 @@ export default async function ProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = getShopProduct(slug);
+  const product = await getShopProduct(slug);
 
   if (!product) {
     notFound();
   }
 
-  const relatedProducts = getRelatedProducts(product.slug);
+  const relatedProducts = await getRelatedProducts(product.slug);
 
   return (
     <main className={styles.page}>
-      <header className={styles.header}>
-        <nav className={styles.leftNav} aria-label="Primary navigation">
-          <Link href="/">HOME</Link>
-          <Link href="/shop" className={styles.active}>
-            SHOP
-          </Link>
-          <Link href="/contact">CONTACT US</Link>
-          <Link href="/faqs">FAQ&apos;s</Link>
-        </nav>
-
-        <Link href="/" className={styles.logo} aria-label="Grown Cookies home">
-          <span className={styles.logoMain}>
-            grown
-            <br />
-            cookies
-          </span>
-          <span className={styles.logoTagline}>flavour refined</span>
-        </Link>
-
-        <div className={styles.iconNav} aria-label="Actions">
-          <SearchModalTrigger />
-          <Link href="/account" aria-label="Account">
-            <FiUser />
-          </Link>
-          <Link href="/cart" aria-label="Cart">
-            <FiShoppingBag />
-          </Link>
-        </div>
-      </header>
-
-      <div className={styles.announcement}>Shop our latest arrivals</div>
+      <SiteHeader activeRoute="shop" />
 
       <section className={styles.productSection}>
         <div className={styles.imageColumn}>
           {product.isGiftCard ? (
-            <div className={styles.giftHero}>
-              <span className={styles.giftHeroBrand}>grown cookies</span>
-              <span className={styles.giftHeroText}>GIFT CARD</span>
-            </div>
+            <GiftCardTile className={styles.giftHero} />
           ) : (
             <div className={styles.heroImageWrap}>
               <Image
@@ -123,13 +92,16 @@ export default async function ProductPage({
 
         <div className={styles.relatedGrid}>
           {relatedProducts.map((item) => (
-            <Link key={item.slug} href={`/shop/${item.slug}`} className={styles.relatedCard}>
+            <Link
+              key={item.slug}
+              href={`/shop/${item.slug}`}
+              className={`${styles.relatedCard} ${
+                item.isGiftCard ? styles.giftCardPositioned : ""
+              }`}
+            >
               <div className={styles.relatedImageWrap}>
                 {item.isGiftCard ? (
-                  <div className={styles.relatedGiftCardTile}>
-                    <span className={styles.relatedGiftBrand}>grown cookies</span>
-                    <span className={styles.relatedGiftText}>GIFT CARD</span>
-                  </div>
+                  <GiftCardTile className={styles.relatedGiftCardTile} />
                 ) : (
                   <Image
                     src={item.image}
