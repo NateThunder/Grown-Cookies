@@ -33,18 +33,22 @@ export default async function ProductPage({
       <section className={styles.productSection}>
         <div className={styles.imageColumn}>
           {product.isGiftCard ? (
-            <GiftCardTile className={styles.giftHero} />
-          ) : (
+            <GiftCardTile
+              className={styles.giftHero}
+              src={product.image}
+              alt={product.imageAlt ?? product.name}
+            />
+          ) : product.image ? (
             <div className={styles.heroImageWrap}>
               <Image
                 src={product.image}
-                alt={product.name}
+                alt={product.imageAlt ?? product.name}
                 fill
                 priority
                 className={styles.heroImage}
               />
             </div>
-          )}
+          ) : null}
         </div>
 
         <div className={styles.infoColumn}>
@@ -101,15 +105,19 @@ export default async function ProductPage({
             >
               <div className={styles.relatedImageWrap}>
                 {item.isGiftCard ? (
-                  <GiftCardTile className={styles.relatedGiftCardTile} />
-                ) : (
+                  <GiftCardTile
+                    className={styles.relatedGiftCardTile}
+                    src={item.image}
+                    alt={item.imageAlt ?? item.name}
+                  />
+                ) : item.image ? (
                   <Image
                     src={item.image}
-                    alt={item.name}
+                    alt={item.imageAlt ?? item.name}
                     fill
                     className={styles.relatedImage}
                   />
-                )}
+                ) : null}
               </div>
               <h3>{item.name}</h3>
             </Link>
