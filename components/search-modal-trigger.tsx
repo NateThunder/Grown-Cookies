@@ -179,15 +179,24 @@ function ProductCard({
       aria-label={product.name}
     >
       {product.isGiftCard ? (
-        <GiftCardTile className={styles.giftCardTile} />
-      ) : (
+        <GiftCardTile
+          className={styles.giftCardTile}
+          src={product.image}
+          alt={product.imageAlt ?? product.name}
+        />
+      ) : product.image ? (
         <div className={styles.imageWrap}>
-          <Image src={product.image} alt={product.name} fill className={styles.image} />
+          <Image
+            src={product.image}
+            alt={product.imageAlt ?? product.name}
+            fill
+            className={styles.image}
+          />
           <span className={styles.quickIcon} aria-hidden="true">
             <FiShoppingBag />
           </span>
         </div>
-      )}
+      ) : null}
       <p className={styles.name}>{product.name}</p>
       <p className={styles.price}>{product.price}</p>
     </Link>

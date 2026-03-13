@@ -1,10 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import {
-  FiChevronDown,
-  FiGrid,
-  FiLayout,
-} from "react-icons/fi";
+import { FiChevronDown, FiGrid, FiLayout } from "react-icons/fi";
 import styles from "./page.module.css";
 import { getAllProducts } from "@/lib/products";
 import GiftCardTile from "@/components/gift-card-tile";
@@ -55,17 +51,21 @@ export default async function ShopPage() {
               aria-label={`View ${product.name}`}
             >
               {product.isGiftCard ? (
-                <GiftCardTile className={styles.giftCardTile} />
-              ) : (
+                <GiftCardTile
+                  className={styles.giftCardTile}
+                  src={product.image}
+                  alt={product.imageAlt ?? product.name}
+                />
+              ) : product.image ? (
                 <div className={styles.imageWrap}>
                   <Image
                     src={product.image}
-                    alt={product.name}
+                    alt={product.imageAlt ?? product.name}
                     fill
                     className={styles.image}
                   />
                 </div>
-              )}
+              ) : null}
               <h3>{product.name}</h3>
               <p>{product.price}</p>
             </Link>

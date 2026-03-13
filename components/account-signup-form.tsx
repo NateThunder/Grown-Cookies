@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { FaFacebook } from "react-icons/fa";
+import { FaGoogle } from "react-icons/fa";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import styles from "./account-signup-form.module.css";
 
@@ -18,9 +18,9 @@ const initialStatus: Status = {
 export default function AccountSignupForm() {
   const [status, setStatus] = useState<Status>(initialStatus);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isFacebookSubmitting, setIsFacebookSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
 
-  async function handleFacebookSignup() {
+  async function handleGoogleSignup() {
     setStatus(initialStatus);
 
     const supabase = getSupabaseBrowserClient();
@@ -34,7 +34,7 @@ export default function AccountSignupForm() {
       return;
     }
 
-    setIsFacebookSubmitting(true);
+    setIsGoogleSubmitting(true);
 
     const redirectTo =
       typeof window === "undefined"
@@ -42,13 +42,13 @@ export default function AccountSignupForm() {
         : `${window.location.origin}/account`;
 
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: "facebook",
+      provider: "google",
       options: {
         redirectTo,
       },
     });
 
-    setIsFacebookSubmitting(false);
+    setIsGoogleSubmitting(false);
 
     if (error) {
       setStatus({
@@ -162,20 +162,20 @@ export default function AccountSignupForm() {
         />
       </label>
 
-      <button className={styles.submit} type="submit" disabled={isSubmitting || isFacebookSubmitting}>
+      <button className={styles.submit} type="submit" disabled={isSubmitting || isGoogleSubmitting}>
         {isSubmitting ? "Creating account..." : "Create account"}
       </button>
 
       <button
-        className={styles.facebookButton}
+        className={styles.googleButton}
         type="button"
-        onClick={handleFacebookSignup}
-        disabled={isFacebookSubmitting || isSubmitting}
+        onClick={handleGoogleSignup}
+        disabled={isGoogleSubmitting || isSubmitting}
       >
-        <span className={styles.facebookIconBadge} aria-hidden="true">
-          <FaFacebook />
+        <span className={styles.googleIconBadge} aria-hidden="true">
+          <FaGoogle />
         </span>
-        <span>{isFacebookSubmitting ? "Opening Facebook..." : "Continue with Facebook"}</span>
+        <span>{isGoogleSubmitting ? "Opening Google..." : "Continue with Google"}</span>
       </button>
 
       <p

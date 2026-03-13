@@ -10,34 +10,43 @@ type ProductBase = {
   relatedSlugs?: string[];
 };
 
-export type ShopProduct =
-  | (ProductBase & {
-      image: string;
-      isGiftCard?: false;
-    })
-  | (ProductBase & {
-      isGiftCard: true;
-      image?: undefined;
-    });
+export type ShopProduct = ProductBase & {
+  image?: string;
+  imageAlt?: string;
+  isGiftCard?: boolean;
+};
+
+type StaticProductRecord = ProductBase & {
+  imageKey?: string;
+  imageAlt?: string;
+  isGiftCard?: boolean;
+};
 
 type ProductRow = {
   slug: string;
   name: string;
   price: string;
   description: string;
-  image_url: string | null;
+  image_key: string | null;
+  alt_text: string | null;
   is_gift_card: number;
   featured: number;
   sort_order: number | null;
   related_slugs: string | null;
 };
 
-const FALLBACK_PRODUCTS: ShopProduct[] = [
+const LOCAL_IMAGE_FALLBACKS: Record<string, string> = {
+  "gift-card/growncookies-1024-transparent.png":
+    "/growncookies-1024-transparent.png",
+};
+
+const FALLBACK_PRODUCTS: StaticProductRecord[] = [
   {
     slug: "dark-choc-maldon-salt",
     name: "Dark Choc & Maldon Salt",
     price: "GBP 22.00",
-    image: "/Dark_Choc-_Salt/_DSC6327.jpg",
+    imageKey: "Dark_Choc-_Salt/_DSC6327.jpg",
+    imageAlt: "Dark Choc & Maldon Salt cookie",
     description:
       "Indulge in the rich decadence of our Dark Choc & Maldon Salt Cookie. Bursting with delicious 70% dark chocolate, this elevated treat is further enhanced by the addition of Maldon salt, adding a unique and luxurious flavour to each bite.",
     featured: true,
@@ -51,9 +60,10 @@ const FALLBACK_PRODUCTS: ShopProduct[] = [
   },
   {
     slug: "double-chocolate-hazelnut",
-    name: "Double Chocolate & Hazelnut",
+    name: "Double Choc & Hazelnut",
     price: "GBP 22.00",
-    image: "/Double_Choc_Hazelnut/_DSC6200.jpg",
+    imageKey: "Double_Choc_Hazelnut/_DSC6200.jpg",
+    imageAlt: "Double Choc & Hazelnut cookie",
     description:
       "Our Double Chocolate & Hazelnut cookie is packed with deep cocoa notes, crunchy roasted hazelnuts, and a soft center that stays rich in every bite.",
     featured: true,
@@ -64,6 +74,8 @@ const FALLBACK_PRODUCTS: ShopProduct[] = [
     slug: "gift-card",
     name: "Gift Card",
     price: "GBP 10.00",
+    imageKey: "gift-card/growncookies-1024-transparent.png",
+    imageAlt: "Grown Cookies gift card",
     isGiftCard: true,
     description:
       "Send a Grown Cookies gift card and let them choose their own flavour favourites. Perfect for birthdays, celebrations, and thoughtful surprises.",
@@ -75,7 +87,8 @@ const FALLBACK_PRODUCTS: ShopProduct[] = [
     slug: "granola-raisin",
     name: "Granola Raisin",
     price: "GBP 22.00",
-    image: "/Crunchy_Granola/_DSC6127.jpg",
+    imageKey: "Crunchy_Granola/_DSC6127.jpg",
+    imageAlt: "Granola Raisin cookie",
     description:
       "A comforting oat-forward cookie with toasted granola clusters and juicy raisins for a warm, nostalgic bite.",
     featured: false,
@@ -86,7 +99,8 @@ const FALLBACK_PRODUCTS: ShopProduct[] = [
     slug: "matcha-white-chocolate",
     name: "Matcha White Chocolate",
     price: "GBP 22.00",
-    image: "/Matcha/_DSC6441.jpg",
+    imageKey: "Matcha/_DSC6441.jpg",
+    imageAlt: "Matcha White Chocolate cookie",
     description:
       "Earthy matcha and creamy white chocolate come together for a balanced cookie with vibrant colour and smooth sweetness.",
     featured: false,
@@ -97,7 +111,8 @@ const FALLBACK_PRODUCTS: ShopProduct[] = [
     slug: "red-velvet",
     name: "Red Velvet",
     price: "GBP 22.00",
-    image: "/Red_Velvet/_DSC6161.jpg",
+    imageKey: "Red_Velvet/_DSC6161.jpg",
+    imageAlt: "Red Velvet cookie",
     description:
       "Our Red Velvet cookie blends cocoa richness with a velvety texture and a subtle tang for a bold dessert-style treat.",
     featured: false,
@@ -108,7 +123,8 @@ const FALLBACK_PRODUCTS: ShopProduct[] = [
     slug: "double-choc-box",
     name: "Double Choc Box",
     price: "GBP 22.00",
-    image: "/Box_Shots/_DSC6145.jpg",
+    imageKey: "Box_Shots/_DSC6145.jpg",
+    imageAlt: "Double Choc Box",
     description:
       "A curated cookie box featuring crowd-favourite chocolate flavours, baked fresh and ready to share.",
     featured: false,
@@ -116,6 +132,26 @@ const FALLBACK_PRODUCTS: ShopProduct[] = [
     relatedSlugs: [],
   },
 ];
+
+function buildProductImageUrl(imageKey?: string | null) {
+  if (!imageKey) {
+    return undefined;
+  }
+
+  if (/^https?:\/\//.test(imageKey)) {
+    return imageKey;
+  }
+
+  const normalizedImageKey = imageKey.replace(/^\/+/, "");
+  const r2PublicBaseUrl =
+    process.env.CLOUDFLARE_R2_PUBLIC_BASE_URL?.replace(/\/+$/, "") ?? "";
+
+  if (r2PublicBaseUrl) {
+    return `${r2PublicBaseUrl}/${normalizedImageKey}`;
+  }
+
+  return LOCAL_IMAGE_FALLBACKS[normalizedImageKey] ?? `/${normalizedImageKey}`;
+}
 
 function normalizeRelatedSlugs(value: string | null) {
   if (!value) {
@@ -132,8 +168,23 @@ function normalizeRelatedSlugs(value: string | null) {
   }
 }
 
+function mapStaticProduct(record: StaticProductRecord): ShopProduct {
+  return {
+    slug: record.slug,
+    name: record.name,
+    price: record.price,
+    description: record.description,
+    featured: record.featured,
+    sortOrder: record.sortOrder,
+    relatedSlugs: record.relatedSlugs,
+    image: buildProductImageUrl(record.imageKey),
+    imageAlt: record.imageAlt,
+    isGiftCard: record.isGiftCard,
+  };
+}
+
 function mapRowToProduct(row: ProductRow): ShopProduct {
-  const base = {
+  return {
     slug: row.slug,
     name: row.name,
     price: row.price,
@@ -141,18 +192,9 @@ function mapRowToProduct(row: ProductRow): ShopProduct {
     featured: Boolean(row.featured),
     sortOrder: row.sort_order ?? 0,
     relatedSlugs: normalizeRelatedSlugs(row.related_slugs),
-  };
-
-  if (Boolean(row.is_gift_card)) {
-    return {
-      ...base,
-      isGiftCard: true,
-    };
-  }
-
-  return {
-    ...base,
-    image: row.image_url ?? "",
+    image: buildProductImageUrl(row.image_key),
+    imageAlt: row.alt_text ?? undefined,
+    isGiftCard: Boolean(row.is_gift_card),
   };
 }
 
@@ -169,11 +211,28 @@ function sortProducts(products: ShopProduct[]) {
   });
 }
 
+function getFallbackProducts() {
+  return sortProducts(FALLBACK_PRODUCTS.map(mapStaticProduct));
+}
+
 async function fetchProductsFromD1() {
   const rows = await queryCloudflareD1<ProductRow>(
-    `SELECT slug, name, price, description, image_url, is_gift_card, featured, sort_order, related_slugs
-     FROM products
-     ORDER BY sort_order ASC, name ASC`,
+    `SELECT
+       p.slug,
+       p.name,
+       p.price,
+       p.description,
+       p.is_gift_card,
+       p.featured,
+       p.sort_order,
+       p.related_slugs,
+       pi.image_key,
+       pi.alt_text
+     FROM products p
+     LEFT JOIN product_images pi
+       ON pi.product_id = p.id
+      AND pi.is_primary = 1
+     ORDER BY p.sort_order ASC, p.name ASC`,
   );
 
   return rows.map(mapRowToProduct);
@@ -181,14 +240,14 @@ async function fetchProductsFromD1() {
 
 export async function getAllProducts() {
   if (!hasCloudflareD1Config()) {
-    return sortProducts(FALLBACK_PRODUCTS);
+    return getFallbackProducts();
   }
 
   try {
     return sortProducts(await fetchProductsFromD1());
   } catch (error) {
     console.warn("Falling back to local product data.", error);
-    return sortProducts(FALLBACK_PRODUCTS);
+    return getFallbackProducts();
   }
 }
 
