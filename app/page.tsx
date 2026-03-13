@@ -44,12 +44,16 @@ export default async function Home() {
               aria-label={`View ${product.name}`}
             >
               {product.isGiftCard ? (
-                <GiftCardTile className={styles.giftCardTile} />
-              ) : (
+                <GiftCardTile
+                  className={styles.giftCardTile}
+                  src={product.image}
+                  alt={product.imageAlt ?? product.name}
+                />
+              ) : product.image ? (
                 <div className={styles.cardImageWrap}>
                   <Image
                     src={product.image}
-                    alt={product.name}
+                    alt={product.imageAlt ?? product.name}
                     fill
                     className={styles.cardImage}
                   />
@@ -58,7 +62,7 @@ export default async function Home() {
                     <FiPlus />
                   </span>
                 </div>
-              )}
+              ) : null}
               <h3>{product.name}</h3>
               <p>{product.price}</p>
             </Link>

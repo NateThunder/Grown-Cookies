@@ -32,10 +32,10 @@ export default function AccountPage() {
         <div className={styles.panel}>
           <div className={styles.panelHeader}>
             <p className={styles.panelEyebrow}>Sign up</p>
-            <h2>Start with email and password</h2>
+            <h2>Start with email or Google</h2>
             <p>
-              This uses Supabase Auth. New customers will receive an email
-              confirmation link after they register.
+              This uses Supabase Auth. Customers can create an account with
+              email and password or continue with Google.
             </p>
           </div>
 
