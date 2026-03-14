@@ -11,7 +11,7 @@ export default async function ShopPage() {
 
   return (
     <main className={styles.page}>
-      <SiteHeader activeRoute="shop" />
+      <SiteHeader activeRoute="shop" products={products} />
 
       <section className={styles.shop}>
         <h1>Shop</h1>

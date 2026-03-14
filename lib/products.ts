@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { executeCloudflareD1, hasCloudflareD1Config, queryCloudflareD1 } from "./cloudflare-d1";
 import { buildProductImageUrl } from "./product-image-url";
 
@@ -37,6 +38,8 @@ type ProductRow = {
 };
 
 let featuredSchemaEnsured = false;
+const PRODUCT_CACHE_TAG = "products";
+const PRODUCT_CACHE_REVALIDATE_SECONDS = 300;
 
 async function ensureFeaturedProductsSchema() {
   if (featuredSchemaEnsured || !hasCloudflareD1Config()) {
@@ -258,32 +261,17 @@ async function fetchProductsFromD1() {
   return rows.map(mapRowToProduct);
 }
 
-export async function getAllProducts() {
-  if (!hasCloudflareD1Config()) {
-    return getFallbackProducts();
-  }
+const getAllProductsCached = unstable_cache(
+  async () => sortProducts(await fetchProductsFromD1()),
+  ["products-all"],
+  {
+    revalidate: PRODUCT_CACHE_REVALIDATE_SECONDS,
+    tags: [PRODUCT_CACHE_TAG],
+  },
+);
 
-  try {
-    return sortProducts(await fetchProductsFromD1());
-  } catch (error) {
-    console.warn("Falling back to local product data.", error);
-    return getFallbackProducts();
-  }
-}
-
-export async function getFeaturedProducts(count = 3) {
-  if (!hasCloudflareD1Config()) {
-    const products = getFallbackProducts();
-    const featuredProducts = products.filter((product) => product.featured);
-
-    if (featuredProducts.length >= count) {
-      return featuredProducts.slice(0, count);
-    }
-
-    return products.slice(0, count);
-  }
-
-  try {
+const getFeaturedProductsCached = unstable_cache(
+  async (count: number) => {
     await ensureFeaturedProductsSchema();
 
     const rows = await queryCloudflareD1<ProductRow>(
@@ -307,6 +295,7 @@ export async function getFeaturedProducts(count = 3) {
        ORDER BY fp.position ASC, p.name ASC
        LIMIT ?`,
       [count],
+      { next: { revalidate: PRODUCT_CACHE_REVALIDATE_SECONDS, tags: [PRODUCT_CACHE_TAG] } },
     );
 
     if (rows.length >= count) {
@@ -321,6 +310,41 @@ export async function getFeaturedProducts(count = 3) {
     }
 
     return products.slice(0, count);
+  },
+  ["products-featured"],
+  {
+    revalidate: PRODUCT_CACHE_REVALIDATE_SECONDS,
+    tags: [PRODUCT_CACHE_TAG],
+  },
+);
+
+export async function getAllProducts() {
+  if (!hasCloudflareD1Config()) {
+    return getFallbackProducts();
+  }
+
+  try {
+    return await getAllProductsCached();
+  } catch (error) {
+    console.warn("Falling back to local product data.", error);
+    return getFallbackProducts();
+  }
+}
+
+export async function getFeaturedProducts(count = 3) {
+  if (!hasCloudflareD1Config()) {
+    const products = getFallbackProducts();
+    const featuredProducts = products.filter((product) => product.featured);
+
+    if (featuredProducts.length >= count) {
+      return featuredProducts.slice(0, count);
+    }
+
+    return products.slice(0, count);
+  }
+
+  try {
+    return await getFeaturedProductsCached(count);
   } catch (error) {
     console.warn("Falling back to local featured product data.", error);
     const products = getFallbackProducts();

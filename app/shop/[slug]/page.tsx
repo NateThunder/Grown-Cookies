@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FiShoppingBag } from "react-icons/fi";
 import GiftCardTile from "@/components/gift-card-tile";
-import { getAllProducts, getRelatedProducts, getShopProduct } from "@/lib/products";
+import { getAllProducts } from "@/lib/products";
 import SiteHeader from "@/components/site-header";
 import styles from "./page.module.css";
 
@@ -18,17 +18,32 @@ export default async function ProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = await getShopProduct(slug);
+  const products = await getAllProducts();
+  const product = products.find((item) => item.slug === slug);
 
   if (!product) {
     notFound();
   }
 
-  const relatedProducts = await getRelatedProducts(product.slug);
+  const productMap = new Map(products.map((item) => [item.slug, item]));
+  const curatedProducts = (product.relatedSlugs ?? [])
+    .map((itemSlug) => productMap.get(itemSlug))
+    .filter((item): item is (typeof products)[number] => Boolean(item));
+  const fallbackProducts = products.filter(
+    (item) => !item.isGiftCard && item.slug !== product.slug,
+  );
+  const relatedProducts = [...curatedProducts];
+
+  for (const item of fallbackProducts) {
+    if (!relatedProducts.some((existing) => existing.slug === item.slug)) {
+      relatedProducts.push(item);
+    }
+  }
+
 
   return (
     <main className={styles.page}>
-      <SiteHeader activeRoute="shop" />
+      <SiteHeader activeRoute="shop" products={products} />
 
       <section className={styles.productSection}>
         <div className={styles.imageColumn}>
