@@ -429,9 +429,6 @@
 .card:focus-within .giftCardTile {
   transform: translateY(-4px) scale(1.01);
   filter: none;
-  box-shadow:
-    0 14px 24px rgba(33, 10, 39, 0.28),
-    0 1px 0 rgba(33, 10, 39, 0.3);
 }
 
 .card:hover .giftCardTile::after,
