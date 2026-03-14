@@ -42,6 +42,11 @@ function getRemotePatterns(): RemotePattern[] {
 }
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
+  },
   images: {
     remotePatterns: getRemotePatterns(),
   },

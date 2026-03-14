@@ -1,4 +1,5 @@
-import { hasCloudflareD1Config, queryCloudflareD1 } from "./cloudflare-d1";
+import { executeCloudflareD1, hasCloudflareD1Config, queryCloudflareD1 } from "./cloudflare-d1";
+import { buildProductImageUrl } from "./product-image-url";
 
 type ProductBase = {
   slug: string;
@@ -30,15 +31,50 @@ type ProductRow = {
   image_key: string | null;
   alt_text: string | null;
   is_gift_card: number;
-  featured: number;
+  featured_position: number | null;
   sort_order: number | null;
   related_slugs: string | null;
 };
 
-const LOCAL_IMAGE_FALLBACKS: Record<string, string> = {
-  "gift-card/growncookies-1024-transparent.png":
-    "/growncookies-1024-transparent.png",
-};
+let featuredSchemaEnsured = false;
+
+async function ensureFeaturedProductsSchema() {
+  if (featuredSchemaEnsured || !hasCloudflareD1Config()) {
+    return;
+  }
+
+  await executeCloudflareD1(
+    `CREATE TABLE IF NOT EXISTS featured_products (
+       product_slug TEXT NOT NULL PRIMARY KEY,
+       position INTEGER NOT NULL UNIQUE,
+       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+       FOREIGN KEY (product_slug) REFERENCES products(slug) ON DELETE CASCADE
+     )`,
+  );
+
+  await executeCloudflareD1(
+    `CREATE INDEX IF NOT EXISTS idx_featured_products_position
+       ON featured_products(position)`,
+  );
+
+  const featuredRowCount = await queryCloudflareD1<{ total: number }>(
+    "SELECT COUNT(1) AS total FROM featured_products",
+    [],
+    { cache: "no-store" },
+  );
+
+  if ((featuredRowCount[0]?.total ?? 0) === 0) {
+    await executeCloudflareD1(
+      `INSERT OR IGNORE INTO featured_products (product_slug, position)
+       SELECT slug, ROW_NUMBER() OVER (ORDER BY sort_order ASC, name ASC)
+       FROM products
+       WHERE featured = 1`,
+    );
+  }
+
+  featuredSchemaEnsured = true;
+}
 
 const FALLBACK_PRODUCTS: StaticProductRecord[] = [
   {
@@ -50,7 +86,7 @@ const FALLBACK_PRODUCTS: StaticProductRecord[] = [
     description:
       "Indulge in the rich decadence of our Dark Choc & Maldon Salt Cookie. Bursting with delicious 70% dark chocolate, this elevated treat is further enhanced by the addition of Maldon salt, adding a unique and luxurious flavour to each bite.",
     featured: true,
-    sortOrder: 10,
+    sortOrder: 1,
     relatedSlugs: [
       "double-chocolate-hazelnut",
       "matcha-white-chocolate",
@@ -67,7 +103,7 @@ const FALLBACK_PRODUCTS: StaticProductRecord[] = [
     description:
       "Our Double Chocolate & Hazelnut cookie is packed with deep cocoa notes, crunchy roasted hazelnuts, and a soft center that stays rich in every bite.",
     featured: true,
-    sortOrder: 20,
+    sortOrder: 2,
     relatedSlugs: [],
   },
   {
@@ -80,7 +116,7 @@ const FALLBACK_PRODUCTS: StaticProductRecord[] = [
     description:
       "Send a Grown Cookies gift card and let them choose their own flavour favourites. Perfect for birthdays, celebrations, and thoughtful surprises.",
     featured: true,
-    sortOrder: 30,
+    sortOrder: 3,
     relatedSlugs: [],
   },
   {
@@ -133,26 +169,6 @@ const FALLBACK_PRODUCTS: StaticProductRecord[] = [
   },
 ];
 
-function buildProductImageUrl(imageKey?: string | null) {
-  if (!imageKey) {
-    return undefined;
-  }
-
-  if (/^https?:\/\//.test(imageKey)) {
-    return imageKey;
-  }
-
-  const normalizedImageKey = imageKey.replace(/^\/+/, "");
-  const r2PublicBaseUrl =
-    process.env.CLOUDFLARE_R2_PUBLIC_BASE_URL?.replace(/\/+$/, "") ?? "";
-
-  if (r2PublicBaseUrl) {
-    return `${r2PublicBaseUrl}/${normalizedImageKey}`;
-  }
-
-  return LOCAL_IMAGE_FALLBACKS[normalizedImageKey] ?? `/${normalizedImageKey}`;
-}
-
 function normalizeRelatedSlugs(value: string | null) {
   if (!value) {
     return [];
@@ -189,8 +205,8 @@ function mapRowToProduct(row: ProductRow): ShopProduct {
     name: row.name,
     price: row.price,
     description: row.description,
-    featured: Boolean(row.featured),
-    sortOrder: row.sort_order ?? 0,
+    featured: row.featured_position !== null,
+    sortOrder: row.featured_position ?? row.sort_order ?? 0,
     relatedSlugs: normalizeRelatedSlugs(row.related_slugs),
     image: buildProductImageUrl(row.image_key),
     imageAlt: row.alt_text ?? undefined,
@@ -216,6 +232,8 @@ function getFallbackProducts() {
 }
 
 async function fetchProductsFromD1() {
+  await ensureFeaturedProductsSchema();
+
   const rows = await queryCloudflareD1<ProductRow>(
     `SELECT
        p.slug,
@@ -223,12 +241,14 @@ async function fetchProductsFromD1() {
        p.price,
        p.description,
        p.is_gift_card,
-       p.featured,
+       fp.position AS featured_position,
        p.sort_order,
        p.related_slugs,
        pi.image_key,
        pi.alt_text
      FROM products p
+     LEFT JOIN featured_products fp
+       ON fp.product_slug = p.slug
      LEFT JOIN product_images pi
        ON pi.product_id = p.id
       AND pi.is_primary = 1
@@ -252,14 +272,66 @@ export async function getAllProducts() {
 }
 
 export async function getFeaturedProducts(count = 3) {
-  const products = await getAllProducts();
-  const featuredProducts = products.filter((product) => product.featured);
+  if (!hasCloudflareD1Config()) {
+    const products = getFallbackProducts();
+    const featuredProducts = products.filter((product) => product.featured);
 
-  if (featuredProducts.length >= count) {
-    return featuredProducts.slice(0, count);
+    if (featuredProducts.length >= count) {
+      return featuredProducts.slice(0, count);
+    }
+
+    return products.slice(0, count);
   }
 
-  return products.slice(0, count);
+  try {
+    await ensureFeaturedProductsSchema();
+
+    const rows = await queryCloudflareD1<ProductRow>(
+      `SELECT
+         p.slug,
+         p.name,
+         p.price,
+         p.description,
+         p.is_gift_card,
+         fp.position AS featured_position,
+         p.sort_order,
+         p.related_slugs,
+         pi.image_key,
+         pi.alt_text
+       FROM featured_products fp
+       JOIN products p
+         ON p.slug = fp.product_slug
+       LEFT JOIN product_images pi
+         ON pi.product_id = p.id
+        AND pi.is_primary = 1
+       ORDER BY fp.position ASC, p.name ASC
+       LIMIT ?`,
+      [count],
+    );
+
+    if (rows.length >= count) {
+      return rows.map(mapRowToProduct);
+    }
+
+    const products = sortProducts(await fetchProductsFromD1());
+    const featuredProducts = products.filter((product) => product.featured);
+
+    if (featuredProducts.length >= count) {
+      return featuredProducts.slice(0, count);
+    }
+
+    return products.slice(0, count);
+  } catch (error) {
+    console.warn("Falling back to local featured product data.", error);
+    const products = getFallbackProducts();
+    const featuredProducts = products.filter((product) => product.featured);
+
+    if (featuredProducts.length >= count) {
+      return featuredProducts.slice(0, count);
+    }
+
+    return products.slice(0, count);
+  }
 }
 
 export async function getShopProduct(slug: string) {
