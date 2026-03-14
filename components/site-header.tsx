@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAllProducts } from "@/lib/products";
+import { getAllProducts, type ShopProduct } from "@/lib/products";
 import SearchModalTrigger from "@/components/search-modal-trigger";
 import { FiShoppingBag, FiUser } from "react-icons/fi";
 import styles from "./site-header.module.css";
@@ -8,6 +8,7 @@ type NavRoute = "home" | "shop" | "contact" | "faqs";
 
 type SiteHeaderProps = {
   activeRoute?: NavRoute;
+  products?: ShopProduct[];
 };
 
 const navItems: Array<{ href: string; label: string; route: NavRoute }> = [
@@ -17,8 +18,8 @@ const navItems: Array<{ href: string; label: string; route: NavRoute }> = [
   { href: "/faqs", label: "FAQ's", route: "faqs" },
 ];
 
-export default async function SiteHeader({ activeRoute }: SiteHeaderProps) {
-  const products = await getAllProducts();
+export default async function SiteHeader({ activeRoute, products: providedProducts }: SiteHeaderProps) {
+  const products = providedProducts ?? (await getAllProducts());
 
   return (
     <>

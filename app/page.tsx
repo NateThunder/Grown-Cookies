@@ -3,15 +3,18 @@ import Link from "next/link";
 import { FiPlus, FiShoppingBag } from "react-icons/fi";
 import GiftCardTile from "@/components/gift-card-tile";
 import SiteHeader from "@/components/site-header";
-import { getFeaturedProducts } from "@/lib/products";
+import { getAllProducts } from "@/lib/products";
 import styles from "./page.module.css";
 
 export default async function Home() {
-  const featuredProducts = await getFeaturedProducts(3);
+  const products = await getAllProducts();
+  const featuredProducts = products.filter((product) => product.featured);
+  const homepageProducts =
+    featuredProducts.length >= 3 ? featuredProducts.slice(0, 3) : products.slice(0, 3);
 
   return (
     <main className={`${styles.page} ${styles.pageWidthWide}`}>
-      <SiteHeader activeRoute="home" />
+      <SiteHeader activeRoute="home" products={products} />
 
       <section className={styles.hero}>
         <Image
@@ -34,7 +37,7 @@ export default async function Home() {
       <section className={styles.featured}>
         <h2>Featured products</h2>
         <div className={styles.grid}>
-          {featuredProducts.map((product) => (
+          {homepageProducts.map((product) => (
             <Link
               key={product.slug}
               href={`/shop/${product.slug}`}
