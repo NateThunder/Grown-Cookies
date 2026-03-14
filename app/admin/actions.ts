@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import {
@@ -154,6 +155,8 @@ export async function createProductAction(formData: FormData) {
       isGiftCard: formData.get("isGiftCard") === "on",
     });
 
+    revalidateTag("products", "max");
+
     redirectToAdmin({
       productSlug: result.slug,
       notice: "Product created.",
@@ -199,6 +202,8 @@ export async function updateProductAction(formData: FormData) {
       isGiftCard: formData.get("isGiftCard") === "on",
     });
 
+    revalidateTag("products", "max");
+
     redirectToAdmin({
       productSlug: result.slug,
       notice: "Product saved.",
@@ -235,6 +240,7 @@ export async function moveFeaturedProductAction(formData: FormData) {
     }
 
     await moveFeaturedProductPosition(productSlug, direction);
+    revalidateTag("products", "max");
 
     redirectToAdmin({
       returnView: "featured",
