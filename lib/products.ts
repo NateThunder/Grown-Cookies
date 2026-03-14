@@ -113,7 +113,7 @@ const FALLBACK_PRODUCTS: StaticProductRecord[] = [
     slug: "gift-card",
     name: "Gift Card",
     price: "GBP 10.00",
-    imageKey: "gift-card/growncookies-1024-transparent.png",
+    imageKey: "products/gift-card/1773484475889-growncookies-1024-transparent-cropped.png",
     imageAlt: "Grown Cookies gift card",
     isGiftCard: true,
     description:
