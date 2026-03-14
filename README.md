@@ -18,9 +18,13 @@ CLOUDFLARE_D1_DATABASE_ID=your-cloudflare-d1-database-id
 CLOUDFLARE_API_TOKEN=your-cloudflare-api-token
 CLOUDFLARE_R2_BUCKET_NAME=your-r2-bucket-name
 CLOUDFLARE_R2_PUBLIC_BASE_URL=https://your-public-r2-domain-or-custom-domain
+CLOUDFLARE_R2_ACCESS_KEY_ID=optional-s3-access-key-id
+CLOUDFLARE_R2_SECRET_ACCESS_KEY=optional-s3-secret-access-key
+CLOUDFLARE_R2_JURISDICTION=optional-eu-or-fedramp
 ```
 
 `CLOUDFLARE_R2_PUBLIC_BASE_URL` must point at the public R2 hostname or custom domain that serves the product images stored in Cloudflare.
+If you do not set `CLOUDFLARE_R2_ACCESS_KEY_ID` and `CLOUDFLARE_R2_SECRET_ACCESS_KEY`, the app will try to derive R2 S3-compatible upload credentials from `CLOUDFLARE_API_TOKEN`.
 
 Install dependencies and run the development server:
 
@@ -46,6 +50,7 @@ npm run dev:local
 Open [http://local.growncookies.co.uk:3000](http://local.growncookies.co.uk:3000).
 
 The customer registration screen lives at `/account` and uses Supabase Auth for email/password signup and Google login.
+The catalog admin screen lives at `/admin`, edits products in Cloudflare D1, and now requires Supabase email/password sign-in.
 
 ## Supabase Auth Setup
 

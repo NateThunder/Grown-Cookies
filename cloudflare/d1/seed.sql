@@ -3,7 +3,7 @@ INSERT OR REPLACE INTO products (
   name,
   price,
   description,
-  image_url,
+  allergens,
   is_gift_card,
   featured,
   sort_order,
@@ -11,10 +11,10 @@ INSERT OR REPLACE INTO products (
 ) VALUES
   (
     'dark-choc-maldon-salt',
-    'Dark Choc & Maldon Salt',
-    '£22.00',
-    'Indulge in the rich decadence of our Dark Choc & Maldon Salt Cookie. Bursting with delicious 70% dark chocolate, this elevated treat is further enhanced by the addition of Maldon salt, adding a unique and luxurious flavour to each bite.',
-    '/Dark_Choc-_Salt/_DSC6327.jpg',
+    'Dark Chocolate Maldon Salt',
+    'GBP 23.00',
+    'Indulge in the rich decadence of our Dark Choc & Maldon Salt Cookie. Bursting with delicious 70% dark chocolate and a touch of milk chocolate, this elevated treat is finished with Maldon salt for a deep, balanced bite.',
+    'wheat, milk, eggs',
     0,
     1,
     10,
@@ -23,9 +23,9 @@ INSERT OR REPLACE INTO products (
   (
     'double-chocolate-hazelnut',
     'Double Chocolate & Hazelnut',
-    '£22.00',
-    'Our Double Chocolate & Hazelnut cookie is packed with deep cocoa notes, crunchy roasted hazelnuts, and a soft center that stays rich in every bite.',
-    '/Double_Choc_Hazelnut/_DSC6200.jpg',
+    'GBP 23.00',
+    'Our Chocolate & Hazelnut Cookie is packed with milk and dark chocolate chips, plus roasted hazelnuts for a cookie that lands rich, smooth, and crunchy in every bite.',
+    'wheat, milk, eggs, hazelnuts',
     0,
     1,
     20,
@@ -34,9 +34,9 @@ INSERT OR REPLACE INTO products (
   (
     'gift-card',
     'Gift Card',
-    '£10.00',
+    'GBP 10.00',
     'Send a Grown Cookies gift card and let them choose their own flavour favourites. Perfect for birthdays, celebrations, and thoughtful surprises.',
-    NULL,
+    '',
     1,
     1,
     30,
@@ -44,10 +44,10 @@ INSERT OR REPLACE INTO products (
   ),
   (
     'granola-raisin',
-    'Granola Raisin',
-    '£22.00',
-    'A comforting oat-forward cookie with toasted granola clusters and juicy raisins for a warm, nostalgic bite.',
-    '/Crunchy_Granola/_DSC6127.jpg',
+    'Crunchy Granola & Raisin',
+    'GBP 22.00',
+    'A hearty oat cookie loaded with toasted granola clusters, juicy raisins, cranberries, and seeds for a warm, nostalgic bite with plenty of texture.',
+    'wheat, milk, eggs, almond',
     0,
     0,
     40,
@@ -56,9 +56,9 @@ INSERT OR REPLACE INTO products (
   (
     'matcha-white-chocolate',
     'Matcha White Chocolate',
-    '£22.00',
-    'Earthy matcha and creamy white chocolate come together for a balanced cookie with vibrant colour and smooth sweetness.',
-    '/Matcha/_DSC6441.jpg',
+    'GBP 23.00',
+    'Ceremonial-grade matcha brings earthy depth while creamy white chocolate keeps every bite smooth, sweet, and vibrant.',
+    'wheat, milk, eggs',
     0,
     0,
     50,
@@ -67,9 +67,9 @@ INSERT OR REPLACE INTO products (
   (
     'red-velvet',
     'Red Velvet',
-    '£22.00',
-    'Our Red Velvet cookie blends cocoa richness with a velvety texture and a subtle tang for a bold dessert-style treat.',
-    '/Red_Velvet/_DSC6161.jpg',
+    'GBP 22.00',
+    'A rich red velvet cookie with real cocoa and creamy white chocolate chunks, baked for a bold dessert-style finish.',
+    'wheat, milk, eggs',
     0,
     0,
     60,
@@ -77,12 +77,43 @@ INSERT OR REPLACE INTO products (
   ),
   (
     'double-choc-box',
-    'Double Choc Box',
-    '£22.00',
-    'A curated cookie box featuring crowd-favourite chocolate flavours, baked fresh and ready to share.',
-    '/Box_Shots/_DSC6145.jpg',
+    'Variety Box',
+    'GBP 24.00',
+    'Try the full range in one box. This six-cookie selection includes matcha white chocolate, crunchy granola and raisin, dark chocolate Maldon salt, red velvet, double chocolate hazelnut, and the cookie of the month.',
+    'wheat, milk, eggs, almond, hazelnuts, soya',
     0,
     0,
     70,
     '[]'
   );
+INSERT OR REPLACE INTO featured_products (
+  product_slug,
+  position
+) VALUES
+  ('dark-choc-maldon-salt', 1),
+  ('double-chocolate-hazelnut', 2),
+  ('gift-card', 3);
+INSERT OR REPLACE INTO product_images (
+  product_id,
+  image_key,
+  alt_text,
+  sort_order,
+  is_primary
+)
+SELECT p.id, seeded.image_key, seeded.alt_text, seeded.sort_order, seeded.is_primary
+FROM (
+  SELECT 'dark-choc-maldon-salt' AS slug, 'Dark_Choc-_Salt/_DSC6327.jpg' AS image_key, 'Dark Chocolate Maldon Salt cookie' AS alt_text, 0 AS sort_order, 1 AS is_primary
+  UNION ALL
+  SELECT 'double-chocolate-hazelnut', 'Double_Choc_Hazelnut/_DSC6200.jpg', 'Double Chocolate and Hazelnut cookie', 0, 1
+  UNION ALL
+  SELECT 'gift-card', 'gift-card/growncookies-1024-transparent.png', 'Grown Cookies gift card', 0, 1
+  UNION ALL
+  SELECT 'granola-raisin', 'Crunchy_Granola/_DSC6127.jpg', 'Crunchy Granola and Raisin cookie', 0, 1
+  UNION ALL
+  SELECT 'matcha-white-chocolate', 'Matcha/_DSC6441.jpg', 'Matcha White Chocolate cookie', 0, 1
+  UNION ALL
+  SELECT 'red-velvet', 'Red_Velvet/_DSC6161.jpg', 'Red Velvet cookie', 0, 1
+  UNION ALL
+  SELECT 'double-choc-box', 'Box_Shots/_DSC6145.jpg', 'Variety box of cookies', 0, 1
+) AS seeded
+JOIN products p ON p.slug = seeded.slug;
