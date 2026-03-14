@@ -1,4 +1,4 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { executeCloudflareD1, hasCloudflareD1Config, queryCloudflareD1 } from "./cloudflare-d1";
 import { uploadProductImageToR2 } from "./cloudflare-r2";
 import { buildProductImageUrl } from "./product-image-url";
@@ -339,6 +339,7 @@ async function upsertPrimaryImage({
 }
 
 function revalidateProductRoutes(slug: string) {
+  revalidateTag("products", "max");
   revalidatePath("/");
   revalidatePath("/shop");
   revalidatePath(`/shop/${slug}`);
@@ -452,6 +453,7 @@ export async function moveFeaturedProductPosition(
     [target.position, slug],
   );
 
+  revalidateTag("products", "max");
   revalidatePath("/");
   revalidatePath("/admin");
 }
