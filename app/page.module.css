@@ -333,6 +333,7 @@
   z-index: 1;
   background: transparent;
   opacity: 0;
+  pointer-events: none;
   transition: opacity 280ms ease;
 }
 

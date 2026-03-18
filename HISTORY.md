@@ -3,6 +3,56 @@
 This file tracks work completed in the repository for easy machine-readable review.
 
 ## 2026-03-18
+- [done] Fixed product card image clicks by making the decorative overlay ignore pointer events so product links work outside quick-add buttons.
+- files: app/shop/page.module.css, app/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Removed the checkout footer "shop" brand label and its unused styling.
+- files: components/checkout-client.tsx, components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Removed the checkout remember-me section and its unused styling/state.
+- files: components/checkout-client.tsx, components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Increased checkout payment total amount text size in the payment section below tip.
+- files: components/checkout-client.tsx, components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Centered the add-tip stepper plus and minus buttons within their segmented controls.
+- files: components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Moved the payment section below add tip and restored total amount text in the payment area.
+- files: components/checkout-client.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Reorganized the checkout add-tip card with a clearer header, grouped custom amount controls, and distinct none/custom selection states.
+- files: components/checkout-client.tsx, components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Changed the desktop checkout purple summary sidebar to scroll with the main form instead of staying sticky.
+- files: components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Added extra desktop-only spacing below the checkout summary total inside the purple sidebar to improve scroll behavior.
+- files: components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Restored checkout order items to the purple payment summary sidebar for desktop layouts only.
+- files: components/checkout-client.tsx, components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
 - [done] Fixed production build blockers by aligning the webhook Stripe API version and moving checkout success search-param handling to a Next 16-compatible server page.
 - files: app/api/stripe/webhook/route.ts, app/checkout/success/page.tsx, components/checkout-success-basket-clearer.tsx, HISTORY.md
 - status: completed
