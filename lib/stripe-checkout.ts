@@ -1,13 +1,13 @@
 import { executeCloudflareD1, hasCloudflareD1Config, queryCloudflareD1 } from "@/lib/cloudflare-d1";
 import { getAllProducts } from "@/lib/products";
+import { DEFAULT_DELIVERY_COST_CENTS, getDeliveryCostCents } from "@/lib/store-settings";
 
 const STRIPE_CHECKOUT_ORDER_PREFIX = "order";
 const STRIPE_CHECKOUT_CURRENCY = "gbp";
-const STRIPE_CHECKOUT_SHIPPING_CENTS = 1000;
 
 export const STRIPE_CHECKOUT_COSTS = {
   currency: STRIPE_CHECKOUT_CURRENCY,
-  shippingCents: STRIPE_CHECKOUT_SHIPPING_CENTS,
+  defaultShippingCents: DEFAULT_DELIVERY_COST_CENTS,
 } as const;
 
 export const STRIPE_CHECKOUT_ORDER_STATUS = {
@@ -204,7 +204,7 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
   }
 
   const tipCents = Math.max(0, normalizeCents(payload.tipCents));
-  const shippingCents = STRIPE_CHECKOUT_SHIPPING_CENTS;
+  const shippingCents = await getDeliveryCostCents();
   const delivery = sanitizeDelivery(payload.delivery);
 
   const products = await getAllProducts();

@@ -2,7 +2,7 @@
   background: var(--background);
   color: var(--foreground);
   min-height: 100vh;
-  font-family: "Times New Roman", Times, serif;
+  font-family: var(--font-body--family);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

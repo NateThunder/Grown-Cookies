@@ -14,10 +14,16 @@ import {
   FiX,
 } from "react-icons/fi";
 import AdminProductForm from "@/components/admin-product-form";
-import { adminLoginAction, adminLogoutAction, moveFeaturedProductAction } from "./actions";
+import {
+  adminLoginAction,
+  adminLogoutAction,
+  moveFeaturedProductAction,
+  updateDeliveryCostAction,
+} from "./actions";
 import { hasCloudflareD1Config } from "@/lib/cloudflare-d1";
 import { hasCloudflareR2UploadConfig } from "@/lib/cloudflare-r2";
 import { getAdminProducts, getNextFeaturedPosition, getNextProductSortOrder } from "@/lib/product-admin";
+import { DEFAULT_DELIVERY_COST_CENTS, getDeliveryCostSetting } from "@/lib/store-settings";
 import {
   ADMIN_AUTH_COOKIE,
   getSupabaseUserFromAccessToken,
@@ -82,6 +88,13 @@ function formatAdminDate(value?: string) {
     month: "short",
     year: "numeric",
   }).format(date);
+}
+
+function formatAdminCurrency(cents: number) {
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+  }).format(cents / 100);
 }
 
 function AdminLoginScreen({
@@ -163,6 +176,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const products = d1Configured ? await getAdminProducts() : [];
   const nextSortOrder = d1Configured ? await getNextProductSortOrder() : 1;
   const nextFeaturedPosition = d1Configured ? await getNextFeaturedPosition() : 1;
+  const deliveryCostSetting = d1Configured
+    ? await getDeliveryCostSetting()
+    : {
+        deliveryCostCents: DEFAULT_DELIVERY_COST_CENTS,
+        isDefault: true,
+        updatedAt: undefined,
+      };
   const featuredProducts = products
     .filter((product) => product.featured)
     .sort((left, right) => {
@@ -245,6 +265,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 <span>Featured</span>
                 <strong>{featuredProducts.length}</strong>
               </div>
+              <div className={styles.metricCard}>
+                <span>Delivery fee</span>
+                <strong>{formatAdminCurrency(deliveryCostSetting.deliveryCostCents)}</strong>
+              </div>
             </div>
 
             <div className={styles.headerButtonRow}>
@@ -294,128 +318,177 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </section>
         ) : (
           <section className={styles.workspace}>
-            <div className={styles.tablePanel}>
-              <div className={styles.tablePanelHeader}>
-                <div>
-                  <p className={styles.tableEyebrow}>
-                    {showingFeaturedOnly ? "Featured list" : "Product list"}
+            <div className={styles.workspaceStack}>
+              <section className={styles.settingsPanel}>
+                <div className={styles.settingsPanelHeader}>
+                  <div>
+                    <p className={styles.tableEyebrow}>Checkout</p>
+                    <h2>Delivery costs</h2>
+                  </div>
+                  <p className={styles.tableHint}>
+                    Update the flat standard-delivery fee used in checkout and saved into new Stripe
+                    orders.
                   </p>
-                  <h2>{showingFeaturedOnly ? "Manage featured products" : "Manage all products"}</h2>
                 </div>
-                <p className={styles.tableHint}>
-                  {showingFeaturedOnly
-                    ? "Only products in the homepage featured list are shown here, ordered by homepage position."
-                    : "Click edit to open a pop-out window. The thumbnail, featured status, and dates are shown here for quick scanning."}
-                </p>
-              </div>
 
-              <div className={styles.tableScroll}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th scope="col">Product</th>
-                      <th scope="col">Price</th>
-                      <th scope="col">Featured</th>
-                      <th scope="col">Added</th>
-                      <th scope="col">Updated</th>
-                      <th scope="col" className={styles.actionsColumn}>
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {visibleProducts.map((product, index) => {
-                      const isActive = !createNew && selectedProduct?.slug === product.slug;
-                      const isFirstFeatured = showingFeaturedOnly && index === 0;
-                      const isLastFeatured = showingFeaturedOnly && index === visibleProducts.length - 1;
+                <div className={styles.deliveryCardBody}>
+                  <div className={styles.deliverySummary}>
+                    <span>Current live fee</span>
+                    <strong>{formatAdminCurrency(deliveryCostSetting.deliveryCostCents)}</strong>
+                    <small>
+                      {deliveryCostSetting.isDefault
+                        ? "Using the default fee until you save a custom amount."
+                        : `Last updated ${formatAdminDate(deliveryCostSetting.updatedAt)}`}
+                    </small>
+                  </div>
 
-                      return (
-                        <tr key={product.slug} className={isActive ? styles.activeRow : undefined}>
-                          <td>
-                            <div className={styles.productCell}>
-                              <div className={styles.productThumb}>
-                                {product.imageUrl ? (
-                                  <Image
-                                    src={product.imageUrl}
-                                    alt={product.imageAlt}
-                                    fill
-                                    sizes="4rem"
-                                    className={styles.productThumbImage}
-                                  />
-                                ) : (
-                                  <div className={styles.productThumbPlaceholder}>
-                                    <FiImage />
-                                  </div>
-                                )}
-                              </div>
+                  <form action={updateDeliveryCostAction} className={styles.deliveryForm}>
+                    <input type="hidden" name="returnView" value={view} />
 
-                              <div className={styles.productInfo}>
-                                <strong>{product.name}</strong>
-                              </div>
-                            </div>
-                          </td>
-                          <td className={styles.priceCell}>{product.price}</td>
-                          <td>
-                            {product.featured ? (
-                              <span className={`${styles.statusBadge} ${styles.statusFeatured}`}>
-                                <FiStar />
-                                Featured #{product.featuredPosition ?? "-"}
-                              </span>
-                            ) : (
-                              <span className={`${styles.statusBadge} ${styles.statusMuted}`}>
-                                Not featured
-                              </span>
-                            )}
-                          </td>
-                          <td>{formatAdminDate(product.createdAt)}</td>
-                          <td>{formatAdminDate(product.updatedAt)}</td>
-                          <td className={styles.actionsColumn}>
-                            <div className={styles.rowActions}>
-                              {showingFeaturedOnly && product.featured ? (
-                                <div className={styles.reorderControls}>
-                                  <form action={moveFeaturedProductAction}>
-                                    <input type="hidden" name="productSlug" value={product.slug} />
-                                    <input type="hidden" name="direction" value="up" />
-                                    <button
-                                      type="submit"
-                                      className={styles.reorderButton}
-                                      disabled={isFirstFeatured}
-                                      aria-label={`Move ${product.name} up`}
-                                    >
-                                      <FiChevronUp />
-                                    </button>
-                                  </form>
-                                  <form action={moveFeaturedProductAction}>
-                                    <input type="hidden" name="productSlug" value={product.slug} />
-                                    <input type="hidden" name="direction" value="down" />
-                                    <button
-                                      type="submit"
-                                      className={styles.reorderButton}
-                                      disabled={isLastFeatured}
-                                      aria-label={`Move ${product.name} down`}
-                                    >
-                                      <FiChevronDown />
-                                    </button>
-                                  </form>
+                    <label className={styles.deliveryField}>
+                      <span>Standard delivery fee</span>
+                      <div className={styles.deliveryInputWrap}>
+                        <span>GBP</span>
+                        <input
+                          name="deliveryCostValue"
+                          type="text"
+                          inputMode="decimal"
+                          defaultValue={(deliveryCostSetting.deliveryCostCents / 100).toFixed(2)}
+                          required
+                        />
+                      </div>
+                    </label>
+
+                    <button type="submit" className={styles.deliverySaveButton}>
+                      Save delivery cost
+                    </button>
+                  </form>
+                </div>
+              </section>
+
+              <div className={styles.tablePanel}>
+                <div className={styles.tablePanelHeader}>
+                  <div>
+                    <p className={styles.tableEyebrow}>
+                      {showingFeaturedOnly ? "Featured list" : "Product list"}
+                    </p>
+                    <h2>{showingFeaturedOnly ? "Manage featured products" : "Manage all products"}</h2>
+                  </div>
+                  <p className={styles.tableHint}>
+                    {showingFeaturedOnly
+                      ? "Only products in the homepage featured list are shown here, ordered by homepage position."
+                      : "Click edit to open a pop-out window. The thumbnail, featured status, and dates are shown here for quick scanning."}
+                  </p>
+                </div>
+
+                <div className={styles.tableScroll}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th scope="col">Product</th>
+                        <th scope="col">Price</th>
+                        <th scope="col">Featured</th>
+                        <th scope="col">Added</th>
+                        <th scope="col">Updated</th>
+                        <th scope="col" className={styles.actionsColumn}>
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibleProducts.map((product, index) => {
+                        const isActive = !createNew && selectedProduct?.slug === product.slug;
+                        const isFirstFeatured = showingFeaturedOnly && index === 0;
+                        const isLastFeatured = showingFeaturedOnly && index === visibleProducts.length - 1;
+
+                        return (
+                          <tr key={product.slug} className={isActive ? styles.activeRow : undefined}>
+                            <td>
+                              <div className={styles.productCell}>
+                                <div className={styles.productThumb}>
+                                  {product.imageUrl ? (
+                                    <Image
+                                      src={product.imageUrl}
+                                      alt={product.imageAlt}
+                                      fill
+                                      sizes="4rem"
+                                      className={styles.productThumbImage}
+                                    />
+                                  ) : (
+                                    <div className={styles.productThumbPlaceholder}>
+                                      <FiImage />
+                                    </div>
+                                  )}
                                 </div>
-                              ) : null}
 
-                              <Link
-                                href={getAdminHref({ view, productSlug: product.slug })}
-                                className={`${styles.editButton} ${
-                                  isActive ? styles.editButtonActive : ""
-                                }`.trim()}
-                              >
-                                <span>{isActive ? "Editing" : "Edit"}</span>
-                                <FiChevronRight />
-                              </Link>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                                <div className={styles.productInfo}>
+                                  <strong>{product.name}</strong>
+                                </div>
+                              </div>
+                            </td>
+                            <td className={styles.priceCell}>{product.price}</td>
+                            <td>
+                              {product.featured ? (
+                                <span className={`${styles.statusBadge} ${styles.statusFeatured}`}>
+                                  <FiStar />
+                                  Featured #{product.featuredPosition ?? "-"}
+                                </span>
+                              ) : (
+                                <span className={`${styles.statusBadge} ${styles.statusMuted}`}>
+                                  Not featured
+                                </span>
+                              )}
+                            </td>
+                            <td>{formatAdminDate(product.createdAt)}</td>
+                            <td>{formatAdminDate(product.updatedAt)}</td>
+                            <td className={styles.actionsColumn}>
+                              <div className={styles.rowActions}>
+                                {showingFeaturedOnly && product.featured ? (
+                                  <div className={styles.reorderControls}>
+                                    <form action={moveFeaturedProductAction}>
+                                      <input type="hidden" name="productSlug" value={product.slug} />
+                                      <input type="hidden" name="direction" value="up" />
+                                      <button
+                                        type="submit"
+                                        className={styles.reorderButton}
+                                        disabled={isFirstFeatured}
+                                        aria-label={`Move ${product.name} up`}
+                                      >
+                                        <FiChevronUp />
+                                      </button>
+                                    </form>
+                                    <form action={moveFeaturedProductAction}>
+                                      <input type="hidden" name="productSlug" value={product.slug} />
+                                      <input type="hidden" name="direction" value="down" />
+                                      <button
+                                        type="submit"
+                                        className={styles.reorderButton}
+                                        disabled={isLastFeatured}
+                                        aria-label={`Move ${product.name} down`}
+                                      >
+                                        <FiChevronDown />
+                                      </button>
+                                    </form>
+                                  </div>
+                                ) : null}
+
+                                <Link
+                                  href={getAdminHref({ view, productSlug: product.slug })}
+                                  className={`${styles.editButton} ${
+                                    isActive ? styles.editButtonActive : ""
+                                  }`.trim()}
+                                >
+                                  <span>{isActive ? "Editing" : "Edit"}</span>
+                                  <FiChevronRight />
+                                </Link>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </section>

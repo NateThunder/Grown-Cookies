@@ -27,7 +27,6 @@
 
 .emptyState {
   background: #ffffff;
-  border: 1px solid #e8e0e0;
   border-radius: 18px;
   padding: 32px 24px;
 }
@@ -66,7 +65,7 @@
 
 .item {
   display: grid;
-  grid-template-columns: 82px minmax(0, 1fr);
+  grid-template-columns: 88px minmax(0, 1fr);
   gap: 16px;
   align-items: start;
   padding: 18px 0;
@@ -80,7 +79,7 @@
 
 .itemImageWrap {
   position: relative;
-  width: 82px;
+  width: 88px;
   aspect-ratio: 1 / 1;
   overflow: hidden;
   border-radius: 10px;
@@ -88,6 +87,40 @@
   color: #6b5b61;
   font-family: var(--font-body--family);
   font-size: 0.74rem;
+}
+
+.itemImageWrapGiftCard {
+  border: 0;
+  background: transparent;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.itemGiftCardTile {
+  width: 88px;
+  max-width: 100%;
+  --gift-card-radius: 8px;
+  --gift-card-aspect-ratio: 1.45 / 1;
+  --gift-card-image-scale: 1;
+  --gift-card-image-shadow: none;
+  --gift-card-shadow-after-opacity: 0;
+  --gift-card-shadow-after-hover-opacity: 0;
+  --gift-card-shadow-after-bg: transparent;
+  transition: none;
+}
+
+.itemGiftCardTile:hover,
+.itemGiftCardTile:focus-within {
+  transform: none;
+  filter: none;
+}
+
+.itemGiftCardTile::after {
+  opacity: 0;
+  transform: none;
 }
 
 .itemImage {
@@ -224,7 +257,7 @@
   justify-content: center;
   border-radius: 8px;
   background: #8f2f87;
-  color: #ffffff;
+  color: #ffffff !important;
   text-decoration: none;
   font-family: var(--font-body--family);
   font-size: 1.04rem;
@@ -237,6 +270,11 @@
 .checkoutButton:hover {
   filter: brightness(1.03);
   transform: translateY(-1px);
+  color: #ffffff !important;
+}
+
+.checkoutButton:visited {
+  color: #ffffff !important;
 }
 
 .clearAllButton {
@@ -267,12 +305,12 @@
   }
 
   .item {
-    grid-template-columns: 74px minmax(0, 1fr);
+    grid-template-columns: 88px minmax(0, 1fr);
     gap: 14px;
   }
 
   .itemImageWrap {
-    width: 74px;
+    width: 88px;
   }
 
   .itemBody h2 {
