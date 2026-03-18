@@ -6,6 +6,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { FiChevronDown, FiLock, FiMinus, FiPlus, FiSearch } from "react-icons/fi";
 import {
   Elements,
+  ExpressCheckoutElement,
   PaymentElement,
   useElements,
   useStripe,
@@ -96,18 +97,16 @@ function PaymentElementForm({
   const elements = useElements();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState("");
+  const [hasExpressWallets, setHasExpressWallets] = useState(false);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const confirmCurrentPayment = async () => {
     if (!stripe || !elements) {
       const errorMessage = "Payment form is still loading. Please wait.";
       setLocalError(errorMessage);
       onError({ message: errorMessage });
-      return;
+      return { error: errorMessage };
     }
 
-    setIsSubmitting(true);
     setLocalError("");
     onError(null);
 
@@ -123,20 +122,77 @@ function PaymentElementForm({
       const errorMessage = stripeErrorText(result.error);
       setLocalError(errorMessage);
       onError({ message: errorMessage });
-      setIsSubmitting(false);
-      return;
+      return { error: errorMessage };
     }
 
     if (result.paymentIntent?.status === "succeeded" && result.paymentIntent.id) {
       window.location.href = `/checkout/success?orderId=${orderId}&payment_intent=${result.paymentIntent.id}&payment_intent_client_secret=${result.paymentIntent.client_secret ?? ""}`;
-      return;
+      return { success: true };
     }
 
+    return { success: true };
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    setIsSubmitting(true);
+    await confirmCurrentPayment();
     setIsSubmitting(false);
   };
 
   return (
     <form className={styles.stripeForm} onSubmit={handleSubmit}>
+      <div
+        className={hasExpressWallets ? styles.expressCheckoutWrap : styles.expressCheckoutWrapHidden}
+      >
+        <p className={styles.expressCheckoutLabel}>Express checkout</p>
+        <ExpressCheckoutElement
+          options={{
+            buttonTheme: {
+              applePay: "black",
+              googlePay: "black",
+            },
+            buttonType: {
+              applePay: "check-out",
+              googlePay: "checkout",
+            },
+            layout: {
+              maxColumns: 2,
+              maxRows: 1,
+              overflow: "never",
+            },
+            paymentMethods: {
+              applePay: "auto",
+              googlePay: "auto",
+              link: "never",
+              paypal: "never",
+              amazonPay: "never",
+            },
+          }}
+          onReady={(event) => {
+            const available = event.availablePaymentMethods;
+            setHasExpressWallets(Boolean(available?.applePay || available?.googlePay));
+          }}
+          onConfirm={async (event) => {
+            setIsSubmitting(true);
+            const result = await confirmCurrentPayment();
+
+            if ("error" in result) {
+              event.paymentFailed({
+                reason: "fail",
+                message: result.error,
+              });
+            }
+
+            setIsSubmitting(false);
+          }}
+        />
+        <div className={styles.expressCheckoutDivider}>
+          <span>Or pay with card</span>
+        </div>
+      </div>
+
       <div className={styles.paymentElement}>
         <PaymentElement />
       </div>

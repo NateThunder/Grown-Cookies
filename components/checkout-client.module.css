@@ -458,6 +458,46 @@
   gap: 18px;
 }
 
+.expressCheckoutWrap,
+.expressCheckoutWrapHidden {
+  display: grid;
+  gap: 14px;
+}
+
+.expressCheckoutWrapHidden {
+  display: none;
+}
+
+.expressCheckoutLabel {
+  margin: 0;
+  color: #5f4c63;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.expressCheckoutDivider {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.expressCheckoutDivider::before {
+  content: "";
+  position: absolute;
+  inset: 50% 0 auto;
+  border-top: 1px solid #e2d7e4;
+}
+
+.expressCheckoutDivider span {
+  position: relative;
+  z-index: 1;
+  padding: 0 14px;
+  background: #ffffff;
+  color: #6b5567;
+  font-size: 0.92rem;
+}
+
 .paymentElement {
   border: 1px solid #ddd3df;
   border-radius: 16px;
