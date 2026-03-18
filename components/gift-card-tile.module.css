@@ -44,10 +44,10 @@
   bottom: -14px;
   height: 24px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.28);
+  background: var(--gift-card-shadow-after-bg, rgba(0, 0, 0, 0.28));
   filter: blur(14px);
   z-index: 0;
-  opacity: 0.45;
+  opacity: var(--gift-card-shadow-after-opacity, 0.45);
   transition: transform 260ms ease, opacity 260ms ease;
 }
 
@@ -60,22 +60,25 @@
 .tile:hover::after,
 .tile:focus-within::after {
   transform: scale(1.04) translateY(4px);
-  opacity: 0.55;
+  opacity: var(--gift-card-shadow-after-hover-opacity, 0.55);
 }
 
 .image {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover; /* use contain only if you want empty space */
-  object-position: center;
+  object-fit: var(--gift-card-image-fit, cover);
+  object-position: var(--gift-card-image-position, center);
   padding: 0;
   margin: 0;
   border-radius: inherit;
-  box-shadow:
+  box-shadow: var(
+    --gift-card-image-shadow,
     0 14px 30px rgba(0, 0, 0, 0.22),
-    0 6px 14px rgba(0, 0, 0, 0.14);
-  transform: translateZ(0);
+    0 6px 14px rgba(0, 0, 0, 0.14)
+  );
+  transform: translateZ(0) scale(var(--gift-card-image-scale, 1));
+  transform-origin: center;
 }
 
 

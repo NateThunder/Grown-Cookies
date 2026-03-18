@@ -526,51 +526,44 @@
 
 .summaryItem {
   display: grid;
-  grid-template-columns: 136px minmax(0, 1fr) auto;
+  grid-template-columns: 88px minmax(0, 1fr) auto;
   align-items: start;
   gap: 18px;
 }
 
-.summaryItemGiftCard {
-  grid-template-columns: 128px minmax(0, 1fr) auto;
-}
-
 .summaryImageWrap {
   position: relative;
-  width: 136px;
+  width: 88px;
   aspect-ratio: 1 / 1;
   border-radius: 16px;
-  padding: 0;
-  border: 1px solid #ffffff;
+  padding: 3px;
+  border: 1px solid transparent;
   overflow: visible;
   background: rgba(255, 255, 255, 0.18);
   box-sizing: border-box;
 }
 
-.summaryImageInner {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  border-radius: 16px;
-  overflow: hidden;
-  background: transparent;
+.summaryImageWrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid #ffffff;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .summaryImageWrapGiftCard {
-  width: 128px;
-  border: 0;
+  border: 1px solid #ffffff;
   background: transparent;
   border-radius: 6px;
-  overflow: visible;
-  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.summaryImageWrapGiftCard .summaryImageInner {
+.summaryImageWrapGiftCard::after {
   border-radius: 6px;
-  display: block;
-  overflow: visible;
-  height: auto;
-  aspect-ratio: 1.45 / 1;
 }
 
 .summaryGiftCardTile {
@@ -578,8 +571,6 @@
   max-width: 100%;
   position: relative;
   z-index: 1;
-  border: 1px solid #ffffff;
-  box-sizing: border-box;
   border-radius: 8px;
   --gift-card-radius: 8px;
   --gift-card-aspect-ratio: 1.45 / 1;
@@ -589,7 +580,6 @@
   --gift-card-shadow-after-hover-opacity: 0;
   --gift-card-shadow-after-bg: transparent;
   transition: none;
-  margin: 0 auto;
 }
 
 .summaryGiftCardTile:hover,
@@ -604,8 +594,6 @@
 }
 
 .summaryImage {
-  width: 100%;
-  height: 100%;
   position: relative;
   z-index: 1;
   object-fit: cover;
@@ -782,3 +770,4 @@
     text-align: left;
   }
 }
+

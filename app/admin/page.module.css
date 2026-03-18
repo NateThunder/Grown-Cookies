@@ -349,6 +349,7 @@
 }
 
 .tablePanel,
+.settingsPanel,
 .emptyState,
 .modalCard {
   border-radius: 1.75rem;
@@ -357,10 +358,17 @@
   box-shadow: 0 22px 58px rgba(76, 32, 42, 0.1);
 }
 
+.workspaceStack {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.settingsPanel,
 .tablePanel {
   overflow: hidden;
 }
 
+.settingsPanelHeader,
 .tablePanelHeader {
   display: flex;
   justify-content: space-between;
@@ -369,11 +377,114 @@
   padding: 1.4rem 1.5rem 1rem;
 }
 
+.settingsPanelHeader h2,
 .tablePanelHeader h2 {
   margin: 0.4rem 0 0;
   color: #42172e;
   font-family: var(--font-fraunces), Georgia, serif;
   font-size: 1.6rem;
+}
+
+.deliveryCardBody {
+  display: grid;
+  grid-template-columns: minmax(16rem, 20rem) minmax(0, 1fr);
+  gap: 1rem;
+  padding: 0 1.5rem 1.5rem;
+}
+
+.deliverySummary {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  padding: 1rem 1.1rem;
+  border-radius: 1.25rem;
+  background: rgba(118, 26, 108, 0.06);
+}
+
+.deliverySummary span {
+  color: #8f5767;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.deliverySummary strong {
+  color: #3c172c;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.deliverySummary small {
+  color: rgba(70, 43, 55, 0.72);
+  line-height: 1.55;
+}
+
+.deliveryForm {
+  display: grid;
+  gap: 0.9rem;
+  align-content: start;
+}
+
+.deliveryField {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.deliveryField > span {
+  color: #4b183f;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.deliveryInputWrap {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0 0.95rem;
+  border: 1px solid rgba(118, 26, 108, 0.16);
+  border-radius: 0.95rem;
+  background: #ffffff;
+}
+
+.deliveryInputWrap:focus-within {
+  border-color: rgba(108, 29, 88, 0.45);
+  box-shadow: 0 0 0 3px rgba(108, 29, 88, 0.08);
+}
+
+.deliveryInputWrap span {
+  flex-shrink: 0;
+  color: #8f5767;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.deliveryInputWrap input {
+  width: 100%;
+  border: 0;
+  padding: 0.85rem 0;
+  background: transparent;
+  color: #351927;
+}
+
+.deliveryInputWrap input:focus {
+  outline: none;
+}
+
+.deliverySaveButton {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.88rem 1.2rem;
+  border-radius: 999px;
+  border: 0;
+  background: #6c1d58;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 16px 32px rgba(118, 26, 108, 0.18);
 }
 
 .tableHint {
@@ -629,6 +740,7 @@
 
 @media (max-width: 1120px) {
   .header,
+  .settingsPanelHeader,
   .tablePanelHeader {
     grid-template-columns: 1fr;
     display: grid;
@@ -636,6 +748,10 @@
 
   .headerActions {
     justify-items: start;
+  }
+
+  .deliveryCardBody {
+    grid-template-columns: 1fr;
   }
 
   .tableHint {

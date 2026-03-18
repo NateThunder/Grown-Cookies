@@ -13,6 +13,12 @@ type SearchModalTriggerProps = {
   products: ShopProduct[];
 };
 
+const SEARCH_GIFT_CARD_NAME = "Grown Cookies Gift Card";
+
+function getSearchProductName(product: ShopProduct) {
+  return product.isGiftCard ? SEARCH_GIFT_CARD_NAME : product.name;
+}
+
 export default function SearchModalTrigger({ products: allProducts }: SearchModalTriggerProps) {
   const defaultRecentlyViewed = useMemo(
     () => allProducts.filter((product) => !product.isGiftCard).slice(0, 3),
@@ -53,14 +59,16 @@ export default function SearchModalTrigger({ products: allProducts }: SearchModa
       return allProducts;
     }
 
-    return allProducts.filter((product) => product.name.toLowerCase().includes(normalized));
+    return allProducts.filter((product) =>
+      getSearchProductName(product).toLowerCase().includes(normalized),
+    );
   }, [allProducts, query]);
 
   const close = () => setIsOpen(false);
 
   const handleProductClick = (product: ShopProduct) => {
     setRecentlyViewed((current) => {
-      const next = [product, ...current.filter((item) => item.name !== product.name)];
+      const next = [product, ...current.filter((item) => item.slug !== product.slug)];
       return next.slice(0, 3);
     });
     close();
@@ -172,25 +180,27 @@ function ProductCard({
   product: ShopProduct;
   onSelect: (product: ShopProduct) => void;
 }) {
+  const productName = getSearchProductName(product);
+
   return (
     <article className={`${styles.card} ${product.isGiftCard ? styles.giftCardPositioned : ""}`}>
       <div className={styles.imageWrap}>
         <Link
           href={`/shop/${product.slug}`}
-          className={styles.imageLink}
+          className={`${styles.imageLink} ${product.isGiftCard ? styles.giftCardImageLink : ""}`}
           onClick={() => onSelect(product)}
-          aria-label={product.name}
+          aria-label={productName}
         >
           {product.isGiftCard ? (
             <GiftCardTile
               className={styles.giftCardTile}
               src={product.image}
-              alt={product.imageAlt ?? product.name}
+              alt={product.imageAlt ?? productName}
             />
           ) : product.image ? (
             <Image
               src={product.image}
-              alt={product.imageAlt ?? product.name}
+              alt={product.imageAlt ?? productName}
               fill
               className={styles.image}
             />
@@ -203,7 +213,7 @@ function ProductCard({
         className={styles.contentLink}
         onClick={() => onSelect(product)}
       >
-        <p className={styles.name}>{product.name}</p>
+        <p className={styles.name}>{productName}</p>
         <p className={styles.price}>{product.price}</p>
       </Link>
     </article>

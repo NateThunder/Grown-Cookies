@@ -19,8 +19,11 @@ import {
   parsePrice,
   type BasketItem,
 } from "@/lib/basket-storage";
+import { STRIPE_CHECKOUT_COSTS } from "@/lib/stripe-checkout";
 import GiftCardTile from "@/components/gift-card-tile";
 import styles from "@/components/checkout-client.module.css";
+
+const shippingCents = STRIPE_CHECKOUT_COSTS.shippingCents;
 
 type CheckoutError = {
   message: string;
@@ -150,7 +153,7 @@ function PaymentElementForm({
   );
 }
 
-export default function CheckoutClient({ shippingCents }: { shippingCents: number }) {
+export default function CheckoutClient() {
   const [items, setItems] = useState<BasketItem[]>([]);
   const [paymentIntentClientSecret, setPaymentIntentClientSecret] = useState("");
   const [paymentPublishableKey, setPaymentPublishableKey] = useState("");
@@ -544,10 +547,7 @@ export default function CheckoutClient({ shippingCents }: { shippingCents: numbe
                   item.isGiftCard || item.slug === "gift-card" || /gift card/i.test(item.name);
 
                 return (
-                    <li
-                      key={item.slug}
-                      className={`${styles.summaryItem} ${isGiftCard ? styles.summaryItemGiftCard : ""}`}
-                    >
+                  <li key={item.slug} className={styles.summaryItem}>
                     <div
                       className={`${styles.summaryImageWrap} ${
                         isGiftCard ? styles.summaryImageWrapGiftCard : ""
@@ -561,19 +561,15 @@ export default function CheckoutClient({ shippingCents }: { shippingCents: numbe
                             className={styles.summaryGiftCardTile}
                           />
                         ) : (
-                          <div className={styles.summaryImageInner}>
-                            <Image
-                              src={item.image}
-                              alt={item.imageAlt ?? item.name}
-                              fill
-                              className={styles.summaryImage}
-                            />
-                          </div>
+                          <Image
+                            src={item.image}
+                            alt={item.imageAlt ?? item.name}
+                            fill
+                            className={styles.summaryImage}
+                          />
                         )
                       ) : (
-                        <div className={styles.summaryImageInner}>
-                          <span className={styles.summaryPlaceholder}>No image</span>
-                        </div>
+                        <span className={styles.summaryPlaceholder}>No image</span>
                       )}
                       <span className={styles.quantityBadge}>{item.quantity}</span>
                     </div>
@@ -611,3 +607,4 @@ export default function CheckoutClient({ shippingCents }: { shippingCents: numbe
     </section>
   );
 }
+

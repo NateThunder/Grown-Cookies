@@ -11,6 +11,7 @@ type NavRoute = "home" | "shop" | "contact" | "faqs";
 type SiteHeaderProps = {
   activeRoute?: NavRoute;
   products?: ShopProduct[];
+  showAnnouncement?: boolean;
 };
 
 const navItems: Array<{ href: string; label: string; route: NavRoute }> = [
@@ -20,7 +21,11 @@ const navItems: Array<{ href: string; label: string; route: NavRoute }> = [
   { href: "/faqs", label: "FAQ's", route: "faqs" },
 ];
 
-export default async function SiteHeader({ activeRoute, products: providedProducts }: SiteHeaderProps) {
+export default async function SiteHeader({
+  activeRoute,
+  products: providedProducts,
+  showAnnouncement = true,
+}: SiteHeaderProps) {
   const products = providedProducts ?? (await getAllProducts());
   const mobileNavItems = navItems.map((item) => ({
     href: item.href,
@@ -68,13 +73,11 @@ export default async function SiteHeader({ activeRoute, products: providedProduc
           <Link href="/account" aria-label="Account" className={styles.accountLink}>
             <FiUser />
           </Link>
-          <BasketLink />
+          <BasketLink position="both" />
         </div>
       </header>
 
-      <BasketLink position="floating" />
-
-      <div className={styles.announcement}>Shop our latest arrivals</div>
+      {showAnnouncement ? <div className={styles.announcement}>Shop our latest arrivals</div> : null}
     </>
   );
 }

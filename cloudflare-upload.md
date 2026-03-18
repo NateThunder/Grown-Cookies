@@ -68,3 +68,24 @@ Set required env values in your Cloudflare Pages project (not just `.env.local`)
 - `STRIPE_SECRET_KEY`
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `STRIPE_WEBHOOK_SECRET`
+
+## 5) Stripe webhook setup
+
+After your Pages deployment is live, add a Stripe webhook endpoint that points to:
+
+```text
+https://<your-domain>/api/stripe/webhook
+```
+
+Subscribe the endpoint to these events:
+
+- `payment_intent.succeeded`
+- `payment_intent.payment_failed`
+
+Then copy the webhook signing secret from Stripe into the Pages environment as:
+
+```text
+STRIPE_WEBHOOK_SECRET
+```
+
+Use test-mode Stripe keys for preview/test environments and live-mode keys only for production.

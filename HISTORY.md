@@ -3,8 +3,177 @@
 This file tracks work completed in the repository for easy machine-readable review.
 
 ## 2026-03-18
+- [done] Documented the Stripe checkout environment, local webhook testing, and Cloudflare webhook setup steps.
+- files: README.md, cloudflare-upload.md, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Reformatted the contact page intro copy into clearer content blocks with improved alignment and spacing.
+- files: app/contact/page.tsx, app/contact/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Simplified the contact page to a single heading with tighter premium spacing and a more connected form layout.
+- files: app/contact/page.tsx, app/contact/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Removed the white image wrapper outline around checkout summary items.
+- files: components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Increased checkout summary item thumbnail area size in the purple section.
+- files: components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Increased checkout summary item thumbnails further for greater visibility in the purple sidebar.
+- files: components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Increased checkout summary item thumbnails again for larger visual prominence.
+- files: components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Increased only checkout gift-card summary thumbnails to stand out above regular items.
+- files: components/checkout-client.tsx, components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Reduced checkout gift-card summary thumbnails to a smaller size while keeping regular items unchanged.
+- files: components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Made checkout summary image frame a true clip boundary by wrapping item images in a cropped inner container.
+- files: components/checkout-client.module.css, components/checkout-client.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Removed inset spacing between checkout summary white outline and item images.
+- files: components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Restored checkout gift-card thumbnail shape behavior while keeping the image frame for normal items.
+- files: components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Excluded gift-card thumbnails from the square crop container while keeping white outline on non-gift summary images.
+- files: components/checkout-client.tsx, components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Filled and cropped checkout gift-card images inside the purple section frame using a dedicated inner frame and absolute fill.
+- files: components/checkout-client.module.css, components/checkout-client.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Added a white outline around checkout summary item images in the purple checkout sidebar.
+- files: components/checkout-client.module.css
+- status: completed
+
+## 2026-03-18
+- [done] Added inner image spacing so checkout summary item thumbnails sit inside the white outline.
+- files: components/checkout-client.module.css
+- status: completed
+
+## 2026-03-18
+- [done] Forced checkout summary image border to render above image content so thumbnails no longer sit on top of the white outline.
+- files: components/checkout-client.module.css
+- status: completed
+
+## 2026-03-18
+- [done] Increased gift card tile size in checkout summary and cart/basket views.
+- files: components/checkout-client.module.css, components/cart-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Increased gift card tile size again in checkout summary and cart/basket views.
+- files: components/checkout-client.module.css, components/cart-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Removed hover interactions and shadows for gift-card tiles in checkout summary and cart/basket views.
+- files: components/checkout-client.module.css, components/cart-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Matched checkout summary gift-card thumbnails to search styling at a smaller scale.
+- files: components/checkout-client.tsx, components/checkout-client.module.css, components/quick-add-button.tsx, components/product-basket-controls.tsx, lib/basket-storage.ts, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Made checkout gift-card summary tiles a bit larger and slightly less wide (more square).
+- files: components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Reduced checkout gift-card summary tile corner rounding.
+- files: components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Applied the same gift-card thumbnail treatment in cart/basket to match checkout summary styling (smaller, less rounded, card-like).
+- files: components/cart-client.tsx, components/cart-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Reduced search modal card widths for gift cards to prevent hover crop.
+- files: components/search-modal-trigger.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Fixed search modal gift card hover clipping and image sizing behavior to match home-page card treatment.
+- files: components/search-modal-trigger.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Removed the period from the empty basket empty-state message copy.
+- files: components/cart-client.tsx, HISTORY.md
+- status: completed
+
+- [done] Removed the empty basket panel outline so the continue shopping state appears unboxed.
+- files: components/cart-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Disabled the checkout page announcement bar so "Shop our latest arrivals" does not render there.
+- files: components/site-header.tsx, app/checkout/page.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Normalized FAQ page base typography so header tagline and latest arrivals banner inherit the same body font treatment as other pages.
+- files: app/faqs/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Anchored search modal product fill images to their link wrapper and clipped the wrapper so image content stays inside the card box.
+- files: components/search-modal-trigger.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Added a white outline around the checkout summary sidebar.
+- files: components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Matched the checkout summary sidebar background to the site footer brand color.
+- files: components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
 - [done] Fixed product card image clicks by making the decorative overlay ignore pointer events so product links work outside quick-add buttons.
 - files: app/shop/page.module.css, app/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Made search modal product cards visually card-like by adding border, rounded corners, subtle elevation, and non-square media ratio (while preserving gift-card square treatment).
+- files: components/search-modal-trigger.module.css
 - status: completed
 
 ## 2026-03-18
@@ -289,3 +458,62 @@ This file tracks work completed in the repository for easy machine-readable revi
 - [done] Added the shared site navbar to the checkout page and removed the checkout-only top logo header.
 - files: app/checkout/page.tsx, app/checkout/page.module.css, components/checkout-client.tsx, components/checkout-client.module.css, HISTORY.md
 - status: completed
+
+## 2026-03-18
+- [done] Made search modal cards smaller and rectangular in a compact form with tighter spacing and capped card width (gift cards kept square).
+- files: components/search-modal-trigger.module.css
+- status: completed
+
+
+## 2026-03-18
+- [done] Adjusted search modal result cards to render as fully visible compact cards by stretching to the grid column, adding a dedicated text area, and tightening spacing so each item appears as a complete card body.
+- files: components/search-modal-trigger.module.css
+- status: completed
+
+## 2026-03-18
+- [done] Made the search modal gift card use the full "Grown Cookies Gift Card" label and keep the full gift-card artwork visible.
+- files: components/search-modal-trigger.tsx, components/search-modal-trigger.module.css, components/gift-card-tile.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Added a transparent inner frame around the search modal gift card so it sits inside a separate outer result box.
+- files: components/search-modal-trigger.tsx, components/search-modal-trigger.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Matched the search modal gift card outer media box height to the other product results so the text lines up.
+- files: components/search-modal-trigger.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Cropped the search modal gift card artwork slightly more to remove the grey edge around the card.
+- files: components/gift-card-tile.module.css, components/search-modal-trigger.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Restyled the search modal gift card to match the home and shop card treatment by removing the inner frame and using a direct cropped tile.
+- files: components/search-modal-trigger.tsx, components/search-modal-trigger.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Reduced the gift card shadow intensity in the search modal without changing the home or shop card shadows.
+- files: components/gift-card-tile.module.css, components/search-modal-trigger.module.css, HISTORY.md
+- status: completed
+
+
+## 2026-03-18
+- [done] Unified nav and floating basket triggers into one cart drawer instance so both buttons open the same drawer.
+- files: components/basket-link.tsx, components/site-header.tsx, HISTORY.md
+- status: completed
+
+
+## 2026-03-18
+- [done] Forced the Continue to Checkout button text color to white across normal/hover/visited states.
+- files: components/cart-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Added an admin delivery-cost section backed by D1 and wired checkout to use the saved fee.
+- files: app/admin/page.tsx, app/admin/actions.ts, app/admin/page.module.css, app/checkout/page.tsx, components/checkout-client.tsx, lib/stripe-checkout.ts, lib/store-settings.ts, HISTORY.md
+- status: completed
+

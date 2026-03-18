@@ -104,6 +104,9 @@ CLOUDFLARE_R2_PUBLIC_BASE_URL=
 CLOUDFLARE_R2_ACCESS_KEY_ID=
 CLOUDFLARE_R2_SECRET_ACCESS_KEY=
 CLOUDFLARE_R2_JURISDICTION=
+STRIPE_SECRET_KEY=
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+STRIPE_WEBHOOK_SECRET=
 ```
 
 Notes:
@@ -114,6 +117,51 @@ Notes:
 - `CLOUDFLARE_R2_ACCESS_KEY_ID` and `CLOUDFLARE_R2_SECRET_ACCESS_KEY` are optional if you want to provide explicit `S3`-compatible credentials.
 - If explicit `R2` credentials are not set, the app attempts to derive upload credentials from `CLOUDFLARE_API_TOKEN`.
 - `CLOUDFLARE_R2_PUBLIC_BASE_URL` should point to the public `R2` hostname or custom domain that serves uploaded product images.
+- `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, and `STRIPE_WEBHOOK_SECRET` are required for the checkout payment flow.
+
+## Stripe Setup
+
+The checkout page already uses Stripe Payment Element through:
+
+- `app/api/stripe/payment-intent/route.ts`
+- `app/api/stripe/webhook/route.ts`
+- `components/checkout-client.tsx`
+
+To finish setup locally:
+
+1. Create or open your Stripe account in test mode.
+2. Copy your test publishable key and test secret key into `.env.local`:
+
+```bash
+STRIPE_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+```
+
+3. Start the app:
+
+```bash
+npm run dev
+```
+
+4. Forward Stripe webhooks to the local Next.js route with the Stripe CLI:
+
+```bash
+stripe listen --forward-to http://localhost:3000/api/stripe/webhook
+```
+
+5. Copy the webhook signing secret printed by the CLI into `.env.local`:
+
+```bash
+STRIPE_WEBHOOK_SECRET=whsec_...
+```
+
+6. Restart the dev server after changing env vars.
+7. Open `/checkout` and complete a payment with Stripe test card details such as `4242 4242 4242 4242`, any future expiry date, any CVC, and any postcode.
+
+Stripe references:
+
+- Payment Element: https://docs.stripe.com/payments/accept-a-payment?api-integration=paymentintents&payment-ui=elements
+- Webhook forwarding with Stripe CLI: https://docs.stripe.com/stripe-cli/use-cli#forward-events-to-your-local-webhook-endpoint
 
 ## Supabase Setup
 
