@@ -61,7 +61,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 15, 15, 0.45);
+  background: rgba(15, 15, 15, 0.38);
   z-index: 1290;
   opacity: 0;
   pointer-events: none;
@@ -77,7 +77,7 @@
   position: fixed;
   inset-block: 0;
   inset-inline-end: 0;
-  width: min(430px, 88vw);
+  width: min(396px, 92vw);
   background: #ffffff;
   box-shadow: none;
   z-index: 1300;
@@ -93,10 +93,11 @@
 }
 
 .drawerHeader {
-  padding: 18px 18px 14px;
+  padding: 20px 22px 18px;
   border-bottom: 1px solid #ebebeb;
-  font-family: var(--font-heading--family);
-  font-size: 1.5rem;
+  font-family: var(--font-body--family);
+  font-size: 1.18rem;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -109,24 +110,25 @@
   width: 34px;
   height: 34px;
   border-radius: 999px;
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: #1f1f1f;
+  cursor: pointer;
 }
 
 .drawerContent {
   flex: 1;
-  overflow: auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  background: #ffffff;
 }
 
 .cartInsideDrawer {
-  max-width: none;
-  margin: 0;
-  padding: 14px 16px 20px;
-  width: 100%;
-  box-sizing: border-box;
+  flex: 1;
+  min-height: 0;
 }
 
 @media (max-width: 480px) {
