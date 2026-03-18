@@ -3,6 +3,11 @@
 This file tracks work completed in the repository for easy machine-readable review.
 
 ## 2026-03-18
+- [done] Updated Stripe API version in payment-intent route to the installed SDK-compatible value.
+- files: app/api/stripe/payment-intent/route.ts, HISTORY.md
+- status: completed
+
+## 2026-03-18
 - [done] Switched checkout flow to Stripe Payment Element with server-driven order creation, D1 order persistence, and webhook status reconciliation.
 - files: package.json, .env.example, cloudflare-upload.md, cloudflare/d1/schema.sql, lib/stripe-checkout.ts, app/api/stripe/payment-intent/route.ts, app/api/stripe/webhook/route.ts, components/checkout-client.tsx, components/checkout-client.module.css, app/checkout/success/page.tsx, app/checkout/success/page.module.css, app/checkout/cancel/page.tsx, app/checkout/cancel/page.module.css
 - status: completed
