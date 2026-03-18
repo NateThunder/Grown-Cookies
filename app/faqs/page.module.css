@@ -133,9 +133,9 @@
 
 .faqItem:first-of-type h2 {
   font-family: "Times New Roman", Times, serif;
-  font-size: clamp(1.1rem, 1.2vw, 1.35rem);
-  line-height: 1.22;
-  letter-spacing: 0.015em;
+  font-size: clamp(1.85rem, 2.25vw, 2.85rem);
+  line-height: 1.12;
+  letter-spacing: 0;
 }
 
 .faqItem p {
