@@ -3,9 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { FiSearch, FiShoppingBag, FiX } from "react-icons/fi";
+import { FiSearch, FiX } from "react-icons/fi";
 import type { ShopProduct } from "@/lib/products";
 import GiftCardTile from "./gift-card-tile";
+import QuickAddButton from "./quick-add-button";
 import styles from "./search-modal-trigger.module.css";
 
 type SearchModalTriggerProps = {
@@ -172,33 +173,39 @@ function ProductCard({
   onSelect: (product: ShopProduct) => void;
 }) {
   return (
-    <Link
-      href={`/shop/${product.slug}`}
-      className={`${styles.card} ${product.isGiftCard ? styles.giftCardPositioned : ""}`}
-      onClick={() => onSelect(product)}
-      aria-label={product.name}
-    >
-      {product.isGiftCard ? (
-        <GiftCardTile
-          className={styles.giftCardTile}
-          src={product.image}
-          alt={product.imageAlt ?? product.name}
-        />
-      ) : product.image ? (
-        <div className={styles.imageWrap}>
-          <Image
-            src={product.image}
-            alt={product.imageAlt ?? product.name}
-            fill
-            className={styles.image}
-          />
-          <span className={styles.quickIcon} aria-hidden="true">
-            <FiShoppingBag />
-          </span>
-        </div>
-      ) : null}
-      <p className={styles.name}>{product.name}</p>
-      <p className={styles.price}>{product.price}</p>
-    </Link>
+    <article className={`${styles.card} ${product.isGiftCard ? styles.giftCardPositioned : ""}`}>
+      <div className={styles.imageWrap}>
+        <Link
+          href={`/shop/${product.slug}`}
+          className={styles.imageLink}
+          onClick={() => onSelect(product)}
+          aria-label={product.name}
+        >
+          {product.isGiftCard ? (
+            <GiftCardTile
+              className={styles.giftCardTile}
+              src={product.image}
+              alt={product.imageAlt ?? product.name}
+            />
+          ) : product.image ? (
+            <Image
+              src={product.image}
+              alt={product.imageAlt ?? product.name}
+              fill
+              className={styles.image}
+            />
+          ) : null}
+        </Link>
+        <QuickAddButton product={product} className={styles.quickIcon} compact />
+      </div>
+      <Link
+        href={`/shop/${product.slug}`}
+        className={styles.contentLink}
+        onClick={() => onSelect(product)}
+      >
+        <p className={styles.name}>{product.name}</p>
+        <p className={styles.price}>{product.price}</p>
+      </Link>
+    </article>
   );
 }

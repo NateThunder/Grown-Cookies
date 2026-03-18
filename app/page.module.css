@@ -285,12 +285,11 @@
 }
 
 .card {
-  display: block;
+  display: flex;
+  flex-direction: column;
   border: 0;
   padding: 0;
   color: inherit;
-  text-decoration: none;
-  cursor: pointer;
   transform: translateY(0);
   transition:
     transform var(--hover-transition-duration) var(--hover-transition-timing),
@@ -310,6 +309,18 @@
   width: 100%;
   aspect-ratio: 1 / 1.25;
   overflow: hidden;
+}
+
+.cardMediaLink,
+.cardContentLink {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.cardMediaLink {
+  width: 100%;
+  height: 100%;
 }
 
 .cardImageWrap::before {
@@ -337,41 +348,46 @@
 .quickAdd {
   position: absolute;
   z-index: 2;
-  right: 11px;
-  bottom: 11px;
-  width: 33px;
-  height: 33px;
-  border: 1px solid #8D029B;
+  right: 12px;
+  bottom: 12px;
+  min-width: 88px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid #d7bfdc;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.95);
-  color: #8D029B;
+  background: rgba(255, 255, 255, 0.97);
+  color: #412346;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 1px;
+  gap: 8px;
+  font-family: var(--font-body--family);
+  font-size: 0.98rem;
+  line-height: 1;
   opacity: 0;
-  pointer-events: none;
-  transform: translateY(10px) scale(0.92);
+  transform: translateY(8px);
   transition:
-    opacity 220ms ease,
-    transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
-    background-color 200ms ease;
+    opacity 200ms ease,
+    transform 220ms ease,
+    background-color 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease;
+  cursor: pointer;
 }
 
-.quickAdd svg:first-child {
-  width: 13px;
-  height: 13px;
+.quickAdd svg {
+  width: 15px;
+  height: 15px;
 }
 
-.quickAdd svg:last-child {
-  width: 9px;
-  height: 9px;
+.quickAdd span {
+  white-space: nowrap;
 }
 
-.quickAdd:hover,
-.quickAdd:focus-visible {
-  background: #ffffff;
-  outline: none;
+.quickAdd[data-added="true"] {
+  background: #8d029b;
+  border-color: #8d029b;
+  color: #ffffff;
 }
 
 .giftCardTile {
@@ -422,7 +438,7 @@
 .card:hover .quickAdd,
 .card:focus-within .quickAdd {
   opacity: 1;
-  transform: translateY(0) scale(1);
+  transform: translateY(0);
 }
 
 .card:hover .giftCardTile,
@@ -614,6 +630,11 @@
 }
 
 @media (max-width: 640px) {
+  .quickAdd {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
   .leftNav {
     gap: 12px;
     font-size: 0.82rem;

@@ -219,37 +219,6 @@
   font-size: calc(1.05rem - 4px);
 }
 
-.shopPay {
-  margin-top: 10px;
-  width: 100%;
-  border: 0;
-  border-radius: 10px;
-  height: 58px;
-  background: linear-gradient(120deg, #5530df, #3b48ed);
-  color: #ffffff;
-  font-family: var(--font-body--family);
-  font-size: calc(1.6rem - 4px);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.shopPay strong {
-  font-weight: 700;
-}
-
-.paymentOptions {
-  margin: 10px auto 0;
-  display: block;
-  border: 0;
-  background: transparent;
-  color: #4f5d4f;
-  font-family: var(--font-body--family);
-  font-size: calc(1rem - 4px);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
-}
-
 .description {
   margin: 26px 0 0;
   max-width: 560px;
@@ -393,7 +362,6 @@
 
   .quantityControl,
   .addToCart,
-  .shopPay,
   .optionButton {
     height: 46px;
   }

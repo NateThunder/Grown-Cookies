@@ -9,6 +9,7 @@ type ProductBase = {
   description: string;
   featured?: boolean;
   sortOrder?: number;
+  createdAt?: string;
   relatedSlugs?: string[];
 };
 
@@ -34,6 +35,7 @@ type ProductRow = {
   is_gift_card: number;
   featured_position: number | null;
   sort_order: number | null;
+  created_at: string | null;
   related_slugs: string | null;
 };
 
@@ -90,6 +92,7 @@ const FALLBACK_PRODUCTS: StaticProductRecord[] = [
       "Indulge in the rich decadence of our Dark Choc & Maldon Salt Cookie. Bursting with delicious 70% dark chocolate, this elevated treat is further enhanced by the addition of Maldon salt, adding a unique and luxurious flavour to each bite.",
     featured: true,
     sortOrder: 1,
+    createdAt: "2026-01-10T09:00:00.000Z",
     relatedSlugs: [
       "double-chocolate-hazelnut",
       "matcha-white-chocolate",
@@ -107,6 +110,7 @@ const FALLBACK_PRODUCTS: StaticProductRecord[] = [
       "Our Double Chocolate & Hazelnut cookie is packed with deep cocoa notes, crunchy roasted hazelnuts, and a soft center that stays rich in every bite.",
     featured: true,
     sortOrder: 2,
+    createdAt: "2026-01-12T09:00:00.000Z",
     relatedSlugs: [],
   },
   {
@@ -120,6 +124,7 @@ const FALLBACK_PRODUCTS: StaticProductRecord[] = [
       "Send a Grown Cookies gift card and let them choose their own flavour favourites. Perfect for birthdays, celebrations, and thoughtful surprises.",
     featured: true,
     sortOrder: 3,
+    createdAt: "2026-01-15T09:00:00.000Z",
     relatedSlugs: [],
   },
   {
@@ -132,6 +137,7 @@ const FALLBACK_PRODUCTS: StaticProductRecord[] = [
       "A comforting oat-forward cookie with toasted granola clusters and juicy raisins for a warm, nostalgic bite.",
     featured: false,
     sortOrder: 40,
+    createdAt: "2026-01-18T09:00:00.000Z",
     relatedSlugs: [],
   },
   {
@@ -144,6 +150,7 @@ const FALLBACK_PRODUCTS: StaticProductRecord[] = [
       "Earthy matcha and creamy white chocolate come together for a balanced cookie with vibrant colour and smooth sweetness.",
     featured: false,
     sortOrder: 50,
+    createdAt: "2026-01-22T09:00:00.000Z",
     relatedSlugs: [],
   },
   {
@@ -156,6 +163,7 @@ const FALLBACK_PRODUCTS: StaticProductRecord[] = [
       "Our Red Velvet cookie blends cocoa richness with a velvety texture and a subtle tang for a bold dessert-style treat.",
     featured: false,
     sortOrder: 60,
+    createdAt: "2026-01-25T09:00:00.000Z",
     relatedSlugs: [],
   },
   {
@@ -168,6 +176,7 @@ const FALLBACK_PRODUCTS: StaticProductRecord[] = [
       "A curated cookie box featuring crowd-favourite chocolate flavours, baked fresh and ready to share.",
     featured: false,
     sortOrder: 70,
+    createdAt: "2026-01-28T09:00:00.000Z",
     relatedSlugs: [],
   },
 ];
@@ -195,6 +204,7 @@ function mapStaticProduct(record: StaticProductRecord): ShopProduct {
     description: record.description,
     featured: record.featured,
     sortOrder: record.sortOrder,
+    createdAt: record.createdAt,
     relatedSlugs: record.relatedSlugs,
     image: buildProductImageUrl(record.imageKey),
     imageAlt: record.imageAlt,
@@ -210,6 +220,7 @@ function mapRowToProduct(row: ProductRow): ShopProduct {
     description: row.description,
     featured: row.featured_position !== null,
     sortOrder: row.featured_position ?? row.sort_order ?? 0,
+    createdAt: row.created_at ?? undefined,
     relatedSlugs: normalizeRelatedSlugs(row.related_slugs),
     image: buildProductImageUrl(row.image_key),
     imageAlt: row.alt_text ?? undefined,
@@ -246,6 +257,7 @@ async function fetchProductsFromD1() {
        p.is_gift_card,
        fp.position AS featured_position,
        p.sort_order,
+       p.created_at,
        p.related_slugs,
        pi.image_key,
        pi.alt_text
@@ -283,6 +295,7 @@ const getFeaturedProductsCached = unstable_cache(
          p.is_gift_card,
          fp.position AS featured_position,
          p.sort_order,
+         p.created_at,
          p.related_slugs,
          pi.image_key,
          pi.alt_text
