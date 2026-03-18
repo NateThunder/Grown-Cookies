@@ -214,34 +214,42 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 24px;
+  gap: 18px;
 }
 
 .card {
   display: flex;
   flex-direction: column;
   border: 0;
+  padding: 0;
   color: inherit;
-  transition: transform 220ms ease;
+  transform: translateY(0);
+  transition:
+    transform 0.25s ease-out,
+    filter 0.25s ease;
 }
 
 .giftCardPositioned {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: center;
+  align-self: stretch;
+  justify-self: stretch;
   min-height: 100%;
+  height: 100%;
+  padding-top: 0;
+}
+
+.cardImageWrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1.25;
+  overflow: hidden;
 }
 
 .card:focus-visible {
   outline: 2px solid #8D029B;
   outline-offset: 4px;
-}
-
-.imageWrap {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1.33;
-  overflow: hidden;
 }
 
 .cardMediaLink,
@@ -256,14 +264,29 @@
   height: 100%;
 }
 
-.image {
+.cardImageWrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: transparent;
+  opacity: 0;
+  transition: opacity 280ms ease;
+}
+
+.cardImage {
   object-fit: cover;
+  transform: scale(1);
+  transition:
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.3s ease;
 }
 
 .quickAdd {
   position: absolute;
   right: 12px;
   bottom: 12px;
+  z-index: 2;
   min-width: 88px;
   height: 36px;
   padding: 0 14px;
@@ -310,25 +333,66 @@
   --gift-card-gap: 14px;
   --gift-card-brand-size: clamp(2.1rem, 3.4vw, 4.4rem);
   --gift-card-text-size: clamp(0.95rem, 1.1vw, 1.4rem);
-  align-self: flex-start;
+  --gift-card-shadow-after-bg: rgba(40, 7, 56, 0.38);
+  --gift-card-transform-transition:
+    calc(var(--surface-transition-duration, 0.3s) + 0.08s) cubic-bezier(0.22, 1, 0.36, 1);
+  --gift-card-shadow-transition:
+    calc(var(--surface-transition-duration, 0.3s) + 0.04s) ease;
+  --gift-card-filter-transition: var(--surface-transition-duration, 0.3s) ease;
+}
+
+.giftCardPositioned .cardImageWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  flex: 1;
+  min-height: 0;
+}
+
+.giftCardPositioned .cardMediaLink {
+  width: min(100%, 18rem);
+  height: auto;
+  flex: 0 0 auto;
+  display: block;
+}
+
+.giftCardPositioned .cardContentLink {
+  width: min(100%, 18rem);
+  align-self: center;
 }
 
 .card h3 {
   margin: 12px 0 4px;
+  font-size: clamp(0.825rem, 1.35vw, 2.175rem);
   font-family: var(--font-body--family);
-  font-size: clamp(1.45rem, 1.7vw, 2.1rem);
   font-weight: 500;
+  transition: color 220ms ease;
 }
 
 .card p {
   margin: 0;
   font-family: var(--font-body--family);
   color: #404040;
-  font-size: clamp(1.05rem, 1.1vw, 1.2rem);
+  font-size: clamp(0.75rem, 0.9vw, 1.5rem);
+  transition: color 220ms ease;
 }
 
-.card:hover {
-  transform: translateY(-3px);
+.card:hover,
+.card:focus-within {
+  transform: translateY(-4px);
+  filter: none;
+}
+
+.card:hover .cardImage,
+.card:focus-within .cardImage {
+  transform: scale(1.03);
+}
+
+.card:hover .cardImageWrap::before,
+.card:focus-within .cardImageWrap::before {
+  opacity: 0;
 }
 
 .card:hover .quickAdd,
@@ -350,10 +414,10 @@
 
 .card:hover h3,
 .card:focus-within h3 {
-  color: #8d029b;
+  color: inherit;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1000px) {
   .grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
