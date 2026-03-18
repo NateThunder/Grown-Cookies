@@ -1,0 +1,261 @@
+.cart {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 34px 72px;
+}
+
+.cart h1 {
+  margin: 0;
+  font-family: var(--font-heading--family);
+  font-size: clamp(2.6rem, 4.5vw, 4.5rem);
+  font-weight: 500;
+}
+
+.emptyState {
+  margin-top: 24px;
+  background: #ffffff;
+  padding: 34px;
+  border-radius: 10px;
+}
+
+.emptyState p {
+  margin: 0 0 16px;
+  font-family: var(--font-body--family);
+  font-size: 1.1rem;
+}
+
+.shopLink {
+  display: inline-flex;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 22px;
+  border-radius: 9px;
+  background: #ffffff;
+  border: 1px solid #d7d7d7;
+  color: #111111;
+  font-family: var(--font-body--family);
+}
+
+.itemList {
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  background: #ffffff;
+  border-radius: 10px;
+}
+
+.itemImageWrap {
+  position: relative;
+  width: 112px;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #f5f5f5;
+  color: #7e7e7e;
+  font-family: var(--font-body--family);
+  font-size: 0.76rem;
+}
+
+.itemImage {
+  object-fit: cover;
+}
+
+.itemImagePlaceholder {
+  width: 100%;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.itemBody h2 {
+  margin: 0;
+  font-family: var(--font-body--family);
+  font-size: calc(1.2rem - 2px);
+  font-weight: 500;
+}
+
+.itemPrice {
+  margin: 8px 0 0;
+  color: #393939;
+  font-size: 0.98rem;
+}
+
+.itemSubtotal {
+  margin: 6px 0 0;
+  color: #4d4d4d;
+  font-family: var(--font-body--family);
+  font-size: 0.87rem;
+}
+
+.itemActions {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 10px;
+  justify-self: end;
+}
+
+.qtyColumn {
+  display: grid;
+  grid-template-columns: 40px minmax(34px, auto) 40px;
+  width: 126px;
+  border: 1px solid #d6d0d0;
+  border-radius: 12px;
+  overflow: hidden;
+  height: 44px;
+  align-items: center;
+  background: #f7f4f4;
+  box-sizing: border-box;
+}
+
+.qtyColumn button {
+  border: 0;
+  background: transparent;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #1f1f1f;
+  cursor: pointer;
+  transition: background-color 0.18s ease;
+}
+
+.qtyColumn button:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.qtyColumn button:first-child,
+.qtyColumn button:last-child {
+  width: 40px;
+}
+
+.qtyColumn button:first-child {
+  border-right: 1px solid #ddd6d6;
+}
+
+.qtyColumn button:last-child {
+  border-left: 1px solid #ddd6d6;
+}
+
+.qtyColumn span {
+  text-align: center;
+  font-family: var(--font-body--family);
+  font-size: 0.98rem;
+  font-weight: 600;
+  line-height: 1;
+  min-width: 0;
+}
+
+.removeButton {
+  border: 0;
+  height: 44px;
+  width: 44px;
+  border-radius: 12px;
+  background: #111111;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.summary {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.summary p {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  max-width: 280px;
+  padding: 14px 16px;
+  background: #ffffff;
+  border-radius: 10px;
+  font-family: var(--font-body--family);
+  font-size: 1rem;
+}
+
+.summary p span {
+  font-weight: 700;
+}
+
+.clearAllButton,
+.checkoutButton {
+  border: 0;
+  border-radius: 10px;
+  height: 48px;
+  padding: 0 18px;
+  font-family: var(--font-body--family);
+}
+
+.clearAllButton {
+  background: #ececec;
+  color: #333333;
+}
+
+.checkoutButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 190px;
+  background: #111111;
+  color: #ffffff;
+  font-size: 1.02rem;
+  cursor: pointer;
+}
+
+@media (max-width: 920px) {
+  .item {
+    grid-template-columns: 90px 1fr;
+    grid-template-areas:
+      "image details"
+      "actions actions";
+    row-gap: 10px;
+  }
+
+  .itemImageWrap {
+    grid-area: image;
+    width: 90px;
+  }
+
+  .itemBody {
+    grid-area: details;
+  }
+
+  .itemActions {
+    grid-area: actions;
+    justify-self: start;
+  }
+
+  .summary {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .checkoutButton {
+    width: 100%;
+  }
+
+  .cart {
+    padding: 22px 16px 54px;
+  }
+}

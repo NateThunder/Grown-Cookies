@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { FiPlus, FiShoppingBag } from "react-icons/fi";
 import GiftCardTile from "@/components/gift-card-tile";
+import QuickAddButton from "@/components/quick-add-button";
 import SiteHeader from "@/components/site-header";
 import { getAllProducts } from "@/lib/products";
 import styles from "./page.module.css";
@@ -38,37 +38,36 @@ export default async function Home() {
         <h2>Featured products</h2>
         <div className={styles.grid}>
           {homepageProducts.map((product) => (
-            <Link
+            <article
               key={product.slug}
-              href={`/shop/${product.slug}`}
               className={`${styles.card} ${
                 product.isGiftCard ? styles.giftCardPositioned : ""
               }`}
-              aria-label={`View ${product.name}`}
             >
-              {product.isGiftCard ? (
-                <GiftCardTile
-                  className={styles.giftCardTile}
-                  src={product.image}
-                  alt={product.imageAlt ?? product.name}
-                />
-              ) : product.image ? (
-                <div className={styles.cardImageWrap}>
-                  <Image
-                    src={product.image}
-                    alt={product.imageAlt ?? product.name}
-                    fill
-                    className={styles.cardImage}
-                  />
-                  <span className={styles.quickAdd} aria-hidden="true">
-                    <FiShoppingBag />
-                    <FiPlus />
-                  </span>
-                </div>
-              ) : null}
-              <h3>{product.name}</h3>
-              <p>{product.price}</p>
-            </Link>
+              <div className={styles.cardImageWrap}>
+                <Link href={`/shop/${product.slug}`} className={styles.cardMediaLink}>
+                  {product.isGiftCard ? (
+                    <GiftCardTile
+                      className={styles.giftCardTile}
+                      src={product.image}
+                      alt={product.imageAlt ?? product.name}
+                    />
+                  ) : product.image ? (
+                    <Image
+                      src={product.image}
+                      alt={product.imageAlt ?? product.name}
+                      fill
+                      className={styles.cardImage}
+                    />
+                  ) : null}
+                </Link>
+                <QuickAddButton product={product} className={styles.quickAdd} />
+              </div>
+              <Link href={`/shop/${product.slug}`} className={styles.cardContentLink}>
+                <h3>{product.name}</h3>
+                <p>{product.price}</p>
+              </Link>
+            </article>
           ))}
         </div>
       </section>

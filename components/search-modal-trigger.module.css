@@ -154,8 +154,8 @@
   width: 100%;
   height: 100%;
   padding: 0;
-  text-decoration: none;
   color: inherit;
+  transition: transform 180ms ease;
 }
 
 .card:hover,
@@ -181,6 +181,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.imageLink,
+.contentLink {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.imageLink {
+  width: 100%;
+  height: 100%;
 }
 
 .image {
@@ -226,8 +238,9 @@
   position: absolute;
   right: 12px;
   top: 12px;
-  width: 34px;
+  min-width: 34px;
   height: 34px;
+  padding: 0 10px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid #d8d8d8;
@@ -238,11 +251,17 @@
   opacity: 0;
   transform: translateY(8px);
   transition: opacity 200ms ease, transform 220ms ease;
-  pointer-events: none;
+  cursor: pointer;
+}
+
+.quickIcon[data-added="true"] {
+  background: #8d029b;
+  border-color: #8d029b;
+  color: #ffffff;
 }
 
 .card:hover .quickIcon,
-.card:focus-visible .quickIcon {
+.card:focus-within .quickIcon {
   opacity: 1;
   transform: translateY(0);
 }
@@ -278,6 +297,11 @@
 }
 
 @media (max-width: 600px) {
+  .quickIcon {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
   .backdrop {
     padding: 68px 10px 10px;
   }
