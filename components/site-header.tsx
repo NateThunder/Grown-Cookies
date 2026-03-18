@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getAllProducts, type ShopProduct } from "@/lib/products";
+import MobileNav from "@/components/mobile-nav";
 import SearchModalTrigger from "@/components/search-modal-trigger";
 import { FiUser } from "react-icons/fi";
 import BasketLink from "@/components/basket-link";
@@ -21,10 +22,22 @@ const navItems: Array<{ href: string; label: string; route: NavRoute }> = [
 
 export default async function SiteHeader({ activeRoute, products: providedProducts }: SiteHeaderProps) {
   const products = providedProducts ?? (await getAllProducts());
+  const mobileNavItems = navItems.map((item) => ({
+    href: item.href,
+    label: item.label,
+    isActive: activeRoute === item.route,
+  }));
 
   return (
     <>
       <header className={styles.header}>
+        <div className={styles.mobileLeftActions}>
+          <MobileNav items={mobileNavItems} />
+          <div className={styles.mobileSearch}>
+            <SearchModalTrigger products={products} />
+          </div>
+        </div>
+
         <nav className={styles.leftNav} aria-label="Primary navigation">
           {navItems.map((item) => (
             <Link
@@ -49,8 +62,10 @@ export default async function SiteHeader({ activeRoute, products: providedProduc
         </Link>
 
         <div className={styles.iconNav} aria-label="Actions">
-          <SearchModalTrigger products={products} />
-          <Link href="/account" aria-label="Account">
+          <div className={styles.desktopSearch}>
+            <SearchModalTrigger products={products} />
+          </div>
+          <Link href="/account" aria-label="Account" className={styles.accountLink}>
             <FiUser />
           </Link>
           <BasketLink />

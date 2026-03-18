@@ -65,3 +65,6 @@ Set required env values in your Cloudflare Pages project (not just `.env.local`)
 - `CLOUDFLARE_R2_JURISDICTION`
 - `CLOUDFLARE_R2_ACCESS_KEY_ID` (optional)
 - `CLOUDFLARE_R2_SECRET_ACCESS_KEY` (optional)
+- `STRIPE_SECRET_KEY`
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- `STRIPE_WEBHOOK_SECRET`

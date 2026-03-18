@@ -300,8 +300,11 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-self: stretch;
+  justify-self: stretch;
   min-height: 100%;
-  padding-top: clamp(48px, 7vw, 112px);
+  height: 100%;
+  padding-top: 0;
 }
 
 .cardImageWrap {
@@ -328,7 +331,7 @@
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(to top, rgba(141, 2, 155, 0.22), transparent 38%);
+  background: transparent;
   opacity: 0;
   transition: opacity 280ms ease;
 }
@@ -404,6 +407,30 @@
   --gift-card-filter-transition: var(--surface-transition-duration) ease;
 }
 
+.giftCardPositioned .cardImageWrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1.25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  flex: 1;
+  min-height: 0;
+}
+
+.giftCardPositioned .cardMediaLink {
+  width: min(100%, 18rem);
+  height: auto;
+  flex: 0 0 auto;
+  display: block;
+}
+
+.giftCardPositioned .cardContentLink {
+  width: min(100%, 18rem);
+  align-self: center;
+}
+
 .card h3 {
   margin: 9px 0 5px;
   font-size: clamp(0.825rem, 1.35vw, 2.175rem);
@@ -432,7 +459,7 @@
 
 .card:hover .cardImageWrap::before,
 .card:focus-within .cardImageWrap::before {
-  opacity: 1;
+  opacity: 0;
 }
 
 .card:hover .quickAdd,
@@ -454,7 +481,7 @@
 
 .card:hover h3,
 .card:focus-within h3 {
-  color: #8D029B;
+  color: inherit;
 }
 
 .card:hover p,
@@ -602,7 +629,7 @@
   }
 
   .giftCardPositioned {
-    padding-top: 24px;
+    padding-top: 0;
   }
 
   .monthSection {

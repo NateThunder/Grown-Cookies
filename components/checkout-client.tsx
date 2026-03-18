@@ -1,9 +1,15 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { FiChevronDown, FiLock, FiMinus, FiPlus, FiSearch } from "react-icons/fi";
+import {
+  Elements,
+  PaymentElement,
+  useElements,
+  useStripe,
+} from "@stripe/react-stripe-js";
+import { type Stripe as StripeSDK, loadStripe } from "@stripe/stripe-js";
 import {
   BASKET_UPDATED_EVENT,
   formatPrice,
@@ -12,32 +18,172 @@ import {
   parsePrice,
   type BasketItem,
 } from "@/lib/basket-storage";
+import { STRIPE_CHECKOUT_COSTS } from "@/lib/stripe-checkout";
 import styles from "@/components/checkout-client.module.css";
 
-const shippingCost = 10;
+const shippingCents = STRIPE_CHECKOUT_COSTS.shippingCents;
 
-const expressOptions = [
-  { label: "shop", className: styles.shopPayButton },
-  { label: "PayPal", className: styles.paypalButton },
-  { label: "G Pay", className: styles.gpayButton },
-];
-
-const paymentOptions = [
-  { id: "card", label: "Credit card", detail: "Visa, Mastercard, Amex" },
-  { id: "klarna", label: "Klarna", detail: "Pay later in 3 interest-free payments" },
-  { id: "shop-pay", label: "Shop Pay", detail: "Pay in full or in installments" },
-  { id: "paypal", label: "PayPal", detail: "Fast checkout with your PayPal account" },
-];
+type CheckoutError = {
+  message: string;
+};
 
 type TipChoice = 0 | 10 | 15 | 20;
 
+type ContactDetails = {
+  email: string;
+  phone: string;
+};
+
+type DeliveryDetails = {
+  firstName: string;
+  lastName: string;
+  address: string;
+  flatNumber: string;
+  city: string;
+  postcode: string;
+  country: string;
+};
+
+type CreatePaymentPayload = {
+  items: Array<{ slug: string; quantity: number }>;
+  contact: ContactDetails;
+  delivery: DeliveryDetails;
+  tipCents: number;
+};
+
+const defaultDelivery = {
+  firstName: "",
+  lastName: "",
+  address: "",
+  flatNumber: "",
+  city: "",
+  postcode: "",
+  country: "United Kingdom",
+};
+
+type PaymentIntentResponse = {
+  clientSecret?: string;
+  publishableKey?: string;
+  orderId?: string;
+  totalCents?: number;
+};
+
+function toMoneyCents(value: number) {
+  return Math.max(0, Math.round(value * 100));
+}
+
+function stripeErrorText(error: unknown): string {
+  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
+    return error.message;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Something went wrong. Please try again.";
+}
+
+function PaymentElementForm({
+  orderId,
+  onError,
+}: {
+  orderId: string;
+  onError: (error: CheckoutError | null) => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [localError, setLocalError] = useState("");
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!stripe || !elements) {
+      const errorMessage = "Payment form is still loading. Please wait.";
+      setLocalError(errorMessage);
+      onError({ message: errorMessage });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setLocalError("");
+    onError(null);
+
+    const result = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/checkout/success?orderId=${orderId}`,
+      },
+      redirect: "if_required",
+    });
+
+    if (result.error) {
+      const errorMessage = stripeErrorText(result.error);
+      setLocalError(errorMessage);
+      onError({ message: errorMessage });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (result.paymentIntent?.status === "succeeded" && result.paymentIntent.id) {
+      window.location.href = `/checkout/success?orderId=${orderId}&payment_intent=${result.paymentIntent.id}&payment_intent_client_secret=${result.paymentIntent.client_secret ?? ""}`;
+      return;
+    }
+
+    setIsSubmitting(false);
+  };
+
+  return (
+    <form className={styles.stripeForm} onSubmit={handleSubmit}>
+      <div className={styles.paymentElement}>
+        <PaymentElement />
+      </div>
+
+      {localError ? <p className={styles.errorText}>{localError}</p> : null}
+
+      <button type="submit" className={styles.payButton} disabled={isSubmitting}>
+        {isSubmitting ? "Processing..." : "Pay securely"}
+      </button>
+    </form>
+  );
+}
+
 export default function CheckoutClient() {
   const [items, setItems] = useState<BasketItem[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState("card");
+  const [paymentIntentClientSecret, setPaymentIntentClientSecret] = useState("");
+  const [paymentPublishableKey, setPaymentPublishableKey] = useState("");
+  const [orderId, setOrderId] = useState<string | null>(null);
+  const [contact, setContact] = useState<ContactDetails>({ email: "", phone: "" });
+  const [delivery, setDelivery] = useState<DeliveryDetails>(defaultDelivery);
   const [tipChoice, setTipChoice] = useState<TipChoice>(0);
   const [customTip, setCustomTip] = useState("0");
+  const [isCreatingPayment, setIsCreatingPayment] = useState(false);
+  const [isPaymentStarted, setIsPaymentStarted] = useState(false);
   const [marketingOptIn, setMarketingOptIn] = useState(true);
   const [rememberMe, setRememberMe] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
+
+  const [stripePromise, setStripePromise] = useState<Promise<StripeSDK | null> | null>(null);
+
+  const subtotal = useMemo(() => getBasketSubtotal(items), [items]);
+  const subtotalCents = useMemo(() => toMoneyCents(subtotal), [subtotal]);
+  const parsedCustomTipCents = useMemo(() => {
+    if (tipChoice !== 0) {
+      return 0;
+    }
+    return Math.max(0, Math.round(parsePrice(customTip) * 100));
+  }, [customTip, tipChoice]);
+
+  const computedTipCents = useMemo(() => {
+    if (tipChoice === 0) {
+      return parsedCustomTipCents;
+    }
+
+    return Math.round(subtotalCents * (tipChoice / 100));
+  }, [subtotalCents, tipChoice, parsedCustomTipCents]);
+  const totalCents = subtotalCents + shippingCents + computedTipCents;
+  const total = totalCents / 100;
 
   useEffect(() => {
     const refresh = () => setItems(getBasket());
@@ -53,22 +199,6 @@ export default function CheckoutClient() {
     };
   }, []);
 
-  const subtotal = useMemo(() => getBasketSubtotal(items), [items]);
-  const quantity = useMemo(
-    () => items.reduce((count, item) => count + item.quantity, 0),
-    [items],
-  );
-
-  const computedTip = useMemo(() => {
-    if (tipChoice !== 0) {
-      return subtotal * (tipChoice / 100);
-    }
-
-    return Math.max(0, parsePrice(customTip));
-  }, [customTip, subtotal, tipChoice]);
-
-  const total = subtotal + (items.length > 0 ? shippingCost : 0) + computedTip;
-
   const setPresetTip = (value: TipChoice) => {
     setTipChoice(value);
     if (value !== 0) {
@@ -82,16 +212,67 @@ export default function CheckoutClient() {
     setCustomTip(next.toFixed(2));
   };
 
+  const handleCreatePaymentIntent = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (items.length === 0) {
+      setPaymentError("Add products before checking out.");
+      return;
+    }
+
+    if (!contact.email.trim()) {
+      setPaymentError("Enter a contact email or phone number.");
+      return;
+    }
+
+    setIsCreatingPayment(true);
+    setIsPaymentStarted(false);
+    setPaymentError("");
+
+    const payload: CreatePaymentPayload = {
+      items: items.map((item) => ({
+        slug: item.slug,
+        quantity: item.quantity,
+      })),
+      contact,
+      delivery,
+      tipCents: computedTipCents,
+    };
+
+    try {
+      const response = await fetch("/api/stripe/payment-intent", {
+        method: "POST",
+        body: JSON.stringify(payload),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const error = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(error.error || "Could not initialize payment.");
+      }
+
+      const result = (await response.json()) as PaymentIntentResponse;
+      if (!result.clientSecret || !result.publishableKey || !result.orderId) {
+        throw new Error("Could not initialize payment.");
+      }
+
+      setPaymentError("");
+      setPaymentIntentClientSecret(result.clientSecret);
+      setPaymentPublishableKey(result.publishableKey);
+      setOrderId(result.orderId);
+      setIsPaymentStarted(true);
+      setStripePromise(loadStripe(result.publishableKey));
+    } catch (error) {
+      setPaymentError(stripeErrorText(error));
+    } finally {
+      setIsCreatingPayment(false);
+    }
+  };
+
   return (
     <section className={styles.checkout}>
-      <header className={styles.header}>
-        <Link href="/" className={styles.logo} aria-label="Grown Cookies home">
-          grown
-          <br />
-          cookies
-        </Link>
-      </header>
-
       <div className={styles.columns}>
         <div className={styles.formColumn}>
           {items.length === 0 ? (
@@ -105,25 +286,15 @@ export default function CheckoutClient() {
           ) : (
             <>
               <section className={styles.section}>
-                <p className={styles.expressLabel}>Express checkout</p>
-                <div className={styles.expressRow}>
-                  {expressOptions.map((option) => (
-                    <button key={option.label} type="button" className={option.className}>
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-                <div className={styles.divider}>
-                  <span>OR</span>
-                </div>
-              </section>
-
-              <section className={styles.section}>
                 <h2>Contact</h2>
                 <div className={styles.fieldStack}>
                   <label className={styles.field}>
                     <span>Email or mobile phone number</span>
-                    <input type="text" defaultValue="garret.heaney@example.com" />
+                    <input
+                      type="text"
+                      value={contact.email}
+                      onChange={(event) => setContact((prev) => ({ ...prev, email: event.target.value }))}
+                    />
                   </label>
 
                   <label className={styles.checkboxRow}>
@@ -142,7 +313,12 @@ export default function CheckoutClient() {
                 <div className={styles.fieldStack}>
                   <label className={`${styles.field} ${styles.selectField}`}>
                     <span>Country/Region</span>
-                    <select defaultValue="United Kingdom">
+                    <select
+                      value={delivery.country}
+                      onChange={(event) =>
+                        setDelivery((prev) => ({ ...prev, country: event.target.value }))
+                      }
+                    >
                       <option>United Kingdom</option>
                       <option>United States</option>
                       <option>Canada</option>
@@ -152,40 +328,82 @@ export default function CheckoutClient() {
 
                   <div className={styles.twoUp}>
                     <label className={styles.field}>
-                      <span>First name (optional)</span>
-                      <input type="text" defaultValue="Garret" />
+                      <span>First name</span>
+                      <input
+                        type="text"
+                        value={delivery.firstName}
+                        onChange={(event) =>
+                          setDelivery((prev) => ({ ...prev, firstName: event.target.value }))
+                        }
+                      />
                     </label>
                     <label className={styles.field}>
                       <span>Last name</span>
-                      <input type="text" defaultValue="Heaney" />
+                      <input
+                        type="text"
+                        value={delivery.lastName}
+                        onChange={(event) =>
+                          setDelivery((prev) => ({ ...prev, lastName: event.target.value }))
+                        }
+                      />
                     </label>
                   </div>
 
                   <label className={`${styles.field} ${styles.iconField}`}>
                     <span>Address</span>
-                    <input type="text" defaultValue="96 Euston Road" />
+                    <input
+                      type="text"
+                      value={delivery.address}
+                      onChange={(event) =>
+                        setDelivery((prev) => ({ ...prev, address: event.target.value }))
+                      }
+                    />
                     <FiSearch />
                   </label>
 
                   <label className={styles.field}>
-                    <span>Apartment, suite, etc. (optional)</span>
-                    <input type="text" placeholder="" />
+                    <span>Flat number (optional)</span>
+                    <input
+                      type="text"
+                      value={delivery.flatNumber}
+                      onChange={(event) =>
+                        setDelivery((prev) => ({ ...prev, flatNumber: event.target.value }))
+                      }
+                    />
                   </label>
 
                   <div className={styles.twoUp}>
                     <label className={styles.field}>
                       <span>City</span>
-                      <input type="text" defaultValue="London" />
+                      <input
+                        type="text"
+                        value={delivery.city}
+                        onChange={(event) =>
+                          setDelivery((prev) => ({ ...prev, city: event.target.value }))
+                        }
+                      />
                     </label>
                     <label className={styles.field}>
                       <span>Postcode</span>
-                      <input type="text" defaultValue="NW1 2DB" />
+                      <input
+                        type="text"
+                        value={delivery.postcode}
+                        onChange={(event) =>
+                          setDelivery((prev) => ({ ...prev, postcode: event.target.value }))
+                        }
+                      />
                     </label>
                   </div>
 
                   <label className={`${styles.field} ${styles.iconField}`}>
                     <span>Phone (optional)</span>
-                    <input type="text" defaultValue="+44 330 333 1144" />
+                    <input
+                      type="text"
+                      value={contact.phone}
+                      onChange={(event) =>
+                        setContact((prev) => ({ ...prev, phone: event.target.value }))
+                      }
+                    />
                     <span className={styles.flag}>GB</span>
                   </label>
                 </div>
@@ -195,7 +413,7 @@ export default function CheckoutClient() {
                 <h2>Shipping method</h2>
                 <div className={styles.methodCard}>
                   <span>Standard</span>
-                  <strong>{formatPrice(shippingCost)}</strong>
+                  <strong>{formatPrice(shippingCents / 100)}</strong>
                 </div>
               </section>
 
@@ -203,55 +421,32 @@ export default function CheckoutClient() {
                 <h2>Payment</h2>
                 <p className={styles.sectionNote}>All transactions are secure and encrypted.</p>
 
-                <div className={styles.paymentList}>
-                  {paymentOptions.map((option) => (
-                    <label
-                      key={option.id}
-                      className={`${styles.paymentOption} ${
-                        paymentMethod === option.id ? styles.paymentOptionActive : ""
-                      }`.trim()}
+                {isPaymentStarted && paymentIntentClientSecret && paymentPublishableKey && orderId ? (
+                  <Elements
+                    stripe={stripePromise}
+                    options={{
+                      clientSecret: paymentIntentClientSecret,
+                    }}
+                  >
+                    <PaymentElementForm
+                      orderId={orderId}
+                      onError={(error) =>
+                        setPaymentError(error ? error.message : "")
+                      }
+                    />
+                  </Elements>
+                ) : (
+                  <form className={styles.section} onSubmit={handleCreatePaymentIntent}>
+                    {paymentError ? <p className={styles.errorText}>{paymentError}</p> : null}
+                    <button
+                      type="submit"
+                      className={styles.payButton}
+                      disabled={isCreatingPayment || isPaymentStarted}
                     >
-                      <div className={styles.paymentHeading}>
-                        <input
-                          type="radio"
-                          name="payment-method"
-                          checked={paymentMethod === option.id}
-                          onChange={() => setPaymentMethod(option.id)}
-                        />
-                        <span>{option.label}</span>
-                      </div>
-                      <span className={styles.paymentDetail}>{option.detail}</span>
-                    </label>
-                  ))}
-                </div>
-
-                {paymentMethod === "card" ? (
-                  <div className={styles.cardFields}>
-                    <label className={`${styles.field} ${styles.iconField}`}>
-                      <span>Card number</span>
-                      <input type="text" placeholder="1234 1234 1234 1234" />
-                      <FiLock />
-                    </label>
-                    <div className={styles.twoUp}>
-                      <label className={styles.field}>
-                        <span>Expiration date (MM / YY)</span>
-                        <input type="text" placeholder="MM / YY" />
-                      </label>
-                      <label className={styles.field}>
-                        <span>Security code</span>
-                        <input type="text" placeholder="CVC" />
-                      </label>
-                    </div>
-                    <label className={styles.field}>
-                      <span>Name on card</span>
-                      <input type="text" defaultValue="Garret Heaney" />
-                    </label>
-                    <label className={styles.checkboxRow}>
-                      <input type="checkbox" defaultChecked />
-                      <span>Use shipping address as billing address</span>
-                    </label>
-                  </div>
-                ) : null}
+                      {isCreatingPayment ? "Preparing payment..." : "Continue to secure payment"}
+                    </button>
+                  </form>
+                  )}
               </section>
 
               <section className={styles.section}>
@@ -280,7 +475,7 @@ export default function CheckoutClient() {
                       onClick={() => setPresetTip(0)}
                     >
                       <strong>None</strong>
-                      <span>{formatPrice(parsePrice(customTip))}</span>
+                      <span>{formatPrice(parsedCustomTipCents / 100)}</span>
                     </button>
                   </div>
 
@@ -329,71 +524,26 @@ export default function CheckoutClient() {
                 </p>
                 <span className={styles.footerBrand}>shop</span>
               </div>
-
-              <button type="button" className={styles.payButton}>
-                Pay now
-              </button>
             </>
           )}
         </div>
 
         <aside className={styles.summaryColumn}>
           <div className={styles.summaryInner}>
-            <ul className={styles.summaryItems}>
-              {items.map((item) => (
-                <li key={item.slug} className={styles.summaryItem}>
-                  <div className={styles.summaryImageWrap}>
-                    {item.image ? (
-                      <Image
-                        src={item.image}
-                        alt={item.imageAlt ?? item.name}
-                        fill
-                        className={styles.summaryImage}
-                      />
-                    ) : (
-                      <span className={styles.summaryPlaceholder}>No image</span>
-                    )}
-                    <span className={styles.quantityBadge}>{item.quantity}</span>
-                  </div>
-
-                  <div className={styles.summaryCopy}>
-                    <p>{item.name}</p>
-                    <span>
-                      {item.quantity} {item.quantity === 1 ? "cookie" : "cookies"}
-                    </span>
-                  </div>
-
-                  <strong>{formatPrice(parsePrice(item.price) * item.quantity)}</strong>
-                </li>
-              ))}
-            </ul>
-
             <dl className={styles.totals}>
               <div>
-                <dt>Subtotal</dt>
-                <dd>{formatPrice(subtotal)}</dd>
-              </div>
-              <div>
-                <dt>Shipping</dt>
-                <dd>{items.length > 0 ? formatPrice(shippingCost) : formatPrice(0)}</dd>
-              </div>
-              <div>
-                <dt>Tip</dt>
-                <dd>{formatPrice(computedTip)}</dd>
+                <dt>Delivery fee</dt>
+                <dd>{formatPrice(shippingCents / 100)}</dd>
               </div>
             </dl>
 
             <div className={styles.totalRow}>
-              <span>Total</span>
+              <span>Total price</span>
               <div>
                 <small>GBP</small>
                 <strong>{formatPrice(total).replace("GBP ", "")}</strong>
               </div>
             </div>
-
-            <p className={styles.summaryMeta}>
-              {quantity} {quantity === 1 ? "item" : "items"} in your order
-            </p>
           </div>
         </aside>
       </div>
