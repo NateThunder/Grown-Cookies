@@ -1,6 +1,21 @@
 # Project History
 
+## 2026-03-18
+- [done] Aligned contact page typography to match FAQ page fonts and text scale.
+- files: app/contact/page.module.css, HISTORY.md
+- status: completed
+
 This file tracks work completed in the repository for easy machine-readable review.
+
+## 2026-03-18
+- [done] Added Stripe express wallet buttons to checkout so Apple Pay and Google Pay can render above the card form when available.
+- files: components/checkout-client.tsx, components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Matched the first FAQ heading size to other FAQ heading sizes.
+- files: app/faqs/page.module.css, HISTORY.md
+- status: completed
 
 ## 2026-03-18
 - [done] Documented the Stripe checkout environment, local webhook testing, and Cloudflare webhook setup steps.
