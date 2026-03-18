@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { FiChevronDown, FiLock, FiMinus, FiPlus, FiSearch } from "react-icons/fi";
@@ -27,7 +28,9 @@ type CheckoutError = {
   message: string;
 };
 
-type TipChoice = 0 | 10 | 15 | 20;
+const TIP_PRESET_OPTIONS = [10, 15, 20] as const;
+
+type TipChoice = "none" | "custom" | (typeof TIP_PRESET_OPTIONS)[number];
 
 type ContactDetails = {
   email: string;
@@ -156,34 +159,37 @@ export default function CheckoutClient() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [contact, setContact] = useState<ContactDetails>({ email: "", phone: "" });
   const [delivery, setDelivery] = useState<DeliveryDetails>(defaultDelivery);
-  const [tipChoice, setTipChoice] = useState<TipChoice>(0);
-  const [customTip, setCustomTip] = useState("0");
+  const [tipChoice, setTipChoice] = useState<TipChoice>("none");
+  const [customTip, setCustomTip] = useState("0.00");
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const [isPaymentStarted, setIsPaymentStarted] = useState(false);
   const [marketingOptIn, setMarketingOptIn] = useState(true);
-  const [rememberMe, setRememberMe] = useState(false);
   const [paymentError, setPaymentError] = useState("");
 
   const [stripePromise, setStripePromise] = useState<Promise<StripeSDK | null> | null>(null);
 
   const subtotal = useMemo(() => getBasketSubtotal(items), [items]);
   const subtotalCents = useMemo(() => toMoneyCents(subtotal), [subtotal]);
-  const parsedCustomTipCents = useMemo(() => {
-    if (tipChoice !== 0) {
-      return 0;
-    }
-    return Math.max(0, Math.round(parsePrice(customTip) * 100));
-  }, [customTip, tipChoice]);
+  const parsedCustomTipCents = useMemo(
+    () => Math.max(0, Math.round(parsePrice(customTip) * 100)),
+    [customTip],
+  );
 
   const computedTipCents = useMemo(() => {
-    if (tipChoice === 0) {
+    if (tipChoice === "custom") {
       return parsedCustomTipCents;
+    }
+
+    if (tipChoice === "none") {
+      return 0;
     }
 
     return Math.round(subtotalCents * (tipChoice / 100));
   }, [subtotalCents, tipChoice, parsedCustomTipCents]);
   const totalCents = subtotalCents + shippingCents + computedTipCents;
   const total = totalCents / 100;
+  const tipSelectionLabel =
+    tipChoice === "custom" ? "Custom tip" : tipChoice === "none" ? "No tip" : `${tipChoice}% tip`;
 
   useEffect(() => {
     const refresh = () => setItems(getBasket());
@@ -199,15 +205,12 @@ export default function CheckoutClient() {
     };
   }, []);
 
-  const setPresetTip = (value: TipChoice) => {
+  const setPresetTip = (value: Exclude<TipChoice, "custom">) => {
     setTipChoice(value);
-    if (value !== 0) {
-      setCustomTip("0");
-    }
   };
 
   const incrementCustomTip = (delta: number) => {
-    setTipChoice(0);
+    setTipChoice("custom");
     const next = Math.max(0, parsePrice(customTip) + delta);
     setCustomTip(next.toFixed(2));
   };
@@ -418,7 +421,83 @@ export default function CheckoutClient() {
               </section>
 
               <section className={styles.section}>
+                <h2>Add tip</h2>
+                <div className={styles.tipCard}>
+                  <div className={styles.tipCardHeader}>
+                    <div className={styles.tipIntro}>
+                      <span className={styles.tipEyebrow}>Optional tip</span>
+                      <p className={styles.tipTitle}>Show your support for the team at Grown Cookies</p>
+                    </div>
+                    <div className={styles.tipSummary}>
+                      <span>{tipSelectionLabel}</span>
+                      <strong>{formatPrice(computedTipCents / 100)}</strong>
+                    </div>
+                  </div>
+
+                  <div className={styles.tipGrid}>
+                    {TIP_PRESET_OPTIONS.map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={tipChoice === value ? styles.tipButtonActive : styles.tipButton}
+                        onClick={() => setPresetTip(value)}
+                      >
+                        <strong>{value}%</strong>
+                        <span>{formatPrice(subtotal * (value / 100))}</span>
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className={tipChoice === "none" ? styles.tipButtonActive : styles.tipButton}
+                      onClick={() => setPresetTip("none")}
+                    >
+                      <strong>None</strong>
+                      <span>{formatPrice(0)}</span>
+                    </button>
+                  </div>
+
+                  <div className={styles.customTipSection}>
+                    <div className={styles.customTipHeader}>
+                      <span>Custom tip</span>
+                      <strong>{formatPrice(parsedCustomTipCents / 100)}</strong>
+                    </div>
+                    <div className={styles.customTipRow}>
+                      <label
+                        className={
+                          tipChoice === "custom" ? styles.customTipFieldActive : styles.customTipField
+                        }
+                      >
+                        <span>Amount</span>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={customTip}
+                        onChange={(event) => {
+                          setTipChoice("custom");
+                          setCustomTip(event.target.value);
+                        }}
+                      />
+                      </label>
+                      <div className={styles.stepper}>
+                        <button type="button" onClick={() => incrementCustomTip(-1)}>
+                          <FiMinus />
+                        </button>
+                        <button type="button" onClick={() => incrementCustomTip(1)}>
+                          <FiPlus />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className={styles.tipMessage}>Thank you, we appreciate it.</p>
+                </div>
+              </section>
+
+              <section className={styles.section}>
                 <h2>Payment</h2>
+                <p className={styles.totalAmount}>
+                  <strong>Total amount:</strong> {formatPrice(total)}
+                </p>
                 <p className={styles.sectionNote}>All transactions are secure and encrypted.</p>
 
                 {isPaymentStarted && paymentIntentClientSecret && paymentPublishableKey && orderId ? (
@@ -449,80 +528,11 @@ export default function CheckoutClient() {
                   )}
               </section>
 
-              <section className={styles.section}>
-                <h2>Add tip</h2>
-                <div className={styles.tipCard}>
-                  <label className={styles.checkboxRow}>
-                    <input type="checkbox" checked readOnly />
-                    <span>Show your support for the team at Grown Cookies</span>
-                  </label>
-
-                  <div className={styles.tipGrid}>
-                    {[10, 15, 20].map((value) => (
-                      <button
-                        key={value}
-                        type="button"
-                        className={tipChoice === value ? styles.tipButtonActive : styles.tipButton}
-                        onClick={() => setPresetTip(value as TipChoice)}
-                      >
-                        <strong>{value}%</strong>
-                        <span>{formatPrice(subtotal * (value / 100))}</span>
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      className={tipChoice === 0 ? styles.tipButtonActive : styles.tipButton}
-                      onClick={() => setPresetTip(0)}
-                    >
-                      <strong>None</strong>
-                      <span>{formatPrice(parsedCustomTipCents / 100)}</span>
-                    </button>
-                  </div>
-
-                  <div className={styles.customTipRow}>
-                    <label className={styles.field}>
-                      <span>Custom tip</span>
-                      <input
-                        type="text"
-                        value={customTip}
-                        onChange={(event) => {
-                          setTipChoice(0);
-                          setCustomTip(event.target.value);
-                        }}
-                      />
-                    </label>
-                    <div className={styles.stepper}>
-                      <button type="button" onClick={() => incrementCustomTip(-1)}>
-                        <FiMinus />
-                      </button>
-                      <button type="button" onClick={() => incrementCustomTip(1)}>
-                        <FiPlus />
-                      </button>
-                    </div>
-                  </div>
-
-                  <p className={styles.tipMessage}>Thank you, we appreciate it.</p>
-                </div>
-              </section>
-
-              <section className={styles.section}>
-                <h2>Remember me</h2>
-                <label className={styles.rememberCard}>
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(event) => setRememberMe(event.target.checked)}
-                  />
-                  <span>Save my information for a faster checkout</span>
-                </label>
-              </section>
-
               <div className={styles.paymentFooter}>
                 <p>
                   <FiLock />
                   Secure and encrypted
                 </p>
-                <span className={styles.footerBrand}>shop</span>
               </div>
             </>
           )}
@@ -530,6 +540,35 @@ export default function CheckoutClient() {
 
         <aside className={styles.summaryColumn}>
           <div className={styles.summaryInner}>
+            <ul className={styles.summaryItems}>
+              {items.map((item) => (
+                <li key={item.slug} className={styles.summaryItem}>
+                  <div className={styles.summaryImageWrap}>
+                    {item.image ? (
+                      <Image
+                        src={item.image}
+                        alt={item.imageAlt ?? item.name}
+                        fill
+                        className={styles.summaryImage}
+                      />
+                    ) : (
+                      <span className={styles.summaryPlaceholder}>No image</span>
+                    )}
+                    <span className={styles.quantityBadge}>{item.quantity}</span>
+                  </div>
+
+                  <div className={styles.summaryCopy}>
+                    <p>{item.name}</p>
+                    <span>
+                      {item.quantity} {item.quantity === 1 ? "cookie" : "cookies"}
+                    </span>
+                  </div>
+
+                  <strong>{formatPrice(parsePrice(item.price) * item.quantity)}</strong>
+                </li>
+              ))}
+            </ul>
+
             <dl className={styles.totals}>
               <div>
                 <dt>Delivery fee</dt>
