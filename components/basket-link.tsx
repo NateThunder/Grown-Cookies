@@ -6,7 +6,7 @@ import { BASKET_UPDATED_EVENT, getBasketQuantity } from "@/lib/basket-storage";
 import CartClient from "@/components/cart-client";
 import styles from "./basket-link.module.css";
 
-type BasketLinkPosition = "top" | "floating";
+type BasketLinkPosition = "top" | "floating" | "both";
 
 type BasketLinkProps = {
   position?: BasketLinkPosition;
@@ -15,6 +15,8 @@ type BasketLinkProps = {
 export default function BasketLink({ position = "top" }: BasketLinkProps) {
   const [itemCount, setItemCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const hasTopTrigger = position === "top" || position === "both";
+  const hasFloatingTrigger = position === "floating" || position === "both";
 
   useEffect(() => {
     const refreshCount = () => setItemCount(getBasketQuantity());
@@ -56,16 +58,30 @@ export default function BasketLink({ position = "top" }: BasketLinkProps) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        aria-expanded={isOpen}
-        aria-label={`Open basket (${label})`}
-        className={`${styles.link} ${position === "floating" ? styles.floating : styles.top}`}
-      >
-        <FiShoppingBag />
-        {itemCount > 0 ? <span className={styles.badge}>{itemCount}</span> : null}
-      </button>
+      {hasTopTrigger && (
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          aria-expanded={isOpen}
+          aria-label={`Open basket (${label})`}
+          className={`${styles.link} ${styles.top}`}
+        >
+          <FiShoppingBag />
+          {itemCount > 0 ? <span className={styles.badge}>{itemCount}</span> : null}
+        </button>
+      )}
+      {hasFloatingTrigger && (
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          aria-expanded={isOpen}
+          aria-label={`Open basket (${label})`}
+          className={`${styles.link} ${styles.floating}`}
+        >
+          <FiShoppingBag />
+          {itemCount > 0 ? <span className={styles.badge}>{itemCount}</span> : null}
+        </button>
+      )}
 
       <div
         className={`${styles.backdrop} ${isOpen ? styles.backdropOpen : ""}`.trim()}

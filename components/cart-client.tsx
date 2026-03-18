@@ -13,6 +13,7 @@ import {
   setBasketQuantity,
   type BasketItem,
 } from "@/lib/basket-storage";
+import GiftCardTile from "@/components/gift-card-tile";
 import styles from "@/components/cart-client.module.css";
 
 type CartClientProps = {
@@ -75,7 +76,7 @@ export default function CartClient({
 
       {items.length === 0 ? (
         <div className={styles.emptyState}>
-          <p>Your basket is empty.</p>
+          <p>Your basket is empty</p>
           <Link href="/shop" className={styles.shopLink}>
             Continue shopping
           </Link>
@@ -85,18 +86,37 @@ export default function CartClient({
           <ul className={styles.itemList}>
             {items.map((item) => (
               <li key={item.slug} className={styles.item}>
-                <div className={styles.itemImageWrap}>
-                  {item.image ? (
-                    <Image
-                      src={item.image}
-                      alt={item.imageAlt ?? item.name}
-                      fill
-                      className={styles.itemImage}
-                    />
-                  ) : (
-                    <span className={styles.itemImagePlaceholder}>No image</span>
-                  )}
-                </div>
+                {(() => {
+                  const isGiftCard =
+                    item.isGiftCard || item.slug === "gift-card" || /gift card/i.test(item.name);
+
+                  return (
+                    <div
+                      className={`${styles.itemImageWrap} ${
+                        isGiftCard ? styles.itemImageWrapGiftCard : ""
+                      }`}
+                    >
+                      {item.image ? (
+                        isGiftCard ? (
+                          <GiftCardTile
+                            src={item.image}
+                            alt={item.imageAlt ?? item.name}
+                            className={styles.itemGiftCardTile}
+                          />
+                        ) : (
+                          <Image
+                            src={item.image}
+                            alt={item.imageAlt ?? item.name}
+                            fill
+                            className={styles.itemImage}
+                          />
+                        )
+                      ) : (
+                        <span className={styles.itemImagePlaceholder}>No image</span>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <div className={styles.itemBody}>
                   <div className={styles.itemCopy}>

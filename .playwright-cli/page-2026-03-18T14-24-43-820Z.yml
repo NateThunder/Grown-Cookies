@@ -1,0 +1,171 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - navigation "Primary navigation" [ref=e4]:
+        - link "HOME" [ref=e5] [cursor=pointer]:
+          - /url: /
+        - link "SHOP" [ref=e6] [cursor=pointer]:
+          - /url: /shop
+        - link "CONTACT US" [ref=e7] [cursor=pointer]:
+          - /url: /contact
+        - link "FAQ's" [ref=e8] [cursor=pointer]:
+          - /url: /faqs
+      - link "Grown Cookies home" [ref=e9] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e10]:
+          - generic [ref=e11]:
+            - text: grown
+            - text: cookies
+          - generic [ref=e12]: flavour refined
+      - generic "Actions" [ref=e13]:
+        - button "Search" [ref=e15] [cursor=pointer]:
+          - img [ref=e16]
+        - link "Account" [ref=e19] [cursor=pointer]:
+          - /url: /account
+          - img [ref=e20]
+        - button "Open basket (0 items)" [ref=e23] [cursor=pointer]:
+          - img [ref=e24]
+        - button "Open basket (0 items)" [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+        - complementary [ref=e31]:
+          - generic [ref=e32]:
+            - generic [ref=e33]: Your Basket (0)
+            - button [ref=e34] [cursor=pointer]:
+              - img [ref=e35]
+          - generic [ref=e40]:
+            - paragraph [ref=e41]: Your basket is empty.
+            - link [ref=e42] [cursor=pointer]:
+              - /url: /shop
+              - text: Continue shopping
+    - generic [ref=e43]: Shop our latest arrivals
+    - generic [ref=e44]:
+      - heading "Shop" [level=1] [ref=e45]
+      - generic [ref=e46]:
+        - generic [ref=e47]:
+          - button "Availability" [ref=e48] [cursor=pointer]:
+            - text: Availability
+            - img [ref=e49]
+          - button "Price" [ref=e51] [cursor=pointer]:
+            - text: Price
+            - img [ref=e52]
+        - generic [ref=e54]:
+          - generic [ref=e55]: 7 items
+          - button "Sort" [ref=e57] [cursor=pointer]:
+            - text: Sort
+            - img [ref=e58]
+          - button "Grid view" [ref=e60] [cursor=pointer]:
+            - img [ref=e61]
+          - button "List view" [ref=e66] [cursor=pointer]:
+            - img [ref=e67]
+      - generic [ref=e69]:
+        - article [ref=e70]:
+          - generic [ref=e71]:
+            - link "Dark Chocolate Maldon Salt product image" [ref=e72] [cursor=pointer]:
+              - /url: /shop/dark-choc-maldon-salt
+              - img "Dark Chocolate Maldon Salt product image" [ref=e73]
+            - button "Add Dark Chocolate Maldon Salt to basket" [ref=e74] [cursor=pointer]:
+              - img [ref=e75]
+              - generic [ref=e78]: Add
+          - link "Dark Chocolate Maldon Salt GBP 23.00" [ref=e79] [cursor=pointer]:
+            - /url: /shop/dark-choc-maldon-salt
+            - heading "Dark Chocolate Maldon Salt" [level=3] [ref=e80]
+            - paragraph [ref=e81]: GBP 23.00
+        - article [ref=e82]:
+          - generic [ref=e83]:
+            - link "Double Chocolate and Hazelnut cookie" [ref=e84] [cursor=pointer]:
+              - /url: /shop/double-chocolate-hazelnut
+              - img "Double Chocolate and Hazelnut cookie" [ref=e85]
+            - button "Add Double Chocolate & Hazelnut to basket" [ref=e86] [cursor=pointer]:
+              - img [ref=e87]
+              - generic [ref=e90]: Add
+          - link "Double Chocolate & Hazelnut GBP 23.00" [ref=e91] [cursor=pointer]:
+            - /url: /shop/double-chocolate-hazelnut
+            - heading "Double Chocolate & Hazelnut" [level=3] [ref=e92]
+            - paragraph [ref=e93]: GBP 23.00
+        - article [ref=e94]:
+          - generic [ref=e95]:
+            - link "Gift Card product image" [ref=e96] [cursor=pointer]:
+              - /url: /shop/gift-card
+              - img "Gift Card product image" [ref=e98]
+            - button "Add Gift Card to basket" [ref=e99] [cursor=pointer]:
+              - img [ref=e100]
+              - generic [ref=e103]: Add
+          - link "Gift Card GBP 10.00" [ref=e104] [cursor=pointer]:
+            - /url: /shop/gift-card
+            - heading "Gift Card" [level=3] [ref=e105]
+            - paragraph [ref=e106]: GBP 10.00
+        - article [ref=e107]:
+          - generic [ref=e108]:
+            - link "Crunchy Granola and Raisin cookie" [ref=e109] [cursor=pointer]:
+              - /url: /shop/granola-raisin
+              - img "Crunchy Granola and Raisin cookie" [ref=e110]
+            - button "Add Crunchy Granola & Raisin to basket" [ref=e111] [cursor=pointer]:
+              - img [ref=e112]
+              - generic [ref=e115]: Add
+          - link "Crunchy Granola & Raisin GBP 22.00" [ref=e116] [cursor=pointer]:
+            - /url: /shop/granola-raisin
+            - heading "Crunchy Granola & Raisin" [level=3] [ref=e117]
+            - paragraph [ref=e118]: GBP 22.00
+        - article [ref=e119]:
+          - generic [ref=e120]:
+            - link "Matcha White Chocolate cookie" [ref=e121] [cursor=pointer]:
+              - /url: /shop/matcha-white-chocolate
+              - img "Matcha White Chocolate cookie" [ref=e122]
+            - button "Add Matcha White Chocolate to basket" [ref=e123] [cursor=pointer]:
+              - img [ref=e124]
+              - generic [ref=e127]: Add
+          - link "Matcha White Chocolate GBP 23.00" [ref=e128] [cursor=pointer]:
+            - /url: /shop/matcha-white-chocolate
+            - heading "Matcha White Chocolate" [level=3] [ref=e129]
+            - paragraph [ref=e130]: GBP 23.00
+        - article [ref=e131]:
+          - generic [ref=e132]:
+            - link "Red Velvet cookie" [ref=e133] [cursor=pointer]:
+              - /url: /shop/red-velvet
+              - img "Red Velvet cookie" [ref=e134]
+            - button "Add Red Velvet to basket" [ref=e135] [cursor=pointer]:
+              - img [ref=e136]
+              - generic [ref=e139]: Add
+          - link "Red Velvet GBP 22.00" [ref=e140] [cursor=pointer]:
+            - /url: /shop/red-velvet
+            - heading "Red Velvet" [level=3] [ref=e141]
+            - paragraph [ref=e142]: GBP 22.00
+        - article [ref=e143]:
+          - generic [ref=e144]:
+            - link "Variety Box product image" [ref=e145] [cursor=pointer]:
+              - /url: /shop/double-choc-box
+              - img "Variety Box product image" [ref=e146]
+            - button "Add Variety Box to basket" [ref=e147] [cursor=pointer]:
+              - img [ref=e148]
+              - generic [ref=e151]: Add
+          - link "Variety Box GBP 24.00" [ref=e152] [cursor=pointer]:
+            - /url: /shop/double-choc-box
+            - heading "Variety Box" [level=3] [ref=e153]
+            - paragraph [ref=e154]: GBP 24.00
+  - contentinfo [ref=e155]:
+    - generic [ref=e156]:
+      - generic [ref=e157]:
+        - generic [ref=e158]:
+          - heading "Join our cookie community" [level=2] [ref=e159]
+          - paragraph [ref=e160]: Subscribe now for exclusive offers and mouthwatering recipes!
+        - form "Newsletter signup" [ref=e161]:
+          - generic [ref=e162]: Email address
+          - textbox "Email address" [ref=e163]
+          - button "Sign up" [ref=e164] [cursor=pointer]
+      - generic [ref=e165]:
+        - paragraph [ref=e166]:
+          - text: © 2026 Grown Cookies, Created by
+          - link "Somevi Labs" [ref=e167] [cursor=pointer]:
+            - /url: https://nathansomevi.dev
+        - link "Terms and Policies" [ref=e168] [cursor=pointer]:
+          - /url: /terms
+        - generic [ref=e169]:
+          - link "Instagram" [ref=e170] [cursor=pointer]:
+            - /url: "#"
+            - img [ref=e171]
+          - link "TikTok" [ref=e174] [cursor=pointer]:
+            - /url: "#"
+            - img [ref=e175]
+  - button "Open Next.js Dev Tools" [ref=e182] [cursor=pointer]:
+    - img [ref=e183]
+  - alert [ref=e186]

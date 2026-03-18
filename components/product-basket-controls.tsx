@@ -7,7 +7,7 @@ import { addToBasket } from "@/lib/basket-storage";
 import styles from "./product-basket-controls.module.css";
 
 type ProductBasketControlsProps = {
-  product: Pick<ShopProduct, "slug" | "name" | "price" | "image" | "imageAlt">;
+  product: Pick<ShopProduct, "slug" | "name" | "price" | "image" | "imageAlt" | "isGiftCard">;
 };
 
 export default function ProductBasketControls({ product }: ProductBasketControlsProps) {
