@@ -133,38 +133,40 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         </div>
 
         <div className={styles.grid}>
-          {sortedProducts.map((product) => (
-            <article
-              key={product.slug}
-              className={`${styles.card} ${
-                product.isGiftCard ? styles.giftCardPositioned : ""
-              }`}
-            >
-              <div className={styles.imageWrap}>
-                <Link href={`/shop/${product.slug}`} className={styles.cardMediaLink}>
-                  {product.isGiftCard ? (
-                    <GiftCardTile
-                      className={styles.giftCardTile}
-                      src={product.image}
-                      alt={product.imageAlt ?? product.name}
-                    />
-                  ) : product.image ? (
-                    <Image
-                      src={product.image}
-                      alt={product.imageAlt ?? product.name}
-                      fill
-                      className={styles.image}
-                    />
-                  ) : null}
+          {sortedProducts.map((product) => {
+            return (
+              <article
+                key={product.slug}
+                className={`${styles.card} ${
+                  product.isGiftCard ? styles.giftCardPositioned : ""
+                }`}
+              >
+                <div className={styles.cardImageWrap}>
+                  <Link href={`/shop/${product.slug}`} className={styles.cardMediaLink}>
+                    {product.isGiftCard ? (
+                      <GiftCardTile
+                        className={styles.giftCardTile}
+                        src={product.image}
+                        alt={product.imageAlt ?? product.name}
+                      />
+                    ) : product.image ? (
+                      <Image
+                        src={product.image}
+                        alt={product.imageAlt ?? product.name}
+                        fill
+                        className={styles.cardImage}
+                      />
+                    ) : null}
+                  </Link>
+                  <QuickAddButton product={product} className={styles.quickAdd} />
+                </div>
+                <Link href={`/shop/${product.slug}`} className={styles.cardContentLink}>
+                  <h3>{product.name}</h3>
+                  <p>{product.price}</p>
                 </Link>
-                <QuickAddButton product={product} className={styles.quickAdd} />
-              </div>
-              <Link href={`/shop/${product.slug}`} className={styles.cardContentLink}>
-                <h3>{product.name}</h3>
-                <p>{product.price}</p>
-              </Link>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       </section>
     </main>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FiShoppingBag } from "react-icons/fi";
+import { FiShoppingBag, FiX } from "react-icons/fi";
 import { BASKET_UPDATED_EVENT, getBasketQuantity } from "@/lib/basket-storage";
 import CartClient from "@/components/cart-client";
 import styles from "./basket-link.module.css";
@@ -78,14 +78,14 @@ export default function BasketLink({ position = "top" }: BasketLinkProps) {
         aria-hidden={!isOpen}
       >
         <div className={styles.drawerHeader}>
-          <span>Your basket</span>
+          <span>{`Your Basket (${itemCount})`}</span>
           <button type="button" onClick={() => setIsOpen(false)} aria-label="Close basket">
-            ✕
+            <FiX />
           </button>
         </div>
 
         <div className={styles.drawerContent}>
-          <CartClient className={styles.cartInsideDrawer} showTitle={false} />
+          <CartClient className={styles.cartInsideDrawer} layout="drawer" showTitle={false} />
         </div>
       </aside>
     </>
