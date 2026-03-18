@@ -1,27 +1,31 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect } from "react";
-import { useSearchParams } from "next/navigation";
-import { clearBasket } from "@/lib/basket-storage";
+import CheckoutSuccessBasketClearer from "@/components/checkout-success-basket-clearer";
 import styles from "./page.module.css";
 
-export default function CheckoutSuccessPage() {
-  const searchParams = useSearchParams();
-  const orderId = searchParams.get("orderId");
-  const paymentIntentId = searchParams.get("payment_intent");
-  const paymentIntentClientSecret = searchParams.get("payment_intent_client_secret");
-  const redirectStatus = searchParams.get("redirect_status");
+type SearchParamValue = string | string[] | undefined;
+
+type CheckoutSuccessPageProps = {
+  searchParams: Promise<Record<string, SearchParamValue>>;
+};
+
+function getSearchParamValue(value: SearchParamValue) {
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+
+  return value ?? null;
+}
+
+export default async function CheckoutSuccessPage({ searchParams }: CheckoutSuccessPageProps) {
+  const params = await searchParams;
+  const orderId = getSearchParamValue(params.orderId);
+  const paymentIntentId = getSearchParamValue(params.payment_intent);
+  const paymentIntentClientSecret = getSearchParamValue(params.payment_intent_client_secret);
+  const redirectStatus = getSearchParamValue(params.redirect_status);
   const isPaymentSuccessful =
     Boolean(paymentIntentId) &&
     (redirectStatus ? redirectStatus === "succeeded" : Boolean(paymentIntentClientSecret));
   const shouldClearBasket = isPaymentSuccessful && Boolean(orderId);
-
-  useEffect(() => {
-    if (shouldClearBasket) {
-      clearBasket();
-    }
-  }, [shouldClearBasket]);
 
   if (!isPaymentSuccessful) {
     return (
@@ -45,6 +49,7 @@ export default function CheckoutSuccessPage() {
 
   return (
     <main className={styles.page}>
+      <CheckoutSuccessBasketClearer shouldClearBasket={shouldClearBasket} />
       <section className={styles.content}>
         <p className={styles.badge}>Payment complete</p>
         <h1>Thank you for your order</h1>

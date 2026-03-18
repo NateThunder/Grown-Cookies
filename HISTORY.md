@@ -3,6 +3,16 @@
 This file tracks work completed in the repository for easy machine-readable review.
 
 ## 2026-03-18
+- [done] Fixed production build blockers by aligning the webhook Stripe API version and moving checkout success search-param handling to a Next 16-compatible server page.
+- files: app/api/stripe/webhook/route.ts, app/checkout/success/page.tsx, components/checkout-success-basket-clearer.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Updated Stripe API version in webhook route to the installed SDK-compatible value.
+- files: app/api/stripe/webhook/route.ts, HISTORY.md
+- status: completed
+
+## 2026-03-18
 - [done] Updated Stripe API version in payment-intent route to the installed SDK-compatible value.
 - files: app/api/stripe/payment-intent/route.ts, HISTORY.md
 - status: completed
