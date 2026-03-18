@@ -9,6 +9,7 @@ import {
   moveFeaturedProductPosition,
   updateAdminProduct,
 } from "@/lib/product-admin";
+import { updateDeliveryCostCents } from "@/lib/store-settings";
 import {
   ADMIN_AUTH_COOKIE,
   getAdminAuthCookieOptions,
@@ -24,6 +25,41 @@ function getNumberField(formData: FormData, key: string) {
   const rawValue = getTextField(formData, key).trim();
   const parsedValue = Number.parseInt(rawValue, 10);
   return Number.isFinite(parsedValue) ? parsedValue : 0;
+}
+
+function getMoneyFieldInCents(formData: FormData, key: string) {
+  const rawValue = getTextField(formData, key).trim();
+
+  if (!rawValue) {
+    throw new Error("Enter a delivery cost.");
+  }
+
+  if (rawValue.includes("-")) {
+    throw new Error("Delivery cost must be zero or greater.");
+  }
+
+  const normalized = rawValue.replace(/[^0-9.]/g, "");
+
+  if (!normalized) {
+    throw new Error("Enter a valid delivery cost.");
+  }
+
+  const parts = normalized.split(".");
+
+  if (parts.length > 2) {
+    throw new Error("Enter a valid delivery cost.");
+  }
+
+  const whole = Number.parseInt(parts[0] || "0", 10);
+
+  if (!Number.isFinite(whole)) {
+    throw new Error("Enter a valid delivery cost.");
+  }
+
+  const decimals = (parts[1] ?? "").padEnd(2, "0").slice(0, 2);
+  const minorUnits = Number.parseInt(decimals || "0", 10);
+
+  return whole * 100 + minorUnits;
 }
 
 function getImageFile(formData: FormData, key: string) {
@@ -136,6 +172,32 @@ export async function adminLogoutAction() {
   redirectToAdmin({
     notice: "Signed out.",
   });
+}
+
+export async function updateDeliveryCostAction(formData: FormData) {
+  try {
+    const returnView = getTextField(formData, "returnView");
+    await requireAdminSession();
+
+    await updateDeliveryCostCents(getMoneyFieldInCents(formData, "deliveryCostValue"));
+
+    redirectToAdmin({
+      notice: "Delivery cost saved.",
+      returnView,
+    });
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    redirectToAdmin({
+      error:
+        error instanceof Error
+          ? error.message
+          : "The delivery cost could not be saved.",
+      returnView: getTextField(formData, "returnView"),
+    });
+  }
 }
 
 export async function createProductAction(formData: FormData) {

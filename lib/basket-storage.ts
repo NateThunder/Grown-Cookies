@@ -4,6 +4,7 @@ export type BasketItem = {
   price: string;
   image?: string;
   imageAlt?: string;
+  isGiftCard?: boolean;
   quantity: number;
 };
 
@@ -49,6 +50,7 @@ function sanitizeBasket(items: unknown) {
         price: candidate.price,
         image: typeof candidate.image === "string" ? candidate.image : undefined,
         imageAlt: typeof candidate.imageAlt === "string" ? candidate.imageAlt : undefined,
+        isGiftCard: typeof candidate.isGiftCard === "boolean" ? candidate.isGiftCard : false,
         quantity: Math.floor(quantity),
       };
     })
