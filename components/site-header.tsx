@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { getAllProducts, type ShopProduct } from "@/lib/products";
 import SearchModalTrigger from "@/components/search-modal-trigger";
-import { FiShoppingBag, FiUser } from "react-icons/fi";
+import { FiUser } from "react-icons/fi";
+import BasketLink from "@/components/basket-link";
 import styles from "./site-header.module.css";
 
 type NavRoute = "home" | "shop" | "contact" | "faqs";
@@ -52,11 +53,11 @@ export default async function SiteHeader({ activeRoute, products: providedProduc
           <Link href="/account" aria-label="Account">
             <FiUser />
           </Link>
-          <Link href="/cart" aria-label="Cart">
-            <FiShoppingBag />
-          </Link>
+          <BasketLink />
         </div>
       </header>
+
+      <BasketLink position="floating" />
 
       <div className={styles.announcement}>Shop our latest arrivals</div>
     </>

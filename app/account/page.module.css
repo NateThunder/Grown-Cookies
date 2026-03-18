@@ -1,8 +1,6 @@
 .page {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(255, 167, 188, 0.45), transparent 30%),
-    linear-gradient(180deg, #fff8fb 0%, #f5edf6 100%);
+  background: #fff8fb;
 }
 
 .hero {

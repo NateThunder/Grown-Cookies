@@ -124,7 +124,8 @@
 }
 
 .filters button,
-.sorting button {
+.sorting button,
+.sortToggle {
   border: 0;
   background: transparent;
   display: inline-flex;
@@ -135,6 +136,57 @@
   color: #353535;
   cursor: pointer;
   padding: 4px 0;
+}
+
+.sortMenu {
+  position: relative;
+}
+
+.sortToggle {
+  list-style: none;
+  padding: 4px 0;
+}
+
+.sortMenuOpen .sortToggle svg {
+  transform: rotate(180deg);
+}
+
+.sortDropdown {
+  position: absolute;
+  top: calc(100% + 14px);
+  right: 0;
+  min-width: 280px;
+  padding: 14px 0;
+  background: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+  z-index: 10;
+}
+
+.sortOption {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 20px;
+  color: #111111;
+  text-decoration: none;
+  font-size: 1.05rem;
+}
+
+.sortOption:hover {
+  background: #f5f5f5;
+}
+
+.sortOptionActive {
+  font-weight: 600;
+}
+
+.sortCheck {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1em;
 }
 
 .sorting span {
@@ -166,19 +218,18 @@
 }
 
 .card {
-  display: block;
+  display: flex;
+  flex-direction: column;
   border: 0;
   color: inherit;
-  text-decoration: none;
   transition: transform 220ms ease;
 }
 
 .giftCardPositioned {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   min-height: 100%;
-  padding-top: clamp(40px, 6vw, 96px);
 }
 
 .card:focus-visible {
@@ -193,8 +244,64 @@
   overflow: hidden;
 }
 
+.cardMediaLink,
+.cardContentLink {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.cardMediaLink {
+  width: 100%;
+  height: 100%;
+}
+
 .image {
   object-fit: cover;
+}
+
+.quickAdd {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  min-width: 88px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid #d7bfdc;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.97);
+  color: #412346;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-body--family);
+  font-size: 0.98rem;
+  line-height: 1;
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 200ms ease,
+    transform 220ms ease,
+    background-color 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease;
+  cursor: pointer;
+}
+
+.quickAdd svg {
+  width: 15px;
+  height: 15px;
+}
+
+.quickAdd span {
+  white-space: nowrap;
+}
+
+.quickAdd[data-added="true"] {
+  background: #8d029b;
+  border-color: #8d029b;
+  color: #ffffff;
 }
 
 .giftCardTile {
@@ -203,6 +310,7 @@
   --gift-card-gap: 14px;
   --gift-card-brand-size: clamp(2.1rem, 3.4vw, 4.4rem);
   --gift-card-text-size: clamp(0.95rem, 1.1vw, 1.4rem);
+  align-self: flex-start;
 }
 
 .card h3 {
@@ -223,6 +331,12 @@
   transform: translateY(-3px);
 }
 
+.card:hover .quickAdd,
+.card:focus-within .quickAdd {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .card:hover .giftCardTile,
 .card:focus-within .giftCardTile {
   transform: translateY(-4px) scale(1.01);
@@ -234,6 +348,11 @@
   transform: translateY(4px);
 }
 
+.card:hover h3,
+.card:focus-within h3 {
+  color: #8d029b;
+}
+
 @media (max-width: 1200px) {
   .grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -241,9 +360,6 @@
 }
 
 @media (max-width: 980px) {
-  .giftCardPositioned {
-    padding-top: 20px;
-  }
   .header {
     grid-template-columns: 1fr;
     justify-items: center;
@@ -279,9 +395,11 @@
 }
 
 @media (max-width: 640px) {
-  .giftCardPositioned {
-    padding-top: 0;
+  .quickAdd {
+    opacity: 1;
+    transform: translateY(0);
   }
+
   .leftNav {
     gap: 12px;
     font-size: 0.82rem;

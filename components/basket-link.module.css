@@ -1,0 +1,136 @@
+.link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  text-decoration: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.top {
+  color: inherit;
+  font-size: 1.3rem;
+}
+
+.floating {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 1200;
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  color: #ffffff;
+  background: #761A6C;
+  border: 2px solid #ffffff;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.24);
+  font-size: 1.2rem;
+}
+
+@media (max-width: 900px) {
+  .floating {
+    right: 14px;
+    bottom: 14px;
+    width: 48px;
+    height: 48px;
+  }
+}
+
+.badge {
+  position: absolute;
+  top: -8px;
+  right: -10px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #8d029b;
+  color: #ffffff;
+  font-family: var(--font-body--family);
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 15, 15, 0.45);
+  z-index: 1290;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.backdropOpen {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.drawer {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: min(430px, 88vw);
+  background: #ffffff;
+  box-shadow: none;
+  z-index: 1300;
+  transform: translateX(100%);
+  transition: transform 0.35s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawerOpen {
+  box-shadow: -8px 0 28px rgba(0, 0, 0, 0.2);
+  transform: translateX(0);
+}
+
+.drawerHeader {
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid #ebebeb;
+  font-family: var(--font-heading--family);
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.drawerHeader button {
+  border: 0;
+  background: transparent;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  font-size: 1.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #1f1f1f;
+}
+
+.drawerContent {
+  flex: 1;
+  overflow: auto;
+}
+
+.cartInsideDrawer {
+  max-width: none;
+  margin: 0;
+  padding: 14px 16px 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .drawer {
+    width: 100vw;
+  }
+}
