@@ -1,6 +1,16 @@
 # Project History
 
 ## 2026-03-18
+- [done] Replaced the repository README with a recruiter- and engineer-focused storefront overview, route map, stack, scripts, and env/config guidance.
+- files: README.md, HISTORY.md
+- status: completed
+
+## 2026-03-18
+- [done] Hardened README security guidance by adding a secrets-handling section (no real credentials, rotation, secret storage guidance).
+- files: README.md, HISTORY.md
+- status: completed
+
+## 2026-03-18
 - [done] Aligned contact page typography to match FAQ page fonts and text scale.
 - files: app/contact/page.module.css, HISTORY.md
 - status: completed
@@ -530,5 +540,15 @@ This file tracks work completed in the repository for easy machine-readable revi
 ## 2026-03-18
 - [done] Added an admin delivery-cost section backed by D1 and wired checkout to use the saved fee.
 - files: app/admin/page.tsx, app/admin/actions.ts, app/admin/page.module.css, app/checkout/page.tsx, components/checkout-client.tsx, lib/stripe-checkout.ts, lib/store-settings.ts, HISTORY.md
+- status: completed
+
+## 2026-03-19
+- [done] Enabled Apple Pay and Google Pay express checkout before the secure-payment button by adding a Stripe confirmation-token express flow on checkout.
+- files: components/checkout-client.tsx, app/api/stripe/express-payment/route.ts, HISTORY.md
+- status: completed
+
+## 2026-03-20
+- [done] Enabled PayPal in Stripe express checkout and updated the express-payment route to confirm PayPal payment intents.
+- files: components/checkout-client.tsx, app/api/stripe/express-payment/route.ts, HISTORY.md
 - status: completed
 

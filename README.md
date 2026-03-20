@@ -1,217 +1,110 @@
-# Grown Cookies
+# Grown Cookies Storefront
 
-Grown Cookies is a `Next.js` storefront and product admin project for a local cookie business. The goal is simple: build something leaner and cheaper to run than a subscription-heavy platform like Shopify, while keeping more control over the catalogue, images, and homepage merchandising.
+**Grown Cookies Storefront** is a custom Next.js ecommerce storefront built for a local cookie brand.  
+The app combines a customer-facing shopping experience with a small internal admin workflow for catalog and media management.
 
-The project is being built around the next chapter of Lewa Thomas, who previously built Akara Bakery and is now opening a dedicated cookie company.
+This documentation is written for two audiences:
+
+- Recruiters: a concise product-level summary with implementation breadth.
+- Engineers: concrete architecture, stack details, routes, and operational notes.
 
 ## Status
 
-This project is not live yet.
+- In active development
+- Demo URL: `https://growncookies.netlify.app/`
 
-It is currently being developed as a working demo and internal toolset. The demo URL is:
+## What this app includes
 
-`https://growncookies.netlify.app/`
+- Public homepage with featured merchandising and brand-first layout
+- Shop listing and product detail flow
+- Search in listings
+- Basket/cart and checkout
+- Account and auth entrypoints
+- Admin area for product and featured-product editing
+- Privacy, legal, FAQ, and data-deletion pages
+- Stripe payment flow with intent creation and webhook handling
 
-## Why This Repo Exists
+## Tech stack
 
-Hosted ecommerce platforms are convenient, but they come with recurring costs, platform constraints, and a lot of features that a small local business may not actually need.
+- Next.js: `16.1.6`
+- React: `19.2.3`
+- TypeScript
+- Supabase JS: `^2.99.1` (auth + public data reads)
+- Stripe: `^5.8.0` (frontend), `^18.4.0` (server)
+- AWS SDK S3 client: `^3.1009.0` (R2 upload flow)
+- ESLint: `^9`
 
-This repo is an attempt to keep the stack focused:
+## Routes / feature map
 
-- a custom storefront for the brand
-- a lightweight admin area for managing products
-- Cloudflare services for data and image storage
-- lower ongoing running costs than a typical subscription ecommerce setup
+- `/` — home / featured storefront
+- `/shop` — product grid and sorting/filtering
+- `/shop/[slug]` — product detail and add-to-basket interactions
+- `/cart` — cart management and checkout handoff
+- `/checkout` — payment form and order summary
+- `/account` — authentication/account entrypoint
+- `/contact` — contact flow
+- `/admin` — protected admin studio for catalog operations
+- `/faqs` — customer FAQs
+- `/privacy` — privacy policy
+- `/data-deletion` — data deletion/rights flow
+- `/api/stripe/payment-intent` — payment intent endpoint
+- `/api/stripe/webhook` — Stripe webhook endpoint
 
-## What Is In Here
+## Architecture overview
 
-The codebase currently covers three main areas:
+- **Frontend**: Next.js App Router with mixed Server/Client components
+- **Authentication**: Supabase Auth for customer/admin identity flows
+- **Catalog persistence**: Cloudflare D1 for products and featured-product data
+- **Media storage**: Cloudflare R2 for product images
+- **Payments**: Stripe Payment flow with webhook-driven order updates
+- **Deployment target**: Cloudflare build/deploy scripts included for pages-style deployment (`npm run cloudflare:build`, `npm run cloudflare:deploy`)
 
-- Public storefront pages built with the App Router in `Next.js`
-- Customer account signup using `Supabase Auth`
-- An internal product studio at `/admin` for managing catalogue data and homepage featured products
-
-From the code that exists today, the main implemented flows are:
-
-- homepage with featured products
-- shop grid and individual product pages
-- customer signup with email/password and Google via `Supabase`
-- admin sign-in for product management
-- product editing backed by `Cloudflare D1`
-- product image uploads backed by `Cloudflare R2`
-- fallback local product data when Cloudflare is not configured
-
-## Stack
-
-- `Next.js 16`
-- `React 19`
-- `TypeScript`
-- `Supabase Auth` for customer signup and admin authentication
-- `Cloudflare D1` for product and featured-product data
-- `Cloudflare R2` for product image storage
-- `Netlify` for demo hosting
-
-## Running Locally
-
-1. Install dependencies:
+## Scripts
 
 ```bash
 npm install
-```
-
-2. Copy the example environment file:
-
-```bash
-cp .env.example .env.local
-```
-
-3. Add the required environment variables to `.env.local`.
-
-4. Start the development server:
-
-```bash
 npm run dev
+npm run build
+npm run lint
+npm run cloudflare:build
+npm run cloudflare:deploy
 ```
 
-5. Open `http://localhost:3000`.
-
-If you want to use the local vanity domain, add this line to `C:\Windows\System32\drivers\etc\hosts`:
+## Project structure
 
 ```text
-127.0.0.1 local.growncookies.co.uk
-```
-
-Then run:
-
-```bash
-npm run dev:local
-```
-
-and open `http://local.growncookies.co.uk:3000`.
-
-## Environment Variables
-
-Create a `.env.local` file with the following values:
-
-```bash
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-CLOUDFLARE_ACCOUNT_ID=
-CLOUDFLARE_D1_DATABASE_ID=
-CLOUDFLARE_API_TOKEN=
-CLOUDFLARE_R2_BUCKET_NAME=
-CLOUDFLARE_R2_PUBLIC_BASE_URL=
-CLOUDFLARE_R2_ACCESS_KEY_ID=
-CLOUDFLARE_R2_SECRET_ACCESS_KEY=
-CLOUDFLARE_R2_JURISDICTION=
-STRIPE_SECRET_KEY=
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
-STRIPE_WEBHOOK_SECRET=
-```
-
-Notes:
-
-- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are required for customer signup and admin sign-in.
-- `CLOUDFLARE_D1_DATABASE_ID`, `CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_API_TOKEN` are required for product management in `/admin`.
-- `CLOUDFLARE_R2_BUCKET_NAME` and `CLOUDFLARE_R2_PUBLIC_BASE_URL` are required for serving product images from `R2`.
-- `CLOUDFLARE_R2_ACCESS_KEY_ID` and `CLOUDFLARE_R2_SECRET_ACCESS_KEY` are optional if you want to provide explicit `S3`-compatible credentials.
-- If explicit `R2` credentials are not set, the app attempts to derive upload credentials from `CLOUDFLARE_API_TOKEN`.
-- `CLOUDFLARE_R2_PUBLIC_BASE_URL` should point to the public `R2` hostname or custom domain that serves uploaded product images.
-- `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, and `STRIPE_WEBHOOK_SECRET` are required for the checkout payment flow.
-
-## Stripe Setup
-
-The checkout page already uses Stripe Payment Element through:
-
-- `app/api/stripe/payment-intent/route.ts`
-- `app/api/stripe/webhook/route.ts`
-- `components/checkout-client.tsx`
-
-To finish setup locally:
-
-1. Create or open your Stripe account in test mode.
-2. Copy your test publishable key and test secret key into `.env.local`:
-
-```bash
-STRIPE_SECRET_KEY=sk_test_...
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-```
-
-3. Start the app:
-
-```bash
-npm run dev
-```
-
-4. Forward Stripe webhooks to the local Next.js route with the Stripe CLI:
-
-```bash
-stripe listen --forward-to http://localhost:3000/api/stripe/webhook
-```
-
-5. Copy the webhook signing secret printed by the CLI into `.env.local`:
-
-```bash
-STRIPE_WEBHOOK_SECRET=whsec_...
-```
-
-6. Restart the dev server after changing env vars.
-7. Open `/checkout` and complete a payment with Stripe test card details such as `4242 4242 4242 4242`, any future expiry date, any CVC, and any postcode.
-
-Stripe references:
-
-- Payment Element: https://docs.stripe.com/payments/accept-a-payment?api-integration=paymentintents&payment-ui=elements
-- Webhook forwarding with Stripe CLI: https://docs.stripe.com/stripe-cli/use-cli#forward-events-to-your-local-webhook-endpoint
-
-## Supabase Setup
-
-In the `Supabase` dashboard:
-
-1. Enable Email and Google under Authentication providers.
-2. Add your local and demo site URLs under URL configuration.
-3. For Google login, use the callback URL shown by `Supabase` in the provider setup screen.
-4. Decide whether email confirmation should stay enabled.
-
-## Cloudflare Data Model
-
-The admin tooling is built around three tables in `Cloudflare D1`:
-
-- `products`
-- `featured_products`
-- `product_images`
-
-The schema lives in `cloudflare/d1/schema.sql`.
-
-At the moment, the storefront can still render from local fallback data if `D1` is missing, but `/admin` only works when the Cloudflare environment variables are configured.
-
-## Demo Deployment
-
-This repo is currently intended to run locally during development and to be deployed to `Netlify` for demos.
-
-For a demo deploy, connect the repo to `Netlify` and provide the same environment variables used locally. If `Cloudflare D1`, `Cloudflare R2`, or `Supabase` are missing, parts of the app will degrade or be unavailable, especially `/admin`.
-
-## Project Structure
-
-```text
-app/                 Next.js routes and page-level UI
-components/          Reusable UI and admin form components
-lib/                 Data access, auth helpers, Cloudflare integration
-cloudflare/d1/       SQL schema and seed files
-public/              Brand assets and product photography
+app/                 Route-level pages and API handlers
+components/          Shared UI and page-specific controls
+lib/                 Utilities for data, auth, and service integrations
+cloudflare/d1/       SQL schema for D1-backed storefront/admin data
+public/              Static assets
 ```
 
 ## Screenshots
 
-This section is intentionally here so the README can grow with the project.
+Add visual examples in this order:
 
-Suggested screenshots to add later:
-
-- homepage hero and featured products
-- shop grid
-- product detail page
-- admin product studio
-- account signup flow
+1. Homepage hero and featured section
+2. Shop listing cards
+3. Product detail page
+4. Cart and checkout flow
+5. Admin edit screen
 
 ## Notes
 
-This is a focused custom build for a local business, not a generic ecommerce platform. The tradeoff is deliberate: less platform convenience, more control, and lower recurring cost.
+- The project includes fallback behavior for catalog reads when optional backend services are unavailable, while admin-critical and checkout paths are intentionally more strict.
+- This is a practical, lean storefront implementation focused on control, cost, and maintainability compared to hosted monolithic e-commerce platforms.
+
+## Security and secrets
+
+This README intentionally uses placeholder configuration values only.  
+Never commit `.env.local` or real credentials.
+
+Required security practices:
+
+- Keep production secrets in your deployment platform's secret store.
+- Keep `.env.local` out of version control.
+- Rotate immediately if a key is ever exposed.
+- Store only non-sensitive, redacted examples in the repository.
+
+If you suspect any key has been exposed, invalidate it in its provider (Stripe, Supabase, Cloudflare) and generate a replacement before next deployment.
