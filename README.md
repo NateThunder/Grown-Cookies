@@ -69,7 +69,6 @@ npm run lint
 npm run cloudflare:build
 npm run cloudflare:deploy
 ```
-## Project structure
 
 ```text
 app/                 Route-level pages and API handlers
@@ -79,17 +78,14 @@ cloudflare/d1/       SQL schema for D1-backed storefront/admin data
 public/              Static assets
 ```
 
-## Screenshots
-
-Add visual examples in this order:
-
-1. Homepage hero and featured section
-2. Shop listing cards
-3. Product detail page
-4. Cart and checkout flow
-5. Admin edit screen
-
-## Notes
-
 - The project includes fallback behavior for catalog reads when optional backend services are unavailable, while admin-critical and checkout paths are intentionally more strict.
 - This is a practical, lean storefront implementation focused on control, cost, and maintainability compared to hosted monolithic e-commerce platforms.
+
+
+
+- Keep production secrets in your deployment platform's secret store.
+- Keep `.env.local` out of version control.
+- Rotate immediately if a key is ever exposed.
+- Store only non-sensitive, redacted examples in the repository.
+
+
