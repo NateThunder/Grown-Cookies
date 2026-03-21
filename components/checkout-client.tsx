@@ -11,7 +11,11 @@ import {
   useElements,
   useStripe,
 } from "@stripe/react-stripe-js";
-import { type Stripe as StripeSDK, loadStripe } from "@stripe/stripe-js";
+import {
+  type Stripe as StripeSDK,
+  type StripeExpressCheckoutElementConfirmEvent,
+  loadStripe,
+} from "@stripe/stripe-js";
 import {
   BASKET_UPDATED_EVENT,
   formatPrice,
@@ -70,6 +74,16 @@ type PaymentIntentResponse = {
   totalCents?: number;
 };
 
+type ExpressPaymentResponse = {
+  clientSecret?: string;
+  orderId?: string;
+  paymentIntentId?: string;
+  status?: string;
+};
+
+const EXPRESS_CHECKOUT_ALLOWED_COUNTRIES = ["GB", "US", "CA"] as const;
+const STRIPE_CHECKOUT_CURRENCY = "gbp";
+
 function toMoneyCents(value: number) {
   return Math.max(0, Math.round(value * 100));
 }
@@ -86,6 +100,240 @@ function stripeErrorText(error: unknown): string {
   return "Something went wrong. Please try again.";
 }
 
+function buildCheckoutSuccessUrl(params: {
+  orderId: string;
+  paymentIntentId: string;
+  paymentIntentClientSecret?: string | null;
+}) {
+  const searchParams = new URLSearchParams({
+    orderId: params.orderId,
+    payment_intent: params.paymentIntentId,
+  });
+
+  if (params.paymentIntentClientSecret) {
+    searchParams.set("payment_intent_client_secret", params.paymentIntentClientSecret);
+  }
+
+  return `/checkout/success?${searchParams.toString()}`;
+}
+
+function ExpressCheckoutShortcut({
+  items,
+  shippingCents,
+  tipCents,
+  onError,
+}: {
+  items: BasketItem[];
+  shippingCents: number;
+  tipCents: number;
+  onError: (error: string) => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [hasExpressMethods, setHasExpressMethods] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const shippingRate = useMemo(
+    () => ({
+      id: "standard-shipping",
+      displayName: "Standard delivery",
+      amount: shippingCents,
+    }),
+    [shippingCents],
+  );
+
+  const lineItems = useMemo(
+    () => [
+      ...items.map((item) => ({
+        name: `${item.name} x${item.quantity}`,
+        amount: toMoneyCents(parsePrice(item.price) * item.quantity),
+      })),
+      {
+        name: "Standard delivery",
+        amount: shippingCents,
+      },
+      ...(tipCents > 0
+        ? [
+            {
+              name: "Tip",
+              amount: tipCents,
+            },
+          ]
+        : []),
+    ],
+    [items, shippingCents, tipCents],
+  );
+
+  const handleExpressConfirm = async (event: StripeExpressCheckoutElementConfirmEvent) => {
+    if (!stripe || !elements || isSubmitting) {
+      const errorMessage = "Express checkout is still loading. Please wait.";
+      onError(errorMessage);
+      event.paymentFailed({
+        reason: "fail",
+        message: errorMessage,
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    onError("");
+
+    try {
+      const confirmationResult = await stripe.createConfirmationToken({
+        elements,
+      });
+
+      if (confirmationResult.error || !confirmationResult.confirmationToken?.id) {
+        throw new Error(stripeErrorText(confirmationResult.error));
+      }
+
+      const response = await fetch("/api/stripe/express-payment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          items: items.map((item) => ({
+            slug: item.slug,
+            quantity: item.quantity,
+          })),
+          tipCents,
+          confirmationTokenId: confirmationResult.confirmationToken.id,
+          returnUrlBase: window.location.origin,
+          fallbackContact: {
+            email: event.billingDetails?.email ?? "",
+            phone: event.billingDetails?.phone ?? "",
+          },
+        }),
+      });
+
+      const result = (await response.json().catch(() => ({}))) as ExpressPaymentResponse & {
+        error?: string;
+      };
+
+      if (!response.ok || !result.clientSecret || !result.orderId || !result.paymentIntentId) {
+        throw new Error(result.error || "Could not complete express checkout.");
+      }
+
+      if (result.status === "requires_action") {
+        const nextActionResult = await stripe.handleNextAction({
+          clientSecret: result.clientSecret,
+        });
+
+        if (nextActionResult.error) {
+          throw new Error(stripeErrorText(nextActionResult.error));
+        }
+
+        if ("paymentIntent" in nextActionResult && nextActionResult.paymentIntent?.id) {
+          window.location.href = buildCheckoutSuccessUrl({
+            orderId: result.orderId,
+            paymentIntentId: nextActionResult.paymentIntent.id,
+            paymentIntentClientSecret:
+              nextActionResult.paymentIntent.client_secret ?? result.clientSecret,
+          });
+          return;
+        }
+
+        throw new Error("Could not complete express checkout.");
+      }
+
+      if (
+        result.status === "succeeded" ||
+        result.status === "processing" ||
+        result.status === "requires_capture"
+      ) {
+        window.location.href = buildCheckoutSuccessUrl({
+          orderId: result.orderId,
+          paymentIntentId: result.paymentIntentId,
+          paymentIntentClientSecret: result.clientSecret,
+        });
+        return;
+      }
+
+      throw new Error("Could not complete express checkout.");
+    } catch (error) {
+      const errorMessage = stripeErrorText(error);
+      onError(errorMessage);
+      event.paymentFailed({
+        reason: "fail",
+        message: errorMessage,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className={hasExpressMethods ? styles.expressCheckoutWrap : styles.expressCheckoutWrapHidden}
+    >
+      <p className={styles.expressCheckoutLabel}>Express checkout</p>
+      <ExpressCheckoutElement
+        options={{
+          allowedShippingCountries: [...EXPRESS_CHECKOUT_ALLOWED_COUNTRIES],
+          emailRequired: true,
+          lineItems,
+          phoneNumberRequired: false,
+          shippingAddressRequired: true,
+          shippingRates: [shippingRate],
+          buttonTheme: {
+            applePay: "black",
+            googlePay: "black",
+          },
+          buttonType: {
+            applePay: "check-out",
+            googlePay: "checkout",
+            paypal: "buynow",
+          },
+          layout: {
+            maxColumns: 2,
+            maxRows: 1,
+            overflow: "never",
+          },
+          paymentMethods: {
+            applePay: "auto",
+            googlePay: "auto",
+            link: "never",
+            paypal: "auto",
+            amazonPay: "never",
+          },
+        }}
+        onReady={(event) => {
+          const available = event.availablePaymentMethods;
+          setHasExpressMethods(
+            Boolean(available?.applePay || available?.googlePay || available?.paypal),
+          );
+        }}
+        onShippingAddressChange={(event) => {
+          const country = event.address.country?.toUpperCase() ?? "";
+          if (
+            country &&
+            !EXPRESS_CHECKOUT_ALLOWED_COUNTRIES.some((allowedCountry) => allowedCountry === country)
+          ) {
+            event.reject();
+            return;
+          }
+
+          event.resolve({
+            lineItems,
+            shippingRates: [shippingRate],
+          });
+        }}
+        onShippingRateChange={(event) => {
+          event.resolve({
+            lineItems,
+            shippingRates: [shippingRate],
+          });
+        }}
+        onConfirm={handleExpressConfirm}
+      />
+      <div className={styles.expressCheckoutDivider}>
+        <span>Or pay with card</span>
+      </div>
+    </div>
+  );
+}
+
 function PaymentElementForm({
   orderId,
   onError,
@@ -97,7 +345,6 @@ function PaymentElementForm({
   const elements = useElements();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState("");
-  const [hasExpressWallets, setHasExpressWallets] = useState(false);
 
   const confirmCurrentPayment = async () => {
     if (!stripe || !elements) {
@@ -143,56 +390,6 @@ function PaymentElementForm({
 
   return (
     <form className={styles.stripeForm} onSubmit={handleSubmit}>
-      <div
-        className={hasExpressWallets ? styles.expressCheckoutWrap : styles.expressCheckoutWrapHidden}
-      >
-        <p className={styles.expressCheckoutLabel}>Express checkout</p>
-        <ExpressCheckoutElement
-          options={{
-            buttonTheme: {
-              applePay: "black",
-              googlePay: "black",
-            },
-            buttonType: {
-              applePay: "check-out",
-              googlePay: "checkout",
-            },
-            layout: {
-              maxColumns: 2,
-              maxRows: 1,
-              overflow: "never",
-            },
-            paymentMethods: {
-              applePay: "auto",
-              googlePay: "auto",
-              link: "never",
-              paypal: "never",
-              amazonPay: "never",
-            },
-          }}
-          onReady={(event) => {
-            const available = event.availablePaymentMethods;
-            setHasExpressWallets(Boolean(available?.applePay || available?.googlePay));
-          }}
-          onConfirm={async (event) => {
-            setIsSubmitting(true);
-            const result = await confirmCurrentPayment();
-
-            if ("error" in result) {
-              event.paymentFailed({
-                reason: "fail",
-                message: result.error,
-              });
-            }
-
-            setIsSubmitting(false);
-          }}
-        />
-        <div className={styles.expressCheckoutDivider}>
-          <span>Or pay with card</span>
-        </div>
-      </div>
-
       <div className={styles.paymentElement}>
         <PaymentElement />
       </div>
@@ -221,6 +418,10 @@ export default function CheckoutClient({ shippingCents }: { shippingCents: numbe
   const [paymentError, setPaymentError] = useState("");
 
   const [stripePromise, setStripePromise] = useState<Promise<StripeSDK | null> | null>(null);
+  const expressStripePromise = useMemo(() => {
+    const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim();
+    return publishableKey ? loadStripe(publishableKey) : null;
+  }, []);
 
   const subtotal = useMemo(() => getBasketSubtotal(items), [items]);
   const subtotalCents = useMemo(() => toMoneyCents(subtotal), [subtotal]);
@@ -554,6 +755,27 @@ export default function CheckoutClient({ shippingCents }: { shippingCents: numbe
                 </p>
                 <p className={styles.sectionNote}>All transactions are secure and encrypted.</p>
 
+                {expressStripePromise ? (
+                  <Elements
+                    key={`express-${totalCents}-${computedTipCents}-${items
+                      .map((item) => `${item.slug}:${item.quantity}`)
+                      .join(",")}`}
+                    stripe={expressStripePromise}
+                    options={{
+                      amount: totalCents,
+                      currency: STRIPE_CHECKOUT_CURRENCY,
+                      mode: "payment",
+                    }}
+                  >
+                    <ExpressCheckoutShortcut
+                      items={items}
+                      shippingCents={shippingCents}
+                      tipCents={computedTipCents}
+                      onError={setPaymentError}
+                    />
+                  </Elements>
+                ) : null}
+
                 {isPaymentStarted && paymentIntentClientSecret && paymentPublishableKey && orderId ? (
                   <Elements
                     stripe={stripePromise}
@@ -563,9 +785,7 @@ export default function CheckoutClient({ shippingCents }: { shippingCents: numbe
                   >
                     <PaymentElementForm
                       orderId={orderId}
-                      onError={(error) =>
-                        setPaymentError(error ? error.message : "")
-                      }
+                      onError={(error) => setPaymentError(error ? error.message : "")}
                     />
                   </Elements>
                 ) : (
