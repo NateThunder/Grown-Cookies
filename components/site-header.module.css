@@ -92,8 +92,97 @@
 .iconNav a,
 .accountLink {
   display: inline-flex;
+  align-items: center;
   color: #1f1f1f;
   font-size: 1.3rem;
+}
+
+.accountMenu {
+  position: relative;
+}
+
+.accountMenuButton {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.accountBadge {
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 999px;
+  background: #761A6C;
+  color: #ffffff;
+  font-family: var(--font-header--family);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.accountDropdown {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  min-width: 196px;
+  padding: 10px;
+  border: 1px solid rgba(118, 26, 108, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 18px 40px rgba(40, 14, 41, 0.16);
+  display: grid;
+  gap: 4px;
+  z-index: 40;
+}
+
+.accountDropdownLabel {
+  margin: 0 0 4px;
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid rgba(118, 26, 108, 0.1);
+  color: #5c495f;
+  font-family: var(--font-body--family);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.accountDropdownLink,
+.accountDropdownAction {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #240f26;
+  cursor: pointer;
+  font-family: var(--font-header--family);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-align: left;
+  text-decoration: none;
+  text-transform: uppercase;
+  padding: 11px 10px;
+  line-height: 1;
+}
+
+.accountDropdownLink:hover,
+.accountDropdownLink:focus-visible,
+.accountDropdownAction:hover,
+.accountDropdownAction:focus-visible {
+  background: rgba(118, 26, 108, 0.08);
+  outline: none;
+}
+
+.accountDropdownAction:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 .mobileMenuButton,
@@ -251,6 +340,12 @@
   .iconNav a,
   .accountLink {
     font-size: 1.2rem;
+  }
+
+  .accountBadge {
+    width: 1.95rem;
+    height: 1.95rem;
+    font-size: 0.66rem;
   }
 
   .mobileMenuButton,

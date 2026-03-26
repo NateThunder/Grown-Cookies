@@ -28,6 +28,7 @@ import {
   ADMIN_AUTH_COOKIE,
   getSupabaseUserFromAccessToken,
   hasSupabasePublicConfig,
+  isAdminUser,
 } from "@/lib/supabase/admin-auth";
 import styles from "./page.module.css";
 
@@ -164,11 +165,17 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(ADMIN_AUTH_COOKIE)?.value;
-  const adminUser = accessToken ? await getSupabaseUserFromAccessToken(accessToken) : null;
+  const adminSessionUser = accessToken ? await getSupabaseUserFromAccessToken(accessToken) : null;
   const supabaseConfigured = hasSupabasePublicConfig();
+  const adminUser = isAdminUser(adminSessionUser) ? adminSessionUser : null;
 
   if (!adminUser) {
-    return <AdminLoginScreen error={error} supabaseConfigured={supabaseConfigured} />;
+    return (
+      <AdminLoginScreen
+        error={error}
+        supabaseConfigured={supabaseConfigured}
+      />
+    );
   }
 
   const d1Configured = hasCloudflareD1Config();

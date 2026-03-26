@@ -1,3 +1,40 @@
+.authCard {
+  display: grid;
+  gap: 20px;
+}
+
+.modeSwitch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 6px;
+  border-radius: 999px;
+  background: rgba(118, 26, 108, 0.08);
+}
+
+.modeButton {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #5c495f;
+  cursor: pointer;
+  font-family: var(--font-header--family);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  padding: 12px 16px;
+  text-transform: uppercase;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.modeButtonActive {
+  background: #ffffff;
+  color: #240f26;
+  box-shadow: 0 8px 20px rgba(118, 26, 108, 0.12);
+}
+
 .form {
   display: grid;
   gap: 18px;
@@ -122,6 +159,39 @@
 
 .success {
   color: #1f6a45;
+}
+
+.accountState {
+  display: grid;
+  gap: 18px;
+}
+
+.accountSummary {
+  padding: 22px;
+  border: 1px solid rgba(118, 26, 108, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.accountEyebrow {
+  margin: 0 0 8px;
+  color: #761A6C;
+  font-family: var(--font-header--family);
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.accountSummary h3 {
+  margin: 0;
+  color: #240f26;
+  font-family: var(--font-heading--family);
+  font-size: 1.5rem;
+}
+
+.accountSummary p:last-child {
+  margin: 10px 0 0;
+  color: #5c495f;
 }
 
 @media (max-width: 640px) {

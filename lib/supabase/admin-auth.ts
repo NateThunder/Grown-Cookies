@@ -67,6 +67,28 @@ export function hasSupabasePublicConfig() {
   return Boolean(getSupabasePublicConfig());
 }
 
+export function isAdminUser(user: Pick<User, "email"> | null | undefined) {
+  const appMetadata =
+    user && "app_metadata" in user && user.app_metadata && typeof user.app_metadata === "object"
+      ? user.app_metadata
+      : null;
+
+  if (!appMetadata) {
+    return false;
+  }
+
+  const role = String(
+    ("user_role" in appMetadata ? appMetadata.user_role : null) ??
+      ("role" in appMetadata ? appMetadata.role : null) ??
+      "",
+  )
+    .trim()
+    .toLowerCase();
+  const isAdminFlag = "is_admin" in appMetadata ? appMetadata.is_admin === true : false;
+
+  return role === "admin" || isAdminFlag;
+}
+
 export async function signInToSupabaseWithPassword({
   email,
   password,
@@ -142,6 +164,10 @@ export async function getSupabaseUserFromAccessToken(accessToken: string): Promi
   } catch {
     return null;
   }
+}
+
+export function getAdminAccessDeniedMessage() {
+  return "Access denied.";
 }
 
 export function getAdminAuthCookieOptions() {
