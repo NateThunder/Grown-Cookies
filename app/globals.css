@@ -159,15 +159,23 @@ body:has(main.account-page) .site-footer {
 
 .site-footer-social {
   justify-self: end;
+  margin-right: 64px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 1.1rem;
+  gap: 14px;
+  font-size: 1.45rem;
   color: #ffffff;
 }
 
 .site-footer-social a {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.site-footer-social svg {
+  width: 1.45rem;
+  height: 1.45rem;
 }
 
 .home-page {
@@ -397,25 +405,30 @@ body:has(main.account-page) .site-footer {
 }
 
   .site-footer-bottom-row {
-  margin-top: 52px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(236, 202, 240, 0.45);
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 10px;
-  color: rgba(255, 255, 255, 0.92);
-  font-family: var(--font-abril-fatface), Georgia, "Times New Roman", serif;
-  font-size: clamp(0.78rem, 0.9vw, 0.92rem);
-  letter-spacing: 0.015em;
-}
-
-  .site-footer-bottom-row > a {
-    justify-self: center;
+    margin-top: 52px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(236, 202, 240, 0.45);
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: start;
+    justify-items: start;
+    gap: 12px;
+    color: rgba(255, 255, 255, 0.92);
+    font-family: var(--font-abril-fatface), Georgia, "Times New Roman", serif;
+    font-size: clamp(0.78rem, 0.9vw, 0.92rem);
+    letter-spacing: 0.015em;
   }
 
   .site-footer-social {
-    justify-self: center;
+    justify-self: start;
+    margin-left: 0;
+    font-size: 1.7rem;
+    gap: 16px;
+  }
+
+  .site-footer-social svg {
+    width: 1.7rem;
+    height: 1.7rem;
   }
 }
 
