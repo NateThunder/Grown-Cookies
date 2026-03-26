@@ -4,13 +4,42 @@ import GiftCardTile from "@/components/gift-card-tile";
 import QuickAddButton from "@/components/quick-add-button";
 import SiteHeader from "@/components/site-header";
 import { getAllProducts } from "@/lib/products";
+import {
+  DEFAULT_BRAND_STORY_BODY,
+  DEFAULT_COOKIE_OF_MONTH_CTA_LABEL,
+  DEFAULT_COOKIE_OF_MONTH_PRODUCT_SLUG,
+  DEFAULT_COOKIE_OF_MONTH_TITLE,
+  DEFAULT_SHOP_INTRO_BODY,
+  DEFAULT_SHOP_INTRO_CTA_LABEL,
+  DEFAULT_SHOP_INTRO_EYEBROW,
+  DEFAULT_SHOP_INTRO_TITLE,
+  getBrandStorySectionSetting,
+  getCookieOfMonthSectionSetting,
+  getShopIntroSectionSetting,
+} from "@/lib/store-settings";
 import styles from "./page.module.css";
 
 export default async function Home() {
   const products = await getAllProducts();
+  const cookieOfMonthSetting = await getCookieOfMonthSectionSetting();
+  const shopIntroSetting = await getShopIntroSectionSetting();
+  const brandStorySetting = await getBrandStorySectionSetting();
   const featuredProducts = products.filter((product) => product.featured);
   const homepageProducts =
     featuredProducts.length >= 3 ? featuredProducts.slice(0, 3) : products.slice(0, 3);
+  const cookieOfMonthProductSlug =
+    cookieOfMonthSetting.productSlug || DEFAULT_COOKIE_OF_MONTH_PRODUCT_SLUG;
+  const cookieOfMonthProduct = products.find(
+    (product) => product.slug === cookieOfMonthProductSlug,
+  );
+  const cookieOfMonthHref = cookieOfMonthProduct ? `/shop/${cookieOfMonthProduct.slug}` : "/shop";
+  const cookieOfMonthTitle = cookieOfMonthSetting.title || DEFAULT_COOKIE_OF_MONTH_TITLE;
+  const cookieOfMonthCtaLabel = cookieOfMonthSetting.ctaLabel || DEFAULT_COOKIE_OF_MONTH_CTA_LABEL;
+  const shopIntroEyebrow = shopIntroSetting.eyebrow || DEFAULT_SHOP_INTRO_EYEBROW;
+  const shopIntroTitle = shopIntroSetting.title || DEFAULT_SHOP_INTRO_TITLE;
+  const shopIntroBody = shopIntroSetting.body || DEFAULT_SHOP_INTRO_BODY;
+  const shopIntroCtaLabel = shopIntroSetting.ctaLabel || DEFAULT_SHOP_INTRO_CTA_LABEL;
+  const brandStoryBody = brandStorySetting.body || DEFAULT_BRAND_STORY_BODY;
 
   return (
     <main className={`${styles.page} ${styles.pageWidthWide}`}>
@@ -92,41 +121,20 @@ export default async function Home() {
         </div>
 
         <div className={styles.monthTextPanel}>
-          <h2 className={styles.monthTitle}>
-            Our Cookie of the Month is a limited-edition artisan flavour
-            inspired by the season, celebrating the ingredients at their best.
-          </h2>
-          <Link href="/shop" className={styles.monthButton}>
-            Cookie of the Month
+          <h2 className={styles.monthTitle}>{cookieOfMonthTitle}</h2>
+          <Link href={cookieOfMonthHref} className={styles.monthButton}>
+            {cookieOfMonthCtaLabel}
           </Link>
         </div>
       </section>
 
       <section className={styles.shopIntro}>
         <div className={styles.shopIntroInner}>
-          <p className={styles.shopIntroEyebrow}>Our shop</p>
-          <h2 className={styles.shopIntroTitle}>
-            Grown Cookies are the ideal treat for any event, adding a touch of
-            sweetness to every celebration. Whether you&apos;re planning a
-            birthday party, a wedding, a corporate event, or just a casual
-            get-together, our cookies are sure to impress your guests.
-          </h2>
-          <p className={styles.shopIntroBody}>
-            Our cookies come in a variety of flavours, ensuring there&apos;s
-            something for everyone. From classic favourites like{" "}
-            <Link href="/shop" className={styles.shopIntroInlineLink}>
-              chocolate cookies
-            </Link>{" "}
-            to unique creations like{" "}
-            <Link href="/shop" className={styles.shopIntroInlineLink}>
-              matcha white chocolate
-            </Link>
-            , our selection caters to diverse tastes and preferences. These
-            delectable cookies are baked to perfection by our professional
-            bakers, making them a highlight at any gathering.
-          </p>
+          <p className={styles.shopIntroEyebrow}>{shopIntroEyebrow}</p>
+          <h2 className={styles.shopIntroTitle}>{shopIntroTitle}</h2>
+          <p className={styles.shopIntroBody}>{shopIntroBody}</p>
           <Link href="/shop" className={styles.shopIntroLink}>
-            Learn more
+            {shopIntroCtaLabel}
           </Link>
         </div>
       </section>
@@ -140,11 +148,7 @@ export default async function Home() {
         />
         <div className={styles.brandStoryOverlay} />
         <div className={styles.brandStoryContent}>
-          <p>
-            We don&apos;t just make your classic cookies, we reimagine them -
-            staying faithful to creating great flavours while elevating every
-            detail
-          </p>
+          <p>{brandStoryBody}</p>
         </div>
       </section>
     </main>
