@@ -130,6 +130,11 @@
   background: rgba(255, 255, 255, 0.04);
 }
 
+.sidebarNav {
+  display: grid;
+  gap: 0.75rem;
+}
+
 .navLabel,
 .sidebarEyebrow,
 .eyebrow,
@@ -180,6 +185,11 @@
   margin: 0.8rem 0 0;
   color: rgba(255, 240, 227, 0.74);
   line-height: 1.6;
+}
+
+.sidebarNav .navItem,
+.sidebarNav .navItemActive {
+  min-height: 3.9rem;
 }
 
 .sidebarCard h2 {
@@ -270,6 +280,29 @@
   background: rgba(255, 255, 255, 0.75);
 }
 
+.metricCardLink {
+  min-width: 8rem;
+  padding: 1rem 1.1rem;
+  border-radius: 1.2rem;
+  border: 1px solid rgba(118, 26, 108, 0.1);
+  background: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.metricCardLink:hover,
+.metricCardLink:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(108, 29, 88, 0.24);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18px 30px rgba(76, 32, 42, 0.08);
+  outline: none;
+}
+
 .metricCard span {
   display: block;
   color: #8f5767;
@@ -279,6 +312,21 @@
 }
 
 .metricCard strong {
+  display: block;
+  margin-top: 0.35rem;
+  color: #3c172c;
+  font-size: 1.55rem;
+}
+
+.metricCardLink span {
+  display: block;
+  color: #8f5767;
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.metricCardLink strong {
   display: block;
   margin-top: 0.35rem;
   color: #3c172c;
@@ -435,6 +483,29 @@
   color: #4b183f;
   font-size: 0.9rem;
   font-weight: 700;
+}
+
+.deliveryField input,
+.settingsTextarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(118, 26, 108, 0.16);
+  border-radius: 0.95rem;
+  padding: 0.85rem 0.95rem;
+  background: #ffffff;
+  color: #351927;
+}
+
+.deliveryField input:focus,
+.settingsTextarea:focus {
+  outline: none;
+  border-color: rgba(108, 29, 88, 0.45);
+  box-shadow: 0 0 0 3px rgba(108, 29, 88, 0.08);
+}
+
+.settingsTextarea {
+  resize: vertical;
+  min-height: 7.5rem;
 }
 
 .deliveryInputWrap {
@@ -611,6 +682,41 @@
   gap: 0.55rem;
 }
 
+.tickboxForm {
+  display: inline-flex;
+  align-items: center;
+}
+
+.tickboxButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(108, 29, 88, 0.16);
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  background: #ffffff;
+  color: #4b183f;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.tickboxButton:hover,
+.tickboxButton:focus-visible {
+  border-color: rgba(108, 29, 88, 0.35);
+  outline: none;
+}
+
+.tickboxButtonActive {
+  border-color: transparent;
+  background: #6c1d58;
+  color: #ffffff;
+}
+
 .reorderControls {
   display: inline-flex;
   gap: 0.35rem;
@@ -735,6 +841,11 @@
 
   .brand {
     grid-column: 1 / -1;
+  }
+
+  .sidebarNav {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

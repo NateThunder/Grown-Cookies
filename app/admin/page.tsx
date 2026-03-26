@@ -18,12 +18,18 @@ import {
   adminLoginAction,
   adminLogoutAction,
   moveFeaturedProductAction,
-  updateDeliveryCostAction,
+  updateCookieOfMonthProductAction,
 } from "./actions";
 import { hasCloudflareD1Config } from "@/lib/cloudflare-d1";
 import { hasCloudflareR2UploadConfig } from "@/lib/cloudflare-r2";
 import { getAdminProducts, getNextFeaturedPosition, getNextProductSortOrder } from "@/lib/product-admin";
-import { DEFAULT_DELIVERY_COST_CENTS, getDeliveryCostSetting } from "@/lib/store-settings";
+import {
+  DEFAULT_COOKIE_OF_MONTH_CTA_LABEL,
+  DEFAULT_COOKIE_OF_MONTH_TITLE,
+  DEFAULT_DELIVERY_COST_CENTS,
+  getCookieOfMonthSectionSetting,
+  getDeliveryCostSetting,
+} from "@/lib/store-settings";
 import {
   ADMIN_AUTH_COOKIE,
   getSupabaseUserFromAccessToken,
@@ -190,6 +196,15 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         isDefault: true,
         updatedAt: undefined,
       };
+  const cookieOfMonthSetting = d1Configured
+    ? await getCookieOfMonthSectionSetting()
+    : {
+        title: DEFAULT_COOKIE_OF_MONTH_TITLE,
+        ctaLabel: DEFAULT_COOKIE_OF_MONTH_CTA_LABEL,
+        productSlug: undefined,
+        isDefault: true,
+        updatedAt: undefined,
+      };
   const featuredProducts = products
     .filter((product) => product.featured)
     .sort((left, right) => {
@@ -220,34 +235,26 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <span className={styles.brandTag}>product studio</span>
         </Link>
 
-        <div className={styles.navSection}>
-          <p className={styles.navLabel}>Products</p>
-          <div className={styles.navList}>
-            <Link
-              href={getAdminHref({ view: "all" })}
-              className={`${styles.navItem} ${!showingFeaturedOnly ? styles.navItemActive : ""}`.trim()}
-            >
-              Edit products
-            </Link>
-          </div>
-          <p className={styles.navHint}>Add, update, and manage your full product catalogue.</p>
-        </div>
-
-        <div className={styles.navSection}>
-          <p className={styles.navLabel}>Homepage</p>
-          <div className={styles.navList}>
-            <Link
-              href={getAdminHref({ view: "featured" })}
-              className={`${styles.navItem} ${showingFeaturedOnly ? styles.navItemActive : ""}`.trim()}
-            >
-              Edit featured products
-            </Link>
-          </div>
-          <p className={styles.navHint}>Control which products are shown on the homepage.</p>
-        </div>
-
-
-
+        <nav className={styles.sidebarNav} aria-label="Admin sections">
+          <Link
+            href={getAdminHref({ view: "all" })}
+            className={`${styles.navItem} ${!showingFeaturedOnly ? styles.navItemActive : ""}`.trim()}
+          >
+            Edit products
+          </Link>
+          <Link
+            href={getAdminHref({ view: "featured" })}
+            className={`${styles.navItem} ${showingFeaturedOnly ? styles.navItemActive : ""}`.trim()}
+          >
+            Edit featured products
+          </Link>
+          <Link href="/admin/homepage" className={styles.navItem}>
+            Home page
+          </Link>
+          <Link href="/admin/delivery" className={styles.navItem}>
+            Delivery costs
+          </Link>
+        </nav>
       </aside>
 
       <section className={styles.content}>
@@ -264,18 +271,18 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
           <div className={styles.headerActions}>
             <div className={styles.metricRow}>
-              <div className={styles.metricCard}>
+              <Link href={getAdminHref({ view: "all" })} className={styles.metricCardLink}>
                 <span>Total products</span>
                 <strong>{products.length}</strong>
-              </div>
-              <div className={styles.metricCard}>
+              </Link>
+              <Link href={getAdminHref({ view: "featured" })} className={styles.metricCardLink}>
                 <span>Featured</span>
                 <strong>{featuredProducts.length}</strong>
-              </div>
-              <div className={styles.metricCard}>
+              </Link>
+              <Link href="/admin/delivery" className={styles.metricCardLink}>
                 <span>Delivery fee</span>
                 <strong>{formatAdminCurrency(deliveryCostSetting.deliveryCostCents)}</strong>
-              </div>
+              </Link>
             </div>
 
             <div className={styles.headerButtonRow}>
@@ -285,6 +292,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               </Link>
 
               <form action={adminLogoutAction}>
+                <input type="hidden" name="returnPath" value="/admin" />
                 <button type="submit" className={styles.signOutButton}>
                   <FiLogOut />
                   <span>Sign out</span>
@@ -326,53 +334,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         ) : (
           <section className={styles.workspace}>
             <div className={styles.workspaceStack}>
-              <section className={styles.settingsPanel}>
-                <div className={styles.settingsPanelHeader}>
-                  <div>
-                    <p className={styles.tableEyebrow}>Checkout</p>
-                    <h2>Delivery costs</h2>
-                  </div>
-                  <p className={styles.tableHint}>
-                    Update the flat standard-delivery fee used in checkout and saved into new Stripe
-                    orders.
-                  </p>
-                </div>
-
-                <div className={styles.deliveryCardBody}>
-                  <div className={styles.deliverySummary}>
-                    <span>Current live fee</span>
-                    <strong>{formatAdminCurrency(deliveryCostSetting.deliveryCostCents)}</strong>
-                    <small>
-                      {deliveryCostSetting.isDefault
-                        ? "Using the default fee until you save a custom amount."
-                        : `Last updated ${formatAdminDate(deliveryCostSetting.updatedAt)}`}
-                    </small>
-                  </div>
-
-                  <form action={updateDeliveryCostAction} className={styles.deliveryForm}>
-                    <input type="hidden" name="returnView" value={view} />
-
-                    <label className={styles.deliveryField}>
-                      <span>Standard delivery fee</span>
-                      <div className={styles.deliveryInputWrap}>
-                        <span>GBP</span>
-                        <input
-                          name="deliveryCostValue"
-                          type="text"
-                          inputMode="decimal"
-                          defaultValue={(deliveryCostSetting.deliveryCostCents / 100).toFixed(2)}
-                          required
-                        />
-                      </div>
-                    </label>
-
-                    <button type="submit" className={styles.deliverySaveButton}>
-                      Save delivery cost
-                    </button>
-                  </form>
-                </div>
-              </section>
-
               <div className={styles.tablePanel}>
                 <div className={styles.tablePanelHeader}>
                   <div>
@@ -395,6 +356,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         <th scope="col">Product</th>
                         <th scope="col">Price</th>
                         <th scope="col">Featured</th>
+                        <th scope="col">Cookie of month</th>
                         <th scope="col">Added</th>
                         <th scope="col">Updated</th>
                         <th scope="col" className={styles.actionsColumn}>
@@ -445,6 +407,35 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                                   Not featured
                                 </span>
                               )}
+                            </td>
+                            <td>
+                              <form action={updateCookieOfMonthProductAction} className={styles.tickboxForm}>
+                                <input type="hidden" name="returnView" value={view} />
+                                <input type="hidden" name="productSlug" value={product.slug} />
+                                <input
+                                  type="hidden"
+                                  name="cookieOfMonthSelected"
+                                  value={cookieOfMonthSetting.productSlug === product.slug ? "0" : "1"}
+                                />
+                                <button
+                                  type="submit"
+                                  className={`${styles.tickboxButton} ${
+                                    cookieOfMonthSetting.productSlug === product.slug
+                                      ? styles.tickboxButtonActive
+                                      : ""
+                                  }`.trim()}
+                                  aria-pressed={cookieOfMonthSetting.productSlug === product.slug}
+                                >
+                                  {cookieOfMonthSetting.productSlug === product.slug ? (
+                                    <FiCheckCircle />
+                                  ) : (
+                                    <FiPlus />
+                                  )}
+                                  <span>
+                                    {cookieOfMonthSetting.productSlug === product.slug ? "Selected" : "Set"}
+                                  </span>
+                                </button>
+                              </form>
                             </td>
                             <td>{formatAdminDate(product.createdAt)}</td>
                             <td>{formatAdminDate(product.updatedAt)}</td>
@@ -540,6 +531,4 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     </main>
   );
 }
-
-
 

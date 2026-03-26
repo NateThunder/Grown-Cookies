@@ -692,3 +692,123 @@ This file tracks work completed in the repository for easy machine-readable revi
 - files: lib/supabase/admin-auth.ts, HISTORY.md
 - status: completed
 
+## 2026-03-26
+- [done] Added admin controls for Cookie of the Month section copy and moved Cookie of the Month product selection into a tick box on the products table.
+- files: app/admin/actions.ts, app/admin/page.tsx, app/admin/page.module.css, app/page.tsx, components/admin-cookie-of-month-toggle.tsx, lib/store-settings.ts, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Added admin controls for the homepage Our shop section and wired the homepage intro copy to editable D1-backed settings.
+- files: app/admin/actions.ts, app/admin/page.tsx, app/page.tsx, lib/store-settings.ts, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Changed the admin Cookie of the Month table toggle to use an explicit Save button so checked state stays visible before submission.
+- files: components/admin-cookie-of-month-toggle.tsx, app/admin/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Restricted the admin Cookie of the Month table UI to one selected product at a time before save.
+- files: components/admin-cookie-of-month-toggle.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Removed the admin Cookie of the Month save button and restored auto-save while keeping single-product selection behavior.
+- files: components/admin-cookie-of-month-toggle.tsx, app/admin/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Fixed admin Cookie of the Month auto-save to submit an explicit selected state so the new choice persists instead of snapping back.
+- files: components/admin-cookie-of-month-toggle.tsx, app/admin/actions.ts, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Fixed delivery-cost updates staying stale by disabling cached D1 reads for store settings and revalidating checkout/admin after save.
+- files: lib/store-settings.ts, app/admin/actions.ts, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Fixed the admin Cookie of the Month table toggle to submit the current selected value reliably during auto-save.
+- files: components/admin-cookie-of-month-toggle.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Replaced the admin Cookie of the Month table toggle with a server-rendered action button to avoid the admin table hydration mismatch.
+- files: app/admin/page.tsx, app/admin/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Changed the homepage Cookie of the Month CTA to default to the selected cookie product page and fall back to the Double Chocolate Hazelnut product instead of `/shop`.
+- files: app/page.tsx, lib/store-settings.ts, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Added admin controls for the homepage brand story statement and wired the closing homepage copy to editable D1-backed settings.
+- files: app/admin/actions.ts, app/admin/page.tsx, app/page.tsx, lib/store-settings.ts, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Moved admin delivery-cost controls onto a separate `/admin/delivery` page and added a matching sidebar tab.
+- files: app/admin/actions.ts, app/admin/page.tsx, app/admin/delivery/page.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Moved the admin featured-products link into the Products sidebar section.
+- files: app/admin/page.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Matched the delivery admin sidebar to the same three-link layout used on the main admin page.
+- files: app/admin/delivery/page.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Flattened the admin sidebar so it shows only the three main section tabs without extra grouped cards.
+- files: app/admin/page.module.css, app/admin/page.tsx, app/admin/delivery/page.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Moved homepage admin content controls into a dedicated Home page tab and route.
+- files: app/admin/actions.ts, app/admin/page.tsx, app/admin/delivery/page.tsx, app/admin/homepage/page.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Restored the Cookie of the Month setting lookup on the products admin page so the product-table selector can render after moving homepage panels out.
+- files: app/admin/page.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Made the admin dashboard metric cards link to the matching products, featured products, and delivery pages.
+- files: app/admin/page.tsx, app/admin/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Increased the footer Instagram and TikTok icon size and shifted the mobile social group left for better visibility.
+- files: app/globals.css, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Moved the mobile footer social icons farther left so the floating basket button no longer overlaps them.
+- files: app/globals.css, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Shifted the mobile footer social icons further left to improve clearance from the floating basket button.
+- files: app/globals.css, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Reworked the mobile footer bottom row into a left-aligned stacked layout so the social icons visibly sit farther left and clear the floating basket button.
+- files: app/globals.css, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Moved the desktop footer social icons inward by changing the bottom-row grid so they no longer sit on the far right edge.
+- files: app/globals.css, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Restored the desktop footer grid so the terms link stays centered and shifted only the social icons left with a dedicated offset.
+- files: app/globals.css, HISTORY.md
+- status: completed
+
