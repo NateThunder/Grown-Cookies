@@ -113,9 +113,15 @@ export default async function Home() {
           </h2>
           <p className={styles.shopIntroBody}>
             Our cookies come in a variety of flavours, ensuring there&apos;s
-            something for everyone. From classic favourites like chocolate
-            cookies to unique creations like matcha white chocolate, our
-            selection caters to diverse tastes and preferences. These
+            something for everyone. From classic favourites like{" "}
+            <Link href="/shop" className={styles.shopIntroInlineLink}>
+              chocolate cookies
+            </Link>{" "}
+            to unique creations like{" "}
+            <Link href="/shop" className={styles.shopIntroInlineLink}>
+              matcha white chocolate
+            </Link>
+            , our selection caters to diverse tastes and preferences. These
             delectable cookies are baked to perfection by our professional
             bakers, making them a highlight at any gathering.
           </p>

@@ -12,8 +12,10 @@ import {
 import { updateDeliveryCostCents } from "@/lib/store-settings";
 import {
   ADMIN_AUTH_COOKIE,
+  getAdminAccessDeniedMessage,
   getAdminAuthCookieOptions,
   getSupabaseUserFromAccessToken,
+  isAdminUser,
   signInToSupabaseWithPassword,
 } from "@/lib/supabase/admin-auth";
 
@@ -124,6 +126,11 @@ async function requireAdminSession() {
   if (!user) {
     throw new Error("Your admin session expired. Sign in again.");
   }
+
+  if (!isAdminUser(user)) {
+    cookieStore.delete(ADMIN_AUTH_COOKIE);
+    throw new Error(getAdminAccessDeniedMessage());
+  }
 }
 
 export async function adminLoginAction(formData: FormData) {
@@ -145,6 +152,15 @@ export async function adminLoginAction(formData: FormData) {
   if ("errorMessage" in result) {
     redirectToAdmin({
       error: result.errorMessage,
+    });
+    return;
+  }
+
+  const user = await getSupabaseUserFromAccessToken(result.accessToken);
+
+  if (!isAdminUser(user)) {
+    redirectToAdmin({
+      error: getAdminAccessDeniedMessage(),
     });
     return;
   }
