@@ -552,3 +552,143 @@ This file tracks work completed in the repository for easy machine-readable revi
 - files: components/checkout-client.tsx, app/api/stripe/express-payment/route.ts, HISTORY.md
 - status: completed
 
+## 2026-03-20
+- [done] Removed the manual secure-payment step by auto-initializing the Stripe PaymentIntent once required checkout details are filled, so express wallets can appear without clicking the button.
+- files: components/checkout-client.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-20
+- [done] Enlarged and stacked express checkout buttons so Apple Pay, Google Pay, and PayPal render as full-width rows when Stripe makes them available.
+- files: components/checkout-client.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-20
+- [done] Fixed Stripe express checkout runtime validation by reducing the configured wallet button height to the supported maximum.
+- files: components/checkout-client.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-20
+- [done] Restored the manual checkout trigger so payment options load after clicking the secure-payment button again.
+- files: components/checkout-client.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-21
+- [done] Restored the outer search-result card shell for gift cards so they render inside the same boxed card layout as other search items.
+- files: components/search-modal-trigger.module.css, HISTORY.md
+- status: completed
+- [done] Added a divider line between the gift card image area and text in the search modal result card.
+- files: components/search-modal-trigger.module.css, HISTORY.md
+- status: completed
+- [done] Matched the search modal gift card sizing to the standard result card measurements while keeping the image-text divider.
+- files: components/search-modal-trigger.module.css, HISTORY.md
+- status: completed
+- [done] Moved the search modal gift card divider onto the image container so the image-text split aligns with other result cards.
+- files: components/search-modal-trigger.module.css, HISTORY.md
+- status: completed
+- [done] Restored the search modal gift card tile to its original smaller inner size while keeping the aligned divider.
+- files: components/search-modal-trigger.module.css, HISTORY.md
+- status: completed
+- [done] Matched the search modal gift card image container sizing behavior to the standard result cards so the divider aligns correctly.
+- files: components/search-modal-trigger.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-21
+- [done] Removed the Availability and Price filter buttons from the shop page toolbar.
+- files: app/shop/page.tsx, app/shop/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-21
+- [done] Removed the grid and list view toggle buttons from the shop page toolbar.
+- files: app/shop/page.tsx, app/shop/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-21
+- [done] Added matching inline underline links to the home page shop intro copy.
+- files: app/page.tsx, app/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-21
+- [done] Moved the shop toolbar sort control to the right side of the items row.
+- files: app/shop/page.tsx, app/shop/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-25
+- [done] Expanded the account page into a full Supabase customer auth flow with registration, sign-in, signed-in state, and sign-out.
+- files: app/account/page.tsx, components/account-signup-form.tsx, components/account-signup-form.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Updated the site header account control to show a signed-in customer badge and account label when Supabase auth is active.
+- files: components/header-account-link.tsx, components/site-header.tsx, components/site-header.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Reworked the signed-in header control into an avatar dropdown with settings, order history, and logout actions, and added matching account-page anchor sections.
+- files: components/header-account-link.tsx, components/site-header.module.css, app/account/page.tsx, app/account/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Converted the account route into an auth-aware settings dashboard with sidebar navigation and D1-backed order history matched by customer email.
+- files: app/account/page.tsx, app/account/page.module.css, components/account-page-client.tsx, app/api/account/orders/route.ts, lib/account-orders.ts, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Removed the account settings and order history cards from the account page and simplified the signed-in header menu link.
+- files: app/account/page.tsx, app/account/page.module.css, components/header-account-link.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Matched the header account dropdown Account link size to the Log out action.
+- files: components/site-header.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Rewrote the repository README as a GitHub-facing showcase and added a real homepage screenshot asset.
+- files: README.md, docs/screenshots/homepage.png, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Pinned the signed-in account sidebar so the account card and section nav stay fixed on screen instead of scrolling with the page.
+- files: app/account/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Adjusted the fixed account sidebar offset so it stays pinned at its original visual starting position on the page.
+- files: app/account/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Moved the fixed account sidebar lower on the page so its pinned position sits closer to the main account content.
+- files: app/account/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Lowered the fixed account sidebar again to better match the requested pinned position.
+- files: app/account/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Reduced the account dashboard bottom padding so the page stops closer to the end of the order section.
+- files: app/account/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Hid the global site footer on the account page so scrolling stops at the account content instead of revealing the purple footer block.
+- files: app/account/page.tsx, app/globals.css, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Separated customer and admin access by requiring an explicit Supabase admin email allowlist for `/admin` sessions and logins.
+- files: lib/supabase/admin-auth.ts, app/admin/actions.ts, app/admin/page.tsx, .env.example, README.md, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Moved `/admin` authorization from the local email allowlist to Supabase user app metadata claims.
+- files: lib/supabase/admin-auth.ts, app/admin/page.tsx, .env.example, README.md, HISTORY.md
+- status: completed
+
+## 2026-03-26
+- [done] Shortened the admin login denial copy to "Access denied."
+- files: lib/supabase/admin-auth.ts, HISTORY.md
+- status: completed
+

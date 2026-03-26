@@ -114,16 +114,19 @@
   gap: 20px;
 }
 
-.filters,
+.itemCount {
+  font-family: var(--font-body--family);
+  color: #6c6c6c;
+}
+
 .sorting {
   display: flex;
   align-items: center;
-  gap: 18px;
   font-family: var(--font-body--family);
   color: #353535;
+  margin-left: auto;
 }
 
-.filters button,
 .sorting button,
 .sortToggle {
   border: 0;
@@ -187,28 +190,6 @@
   align-items: center;
   justify-content: center;
   min-height: 1em;
-}
-
-.sorting span {
-  color: #6c6c6c;
-  margin-right: 6px;
-}
-
-.viewOn,
-.viewOff {
-  width: 34px;
-  height: 34px;
-  border-radius: 6px !important;
-  justify-content: center;
-  padding: 0 !important;
-}
-
-.viewOn {
-  background: #e2e2e2 !important;
-}
-
-.viewOff {
-  color: #8a8a8a !important;
 }
 
 .grid {
@@ -443,15 +424,10 @@
 
   .toolsRow {
     margin: 30px 0 22px;
-    flex-direction: column;
-    align-items: flex-start;
   }
 
   .sorting {
-    width: 100%;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    row-gap: 10px;
+    margin-left: auto;
   }
 
   .grid {
