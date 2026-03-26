@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { FiChevronDown, FiGrid, FiLayout } from "react-icons/fi";
 import QuickAddButton from "@/components/quick-add-button";
 import styles from "./page.module.css";
 import { getAllProducts, type ShopProduct } from "@/lib/products";
@@ -111,24 +110,9 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         <h1>Shop</h1>
 
         <div className={styles.toolsRow}>
-          <div className={styles.filters}>
-            <button type="button">
-              Availability <FiChevronDown />
-            </button>
-            <button type="button">
-              Price <FiChevronDown />
-            </button>
-          </div>
-
+          <span className={styles.itemCount}>{sortedProducts.length} items</span>
           <div className={styles.sorting}>
-            <span>{sortedProducts.length} items</span>
             <ShopSortDropdown options={SORT_OPTIONS} activeSort={activeSort} />
-            <button type="button" aria-label="Grid view" className={styles.viewOn}>
-              <FiGrid />
-            </button>
-            <button type="button" aria-label="List view" className={styles.viewOff}>
-              <FiLayout />
-            </button>
           </div>
         </div>
 

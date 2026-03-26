@@ -2,8 +2,8 @@ import Link from "next/link";
 import { getAllProducts, type ShopProduct } from "@/lib/products";
 import MobileNav from "@/components/mobile-nav";
 import SearchModalTrigger from "@/components/search-modal-trigger";
-import { FiUser } from "react-icons/fi";
 import BasketLink from "@/components/basket-link";
+import HeaderAccountLink from "@/components/header-account-link";
 import styles from "./site-header.module.css";
 
 type NavRoute = "home" | "shop" | "contact" | "faqs";
@@ -70,9 +70,7 @@ export default async function SiteHeader({
           <div className={styles.desktopSearch}>
             <SearchModalTrigger products={products} />
           </div>
-          <Link href="/account" aria-label="Account" className={styles.accountLink}>
-            <FiUser />
-          </Link>
+          <HeaderAccountLink />
           <BasketLink position="both" />
         </div>
       </header>

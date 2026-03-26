@@ -96,6 +96,325 @@
   line-height: 1.65;
 }
 
+.accountLoading {
+  padding: 72px 48px 96px;
+}
+
+.loadingCard,
+.dashboardSection,
+.sidebarCard,
+.sidebarNav,
+.orderCard,
+.emptyOrders {
+  border: 1px solid rgba(118, 26, 108, 0.12);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 22px 50px rgba(118, 26, 108, 0.08);
+}
+
+.loadingCard {
+  padding: 28px;
+}
+
+.dashboard {
+  --account-sidebar-width: 280px;
+  --account-dashboard-gap: 28px;
+  --account-sidebar-top: 270px;
+  display: grid;
+  grid-template-columns: var(--account-sidebar-width) minmax(0, 1fr);
+  gap: var(--account-dashboard-gap);
+  align-items: start;
+  padding: 56px 48px 24px;
+}
+
+.sidebar {
+  position: fixed;
+  top: var(--account-sidebar-top);
+  width: min(var(--account-sidebar-width), calc(100vw - 96px));
+  display: grid;
+  gap: 18px;
+}
+
+.sidebarCard {
+  padding: 24px;
+}
+
+.sidebarEyebrow,
+.sectionEyebrow {
+  margin: 0 0 12px;
+  color: #761A6C;
+  font-family: var(--font-header--family);
+  font-size: 0.8rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.sidebarCard h1,
+.loadingCard h1,
+.sectionHeader h2 {
+  margin: 0;
+  color: #240f26;
+  font-family: var(--font-heading--family);
+  font-size: clamp(1.5rem, 2vw, 2rem);
+}
+
+.sidebarCard p:last-child,
+.loadingCard p:last-child,
+.sectionHeader p:last-child {
+  margin: 12px 0 0;
+  color: #5c495f;
+  line-height: 1.65;
+}
+
+.sidebarNav {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.sidebarLink,
+.mobileSectionLink {
+  border-radius: 14px;
+  color: #331d37;
+  font-family: var(--font-header--family);
+  font-size: 0.84rem;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+  padding: 12px 14px;
+}
+
+.sidebarLink:hover,
+.sidebarLink:focus-visible,
+.mobileSectionLink:hover,
+.mobileSectionLink:focus-visible {
+  background: rgba(118, 26, 108, 0.08);
+  outline: none;
+}
+
+.dashboardContent {
+  display: grid;
+  gap: 20px;
+  grid-column: 2;
+}
+
+.mobileSectionNav {
+  display: none;
+}
+
+.dashboardSection {
+  scroll-margin-top: 120px;
+  padding: 28px;
+}
+
+.sectionHeader {
+  margin-bottom: 24px;
+}
+
+.settingsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.settingField {
+  display: grid;
+  gap: 8px;
+  color: #2c1832;
+  font-family: var(--font-body--family);
+  font-size: 0.95rem;
+}
+
+.settingField span {
+  font-weight: 600;
+}
+
+.settingField input {
+  width: 100%;
+  border: 1px solid rgba(118, 26, 108, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #1d1021;
+  font: inherit;
+  padding: 15px 16px;
+  box-sizing: border-box;
+}
+
+.settingField input:focus {
+  outline: 2px solid rgba(118, 26, 108, 0.2);
+  outline-offset: 2px;
+}
+
+.placeholderRow,
+.actionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.placeholderRow p {
+  margin: 0;
+  color: #5c495f;
+  line-height: 1.6;
+}
+
+.primaryButton,
+.secondaryButton {
+  border-radius: 999px;
+  font-family: var(--font-header--family);
+  font-size: 0.84rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 14px 18px;
+  cursor: pointer;
+}
+
+.primaryButton {
+  border: 0;
+  background: #761A6C;
+  color: #ffffff;
+}
+
+.secondaryButton {
+  border: 1px solid rgba(118, 26, 108, 0.18);
+  background: #ffffff;
+  color: #240f26;
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.securityGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.infoCard {
+  border-radius: 18px;
+  background: rgba(247, 239, 248, 0.72);
+  padding: 20px;
+}
+
+.infoCard h3,
+.preferenceCard h3,
+.emptyOrders h3,
+.orderCard h3 {
+  margin: 0;
+  color: #240f26;
+  font-family: var(--font-heading--family);
+  font-size: 1.2rem;
+}
+
+.infoCard p,
+.preferenceCard p,
+.emptyOrders p,
+.ordersStatus,
+.orderMetaGrid p,
+.orderDelivery p {
+  margin: 10px 0 0;
+  color: #5c495f;
+  line-height: 1.6;
+}
+
+.preferenceList {
+  display: grid;
+  gap: 14px;
+}
+
+.preferenceCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid rgba(118, 26, 108, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 20px;
+}
+
+.preferenceCard input {
+  width: 20px;
+  height: 20px;
+  accent-color: #761A6C;
+}
+
+.ordersStatus {
+  margin-top: 0;
+}
+
+.emptyOrders {
+  padding: 24px;
+}
+
+.orderList {
+  display: grid;
+  gap: 16px;
+}
+
+.orderCard {
+  padding: 24px;
+}
+
+.orderTopRow,
+.orderMetaGrid {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.orderMetaGrid {
+  margin-top: 18px;
+}
+
+.orderMetaLabel {
+  margin: 0;
+  color: #761A6C;
+  font-family: var(--font-header--family);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.orderStatus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 9px 12px;
+  font-family: var(--font-header--family);
+  font-size: 0.74rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.statusPending {
+  background: rgba(188, 132, 23, 0.14);
+  color: #8d5c00;
+}
+
+.statusPaid {
+  background: rgba(51, 139, 92, 0.14);
+  color: #20653f;
+}
+
+.statusFailed {
+  background: rgba(188, 73, 94, 0.14);
+  color: #9a2035;
+}
+
+.orderDelivery {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(118, 26, 108, 0.1);
+}
+
 @media (max-width: 900px) {
   .hero {
     grid-template-columns: 1fr;
@@ -109,6 +428,43 @@
   .copy h1 {
     max-width: none;
   }
+
+  .accountLoading,
+  .dashboard {
+    padding: 48px 24px 24px;
+  }
+
+  .dashboard {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .sidebar {
+    position: static;
+    width: auto;
+  }
+
+  .sidebarNav {
+    display: none;
+  }
+
+  .mobileSectionNav {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+
+  .mobileSectionLink {
+    white-space: nowrap;
+    border: 1px solid rgba(118, 26, 108, 0.14);
+    background: rgba(255, 255, 255, 0.86);
+  }
+
+  .securityGrid,
+  .settingsGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -120,5 +476,45 @@
   .panel {
     padding: 24px 18px;
     border-radius: 22px;
+  }
+
+  .accountLoading,
+  .dashboard {
+    padding: 36px 16px 20px;
+  }
+
+  .loadingCard,
+  .sidebarCard,
+  .sidebarNav,
+  .dashboardSection,
+  .orderCard,
+  .emptyOrders {
+    border-radius: 20px;
+  }
+
+  .dashboardSection,
+  .loadingCard,
+  .orderCard,
+  .emptyOrders,
+  .sidebarCard {
+    padding: 22px 18px;
+  }
+
+  .placeholderRow,
+  .actionRow,
+  .orderTopRow,
+  .orderMetaGrid,
+  .preferenceCard {
+    flex-direction: column;
+    align-items: start;
+  }
+
+  .primaryButton,
+  .secondaryButton {
+    width: 100%;
+  }
+
+  .preferenceCard input {
+    align-self: end;
   }
 }

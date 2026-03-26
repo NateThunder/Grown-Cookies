@@ -263,6 +263,13 @@
   color: #121212;
 }
 
+.shopIntroInlineLink {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 0.06em;
+  text-underline-offset: 0.12em;
+}
+
 .shopIntroLink {
   display: inline-block;
   margin-top: 20px;
