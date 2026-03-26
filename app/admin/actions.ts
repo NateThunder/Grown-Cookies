@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import {
@@ -9,7 +9,13 @@ import {
   moveFeaturedProductPosition,
   updateAdminProduct,
 } from "@/lib/product-admin";
-import { updateDeliveryCostCents } from "@/lib/store-settings";
+import {
+  updateBrandStorySectionSetting,
+  updateCookieOfMonthProductSlug,
+  updateCookieOfMonthSectionSetting,
+  updateDeliveryCostCents,
+  updateShopIntroSectionSetting,
+} from "@/lib/store-settings";
 import {
   ADMIN_AUTH_COOKIE,
   getAdminAccessDeniedMessage,
@@ -69,7 +75,12 @@ function getImageFile(formData: FormData, key: string) {
   return value instanceof File && value.size > 0 ? value : null;
 }
 
+function getAdminReturnPath(value?: string) {
+  return value && value.startsWith("/admin") ? value : "/admin";
+}
+
 function redirectToAdmin({
+  returnPath,
   productSlug,
   createNew,
   notice,
@@ -77,6 +88,7 @@ function redirectToAdmin({
   error,
   returnView,
 }: {
+  returnPath?: string;
   productSlug?: string;
   createNew?: boolean;
   notice?: string;
@@ -110,7 +122,9 @@ function redirectToAdmin({
     searchParams.set("error", error);
   }
 
-  redirect(`/admin${searchParams.size ? `?${searchParams.toString()}` : ""}`);
+  const adminPath = getAdminReturnPath(returnPath);
+
+  redirect(`${adminPath}${searchParams.size ? `?${searchParams.toString()}` : ""}`);
 }
 
 async function requireAdminSession() {
@@ -136,9 +150,11 @@ async function requireAdminSession() {
 export async function adminLoginAction(formData: FormData) {
   const email = getTextField(formData, "email").trim();
   const password = getTextField(formData, "password");
+  const returnPath = getTextField(formData, "returnPath");
 
   if (!email || !password) {
     redirectToAdmin({
+      returnPath,
       error: "Enter both email and password.",
     });
     return;
@@ -151,6 +167,7 @@ export async function adminLoginAction(formData: FormData) {
 
   if ("errorMessage" in result) {
     redirectToAdmin({
+      returnPath,
       error: result.errorMessage,
     });
     return;
@@ -160,6 +177,7 @@ export async function adminLoginAction(formData: FormData) {
 
   if (!isAdminUser(user)) {
     redirectToAdmin({
+      returnPath,
       error: getAdminAccessDeniedMessage(),
     });
     return;
@@ -177,15 +195,17 @@ export async function adminLoginAction(formData: FormData) {
   });
 
   redirectToAdmin({
+    returnPath,
     notice: "Signed in.",
   });
 }
 
-export async function adminLogoutAction() {
+export async function adminLogoutAction(formData: FormData) {
   const cookieStore = await cookies();
   cookieStore.delete(ADMIN_AUTH_COOKIE);
 
   redirectToAdmin({
+    returnPath: getTextField(formData, "returnPath"),
     notice: "Signed out.",
   });
 }
@@ -193,11 +213,16 @@ export async function adminLogoutAction() {
 export async function updateDeliveryCostAction(formData: FormData) {
   try {
     const returnView = getTextField(formData, "returnView");
+    const returnPath = getTextField(formData, "returnPath");
     await requireAdminSession();
 
     await updateDeliveryCostCents(getMoneyFieldInCents(formData, "deliveryCostValue"));
+    revalidatePath("/admin");
+    revalidatePath("/admin/delivery");
+    revalidatePath("/checkout");
 
     redirectToAdmin({
+      returnPath,
       notice: "Delivery cost saved.",
       returnView,
     });
@@ -207,10 +232,152 @@ export async function updateDeliveryCostAction(formData: FormData) {
     }
 
     redirectToAdmin({
+      returnPath: getTextField(formData, "returnPath"),
       error:
         error instanceof Error
           ? error.message
           : "The delivery cost could not be saved.",
+      returnView: getTextField(formData, "returnView"),
+    });
+  }
+}
+
+export async function updateCookieOfMonthContentAction(formData: FormData) {
+  try {
+    const returnView = getTextField(formData, "returnView");
+    const returnPath = getTextField(formData, "returnPath");
+    await requireAdminSession();
+
+    await updateCookieOfMonthSectionSetting({
+      title: getTextField(formData, "cookieOfMonthTitle"),
+      ctaLabel: getTextField(formData, "cookieOfMonthCtaLabel"),
+    });
+
+    revalidateTag("products", "max");
+    revalidatePath("/");
+    revalidatePath("/admin/homepage");
+
+    redirectToAdmin({
+      returnPath,
+      notice: "Cookie of the Month section saved.",
+      returnView,
+    });
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    redirectToAdmin({
+      returnPath: getTextField(formData, "returnPath"),
+      error:
+        error instanceof Error
+          ? error.message
+          : "The Cookie of the Month section could not be saved.",
+      returnView: getTextField(formData, "returnView"),
+    });
+  }
+}
+
+export async function updateCookieOfMonthProductAction(formData: FormData) {
+  try {
+    const returnView = getTextField(formData, "returnView");
+    const returnPath = getTextField(formData, "returnPath");
+    await requireAdminSession();
+
+    const productSlug = getTextField(formData, "productSlug").trim();
+
+    if (!productSlug) {
+      throw new Error("Choose a product.");
+    }
+
+    const isSelected = getTextField(formData, "cookieOfMonthSelected") === "1";
+
+    await updateCookieOfMonthProductSlug(isSelected ? productSlug : undefined);
+    revalidateTag("products", "max");
+    revalidatePath("/");
+    revalidatePath("/admin/homepage");
+
+    redirectToAdmin({
+      returnPath,
+      notice: isSelected ? "Cookie of the Month updated." : "Cookie of the Month cleared.",
+      returnView,
+    });
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    redirectToAdmin({
+      returnPath: getTextField(formData, "returnPath"),
+      error:
+        error instanceof Error
+          ? error.message
+          : "The Cookie of the Month product could not be saved.",
+      returnView: getTextField(formData, "returnView"),
+    });
+  }
+}
+
+export async function updateShopIntroContentAction(formData: FormData) {
+  try {
+    const returnView = getTextField(formData, "returnView");
+    const returnPath = getTextField(formData, "returnPath");
+    await requireAdminSession();
+
+    await updateShopIntroSectionSetting({
+      eyebrow: getTextField(formData, "shopIntroEyebrow"),
+      title: getTextField(formData, "shopIntroTitle"),
+      body: getTextField(formData, "shopIntroBody"),
+      ctaLabel: getTextField(formData, "shopIntroCtaLabel"),
+    });
+
+    revalidatePath("/");
+    revalidatePath("/admin/homepage");
+
+    redirectToAdmin({
+      returnPath,
+      notice: "Shop section saved.",
+      returnView,
+    });
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    redirectToAdmin({
+      returnPath: getTextField(formData, "returnPath"),
+      error: error instanceof Error ? error.message : "The shop section could not be saved.",
+      returnView: getTextField(formData, "returnView"),
+    });
+  }
+}
+
+export async function updateBrandStoryContentAction(formData: FormData) {
+  try {
+    const returnView = getTextField(formData, "returnView");
+    const returnPath = getTextField(formData, "returnPath");
+    await requireAdminSession();
+
+    await updateBrandStorySectionSetting({
+      body: getTextField(formData, "brandStoryBody"),
+    });
+
+    revalidatePath("/");
+    revalidatePath("/admin/homepage");
+
+    redirectToAdmin({
+      returnPath,
+      notice: "Brand story section saved.",
+      returnView,
+    });
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    redirectToAdmin({
+      returnPath: getTextField(formData, "returnPath"),
+      error: error instanceof Error ? error.message : "The brand story section could not be saved.",
       returnView: getTextField(formData, "returnView"),
     });
   }
