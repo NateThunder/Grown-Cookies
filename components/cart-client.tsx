@@ -2,17 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BASKET_UPDATED_EVENT,
   clearBasket,
   getBasket,
-  getBasketSubtotal,
-  parsePrice,
   removeFromBasket,
   setBasketQuantity,
-  type BasketItem,
 } from "@/lib/basket-storage";
+import { formatPriceFromCents, type BasketQuote, type BasketStoredItem } from "@/lib/basket";
 import GiftCardTile from "@/components/gift-card-tile";
 import styles from "@/components/cart-client.module.css";
 
@@ -22,22 +20,14 @@ type CartClientProps = {
   showTitle?: boolean;
 };
 
-const currencyFormatter = new Intl.NumberFormat("en-GB", {
-  style: "currency",
-  currency: "GBP",
-});
-
-function formatCurrency(value: number) {
-  return currencyFormatter.format(value);
-}
-
 export default function CartClient({
   className = "",
   layout = "page",
   showTitle = true,
 }: CartClientProps) {
-  const [items, setItems] = useState<BasketItem[]>([]);
-  const subtotal = useMemo(() => getBasketSubtotal(items), [items]);
+  const [basketItems, setBasketItems] = useState<BasketStoredItem[]>([]);
+  const [quote, setQuote] = useState<BasketQuote | null>(null);
+  const [quoteError, setQuoteError] = useState("");
   const cartClassName = [
     styles.cart,
     layout === "drawer" ? styles.drawerCart : styles.pageCart,
@@ -47,7 +37,7 @@ export default function CartClient({
     .join(" ");
 
   useEffect(() => {
-    const refresh = () => setItems(getBasket());
+    const refresh = () => setBasketItems(getBasket());
     const handleUpdate = () => refresh();
 
     refresh();
@@ -60,21 +50,72 @@ export default function CartClient({
     };
   }, []);
 
+  useEffect(() => {
+    if (basketItems.length === 0) {
+      setQuote(null);
+      setQuoteError("");
+      return;
+    }
+
+    const abortController = new AbortController();
+
+    const loadQuote = async () => {
+      try {
+        const response = await fetch("/api/basket/quote", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            items: basketItems,
+            tip: { mode: "none" },
+          }),
+          signal: abortController.signal,
+        });
+
+        if (!response.ok) {
+          const error = (await response.json().catch(() => ({}))) as { error?: string };
+          throw new Error(error.error || "Could not load your basket.");
+        }
+
+        const nextQuote = (await response.json()) as BasketQuote;
+        setQuote(nextQuote);
+        setQuoteError("");
+      } catch (error) {
+        if (abortController.signal.aborted) {
+          return;
+        }
+
+        setQuote(null);
+        setQuoteError(error instanceof Error ? error.message : "Could not load your basket.");
+      }
+    };
+
+    void loadQuote();
+
+    return () => {
+      abortController.abort();
+    };
+  }, [basketItems]);
+
   const handleQuantityChange = (slug: string, nextQuantity: number) => {
     setBasketQuantity(slug, nextQuantity);
-    setItems(getBasket());
+    setBasketItems(getBasket());
   };
 
   const handleRemove = (slug: string) => {
     removeFromBasket(slug);
-    setItems(getBasket());
+    setBasketItems(getBasket());
   };
+
+  const lines = quote?.lines ?? [];
+  const subtotalCents = quote?.subtotalCents ?? 0;
 
   return (
     <section className={cartClassName}>
       {showTitle ? <h1>Your basket</h1> : null}
 
-      {items.length === 0 ? (
+      {basketItems.length === 0 ? (
         <div className={styles.emptyState}>
           <p>Your basket is empty</p>
           <Link href="/shop" className={styles.shopLink}>
@@ -83,45 +124,40 @@ export default function CartClient({
         </div>
       ) : (
         <>
-          <ul className={styles.itemList}>
-            {items.map((item) => (
-              <li key={item.slug} className={styles.item}>
-                {(() => {
-                  const isGiftCard =
-                    item.isGiftCard || item.slug === "gift-card" || /gift card/i.test(item.name);
+          {quoteError ? <p className={styles.itemPrice}>{quoteError}</p> : null}
 
-                  return (
-                    <div
-                      className={`${styles.itemImageWrap} ${
-                        isGiftCard ? styles.itemImageWrapGiftCard : ""
-                      }`}
-                    >
-                      {item.image ? (
-                        isGiftCard ? (
-                          <GiftCardTile
-                            src={item.image}
-                            alt={item.imageAlt ?? item.name}
-                            className={styles.itemGiftCardTile}
-                          />
-                        ) : (
-                          <Image
-                            src={item.image}
-                            alt={item.imageAlt ?? item.name}
-                            fill
-                            className={styles.itemImage}
-                          />
-                        )
-                      ) : (
-                        <span className={styles.itemImagePlaceholder}>No image</span>
-                      )}
-                    </div>
-                  );
-                })()}
+          <ul className={styles.itemList}>
+            {lines.map((item) => (
+              <li key={item.slug} className={styles.item}>
+                <div
+                  className={`${styles.itemImageWrap} ${
+                    item.isGiftCard ? styles.itemImageWrapGiftCard : ""
+                  }`}
+                >
+                  {item.image ? (
+                    item.isGiftCard ? (
+                      <GiftCardTile
+                        src={item.image}
+                        alt={item.imageAlt ?? item.name}
+                        className={styles.itemGiftCardTile}
+                      />
+                    ) : (
+                      <Image
+                        src={item.image}
+                        alt={item.imageAlt ?? item.name}
+                        fill
+                        className={styles.itemImage}
+                      />
+                    )
+                  ) : (
+                    <span className={styles.itemImagePlaceholder}>No image</span>
+                  )}
+                </div>
 
                 <div className={styles.itemBody}>
                   <div className={styles.itemCopy}>
                     <h2>{item.name}</h2>
-                    <p className={styles.itemPrice}>{formatCurrency(parsePrice(item.price))}</p>
+                    <p className={styles.itemPrice}>{formatPriceFromCents(item.unitPriceCents)}</p>
                   </div>
 
                   <div className={styles.itemActions}>
@@ -166,12 +202,14 @@ export default function CartClient({
             <div className={styles.summaryFooter}>
               <p className={styles.summaryFooterRow}>
                 <span>Subtotal</span>
-                <strong>{formatCurrency(subtotal)}</strong>
+                <strong>{formatPriceFromCents(subtotalCents)}</strong>
               </p>
 
-              <Link href="/checkout" className={styles.checkoutButton}>
-                Continue to Checkout
-              </Link>
+              {!quoteError ? (
+                <Link href="/checkout" className={styles.checkoutButton}>
+                  Continue to Checkout
+                </Link>
+              ) : null}
 
               <button type="button" onClick={clearBasket} className={styles.clearAllButton}>
                 Clear Basket

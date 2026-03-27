@@ -1,12 +1,16 @@
 import { executeCloudflareD1, hasCloudflareD1Config, queryCloudflareD1 } from "@/lib/cloudflare-d1";
-import { getAllProducts } from "@/lib/products";
-import { DEFAULT_DELIVERY_COST_CENTS, getDeliveryCostCents } from "@/lib/store-settings";
+import { attachOrderToCustomerProfile, ensureCustomerAccountSchema } from "@/lib/customer-profiles";
+import {
+  CHECKOUT_CURRENCY,
+  buildCheckoutQuote,
+} from "@/lib/checkout-quote";
+import type { BasketQuoteLine, BasketStoredItem, BasketTipInput } from "@/lib/basket";
+import { DEFAULT_DELIVERY_COST_CENTS } from "@/lib/store-settings";
 
 const STRIPE_CHECKOUT_ORDER_PREFIX = "order";
-const STRIPE_CHECKOUT_CURRENCY = "gbp";
 
 export const STRIPE_CHECKOUT_COSTS = {
-  currency: STRIPE_CHECKOUT_CURRENCY,
+  currency: CHECKOUT_CURRENCY,
   defaultShippingCents: DEFAULT_DELIVERY_COST_CENTS,
 } as const;
 
@@ -39,18 +43,14 @@ export type StripeCheckoutDeliveryInput = {
 };
 
 export type StripeCheckoutPayload = {
-  items: StripeCheckoutLineInput[];
+  items: BasketStoredItem[];
   contact: StripeCheckoutContactInput;
   delivery: StripeCheckoutDeliveryInput;
-  tipCents: number;
-};
-
-export type StripeCheckoutOrderLine = {
-  slug: string;
-  name: string;
-  unitPriceCents: number;
-  quantity: number;
-  lineTotalCents: number;
+  tip: BasketTipInput;
+  customer?: {
+    supabaseUserId: string;
+    customerProfileId: number;
+  };
 };
 
 export type StripeCheckoutOrderDraft = {
@@ -59,43 +59,16 @@ export type StripeCheckoutOrderDraft = {
   shippingCents: number;
   tipCents: number;
   totalCents: number;
-  lines: StripeCheckoutOrderLine[];
+  lines: BasketQuoteLine[];
 };
 
 function normalizeText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function normalizeCents(value: unknown) {
-  if (value === null || value === undefined) {
-    return 0;
-  }
-
-  const parsed = typeof value === "number" ? value : Number.parseFloat(String(value));
-  if (!Number.isFinite(parsed)) {
-    return 0;
-  }
-
-  return Math.max(0, Math.round(parsed));
-}
-
 function generateOrderPublicId() {
   const suffix = (globalThis.crypto?.randomUUID?.() || `${Math.random()}`).replace(/[^a-z0-9]/gi, "").slice(0, 8);
   return `${STRIPE_CHECKOUT_ORDER_PREFIX}_${Date.now()}_${suffix}`;
-}
-
-export function parsePriceToMinorUnits(priceText: string) {
-  const normalized = normalizeText(priceText).replace(/[^0-9.]/g, "");
-  if (!normalized) {
-    return 0;
-  }
-
-  const parts = normalized.split(".");
-  const whole = Number.parseInt(parts[0] ?? "0", 10) || 0;
-  const decimals = (parts[1] ?? "").padEnd(2, "0").slice(0, 2);
-  const minorUnits = Number.parseInt(decimals || "0", 10);
-
-  return whole * 100 + minorUnits;
 }
 
 function sanitizeDelivery(input: StripeCheckoutDeliveryInput) {
@@ -108,72 +81,6 @@ function sanitizeDelivery(input: StripeCheckoutDeliveryInput) {
     postcode: normalizeText(input.postcode),
     country: normalizeText(input.country),
   };
-}
-
-async function ensureOrderSchema() {
-  if (!hasCloudflareD1Config()) {
-    throw new Error("Database is not configured.");
-  }
-
-  await executeCloudflareD1(
-    `CREATE TABLE IF NOT EXISTS orders (
-       id INTEGER PRIMARY KEY AUTOINCREMENT,
-       public_id TEXT NOT NULL UNIQUE,
-       status TEXT NOT NULL DEFAULT 'pending',
-       currency TEXT NOT NULL,
-       subtotal_cents INTEGER NOT NULL,
-       shipping_cents INTEGER NOT NULL,
-       tip_cents INTEGER NOT NULL DEFAULT 0,
-       total_cents INTEGER NOT NULL,
-       email TEXT NOT NULL,
-       phone TEXT,
-       first_name TEXT,
-       last_name TEXT,
-       address_line1 TEXT,
-       address_line2 TEXT,
-       city TEXT,
-       postcode TEXT,
-       country TEXT,
-       stripe_payment_intent_id TEXT,
-       items_json TEXT NOT NULL,
-       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-     )`,
-  );
-
-  await executeCloudflareD1(
-    `CREATE TABLE IF NOT EXISTS order_items (
-       id INTEGER PRIMARY KEY AUTOINCREMENT,
-       order_id INTEGER NOT NULL,
-       product_slug TEXT NOT NULL,
-       product_name TEXT NOT NULL,
-       unit_price_cents INTEGER NOT NULL,
-       quantity INTEGER NOT NULL,
-       line_total_cents INTEGER NOT NULL,
-       FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
-     )`,
-  );
-
-  await executeCloudflareD1(
-    `CREATE TABLE IF NOT EXISTS order_webhook_events (
-       id INTEGER PRIMARY KEY AUTOINCREMENT,
-       stripe_event_id TEXT NOT NULL UNIQUE,
-       order_public_id TEXT,
-       event_type TEXT NOT NULL,
-       payload_json TEXT NOT NULL,
-       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-     )`,
-  );
-
-  await executeCloudflareD1(
-    `CREATE INDEX IF NOT EXISTS idx_orders_public_id
-       ON orders(public_id)`,
-  );
-
-  await executeCloudflareD1(
-    `CREATE INDEX IF NOT EXISTS idx_orders_payment_intent
-       ON orders(stripe_payment_intent_id)`,
-  );
 }
 
 export async function createPendingStripeOrder(payload: StripeCheckoutPayload): Promise<StripeCheckoutOrderDraft> {
@@ -190,66 +97,22 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
     throw new Error("Your basket is empty.");
   }
 
-  const parsedItems = new Map<string, number>();
-
-  for (const item of payload.items) {
-    const slug = normalizeText(item.slug);
-    const quantity = Math.floor(Number(item.quantity));
-    if (!slug || !Number.isFinite(quantity) || quantity <= 0) {
-      throw new Error("Invalid cart item.");
-    }
-
-    const existing = parsedItems.get(slug) ?? 0;
-    parsedItems.set(slug, existing + quantity);
-  }
-
-  const tipCents = Math.max(0, normalizeCents(payload.tipCents));
-  const shippingCents = await getDeliveryCostCents();
   const delivery = sanitizeDelivery(payload.delivery);
+  const quote = await buildCheckoutQuote({
+    items: payload.items,
+    tip: payload.tip,
+  });
 
-  const products = await getAllProducts();
-  const productMap = new Map(products.map((product) => [product.slug, product]));
-  const lines: StripeCheckoutOrderLine[] = [];
-
-  for (const [slug, quantity] of parsedItems) {
-    const product = productMap.get(slug);
-    if (!product) {
-      throw new Error("Your basket contains invalid products.");
-    }
-
-    const unitPriceCents = parsePriceToMinorUnits(product.price);
-    const lineTotalCents = unitPriceCents * quantity;
-
-    if (!Number.isFinite(unitPriceCents) || lineTotalCents < 0) {
-      throw new Error("Invalid product price.");
-    }
-
-    lines.push({
-      slug,
-      name: product.name,
-      unitPriceCents,
-      quantity,
-      lineTotalCents,
-    });
-  }
-
-  if (lines.length === 0) {
-    throw new Error("Your basket is empty.");
-  }
-
-  const subtotalCents = lines.reduce((sum, item) => sum + item.lineTotalCents, 0);
-  const totalCents = subtotalCents + shippingCents + tipCents;
-
-  await ensureOrderSchema();
+  await ensureCustomerAccountSchema();
 
   const orderPublicId = generateOrderPublicId();
   const itemsSnapshot = JSON.stringify({
-    lines,
-    subtotalCents,
-    shippingCents,
-    tipCents,
-    totalCents,
-    tipCurrency: STRIPE_CHECKOUT_CURRENCY,
+    lines: quote.lines,
+    subtotalCents: quote.subtotalCents,
+    shippingCents: quote.shippingCents,
+    tipCents: quote.tipCents,
+    totalCents: quote.totalCents,
+    tipCurrency: quote.currency,
     contact: {
       email: contactEmail,
       phone: normalizeText(payload.contact.phone),
@@ -281,11 +144,11 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
     [
       orderPublicId,
       STRIPE_CHECKOUT_ORDER_STATUS.pending,
-      STRIPE_CHECKOUT_CURRENCY,
-      subtotalCents,
-      shippingCents,
-      tipCents,
-      totalCents,
+      CHECKOUT_CURRENCY,
+      quote.subtotalCents,
+      quote.shippingCents,
+      quote.tipCents,
+      quote.totalCents,
       contactEmail,
       normalizeText(payload.contact.phone),
       delivery.firstName,
@@ -299,6 +162,14 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
     ],
   );
 
+  if (payload.customer?.supabaseUserId && payload.customer.customerProfileId) {
+    await attachOrderToCustomerProfile({
+      orderPublicId,
+      supabaseUserId: normalizeText(payload.customer.supabaseUserId),
+      customerProfileId: payload.customer.customerProfileId,
+    });
+  }
+
   const orderRows = await queryCloudflareD1<{ id: number }>(`SELECT id FROM orders WHERE public_id = ? LIMIT 1`, [
     orderPublicId,
   ]);
@@ -308,7 +179,7 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
     throw new Error("The order could not be created.");
   }
 
-  for (const line of lines) {
+  for (const line of quote.lines) {
     await executeCloudflareD1(
       `INSERT INTO order_items (
          order_id,
@@ -325,16 +196,16 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
 
   return {
     orderPublicId,
-    subtotalCents,
-    shippingCents,
-    tipCents,
-    totalCents,
-    lines,
+    subtotalCents: quote.subtotalCents,
+    shippingCents: quote.shippingCents,
+    tipCents: quote.tipCents,
+    totalCents: quote.totalCents,
+    lines: quote.lines,
   };
 }
 
 export async function setOrderPaymentIntentId(orderPublicId: string, paymentIntentId: string) {
-  await ensureOrderSchema();
+  await ensureCustomerAccountSchema();
 
   await executeCloudflareD1(
     `UPDATE orders
@@ -355,7 +226,7 @@ export async function updateOrderStatusByIdentifiers(params: {
     return false;
   }
 
-  await ensureOrderSchema();
+  await ensureCustomerAccountSchema();
 
   const rows = await queryCloudflareD1<{ id: number; status: string }>(
     `SELECT id, status
@@ -390,7 +261,7 @@ export async function registerWebhookEvent(input: {
   eventType: string;
   payload: unknown;
 }) {
-  await ensureOrderSchema();
+  await ensureCustomerAccountSchema();
 
   const eventId = normalizeText(input.stripeEventId);
   if (!eventId) {

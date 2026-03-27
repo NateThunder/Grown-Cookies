@@ -39,9 +39,11 @@ npm run build
 npm run lint
 npm run cloudflare:build
 npm run cloudflare:deploy
+npm run cloudflare:d1:migrate
 ```
 
 
 ```bash
 npm run cloudflare:deploy
 ```
+

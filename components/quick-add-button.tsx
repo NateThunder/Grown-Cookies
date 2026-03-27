@@ -7,7 +7,7 @@ import { addToBasket } from "@/lib/basket-storage";
 import type { ShopProduct } from "@/lib/products";
 
 type QuickAddButtonProps = {
-  product: Pick<ShopProduct, "slug" | "name" | "price" | "image" | "imageAlt" | "isGiftCard">;
+  product: Pick<ShopProduct, "slug" | "name">;
   className?: string;
   compact?: boolean;
 };
@@ -32,17 +32,7 @@ export default function QuickAddButton({
     event.preventDefault();
     event.stopPropagation();
 
-    addToBasket(
-      {
-        slug: product.slug,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-        imageAlt: product.imageAlt,
-        isGiftCard: product.isGiftCard,
-      },
-      1,
-    );
+    addToBasket(product.slug, 1);
 
     setJustAdded(true);
 

@@ -812,3 +812,18 @@ This file tracks work completed in the repository for easy machine-readable revi
 - files: app/globals.css, HISTORY.md
 - status: completed
 
+## 2026-03-27
+- [done] Added Wrangler-managed D1 customer profiles, saved addresses, and Supabase-linked account order ownership with authenticated account APIs and UI persistence.
+- files: wrangler.toml, cloudflare/d1/migrations/0001_customer_profiles.sql, cloudflare/d1/schema.sql, lib/account-auth.ts, lib/customer-profiles.ts, lib/account-orders.ts, lib/stripe-checkout.ts, app/api/account/profile/route.ts, app/api/account/addresses/route.ts, app/api/account/orders/route.ts, app/api/stripe/payment-intent/route.ts, app/api/stripe/express-payment/route.ts, components/checkout-client.tsx, components/account-page-client.tsx, app/account/page.module.css, package.json, package-lock.json, README.md, cloudflare-upload.md, HISTORY.md
+- status: completed
+
+## 2026-03-27
+- [done] Upgraded vulnerable runtime dependencies, replaced the broken forced-audit lint stack with a clean modern ESLint setup, and cleared npm audit findings.
+- files: package.json, package-lock.json, eslint.config.mjs, HISTORY.md
+- status: completed
+
+## 2026-03-27
+- [done] Made basket and checkout pricing server-authoritative with quote-backed cart/checkout totals, structured tip handling, stale payment-session resets, `/terms` redirect coverage, and Supabase auth/RLS documentation notes.
+- files: README.md, app/api/basket/quote/route.ts, app/api/stripe/express-payment/route.ts, app/api/stripe/payment-intent/route.ts, app/checkout/page.tsx, app/layout.tsx, app/shop/[slug]/page.tsx, app/terms/page.tsx, components/cart-client.tsx, components/checkout-client.tsx, components/product-basket-controls.tsx, components/quick-add-button.tsx, lib/basket-storage.ts, lib/basket.ts, lib/checkout-quote.ts, lib/stripe-checkout.ts, HISTORY.md
+- status: completed
+

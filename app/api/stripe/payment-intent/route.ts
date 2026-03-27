@@ -1,5 +1,8 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
+import { parseQuoteItems, parseQuoteTip } from "@/lib/checkout-quote";
+import { getAuthenticatedSupabaseUser } from "@/lib/account-auth";
+import { ensureCustomerProfileForUser } from "@/lib/customer-profiles";
 import {
   STRIPE_CHECKOUT_COSTS,
   createPendingStripeOrder,
@@ -13,20 +16,6 @@ export const runtime = "nodejs";
 
 function normalizeText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
-}
-
-function normalizeInteger(value: unknown) {
-  const parsed = Number.parseInt(String(value ?? ""), 10);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function normalizeMoney(value: unknown) {
-  const parsed = Number.parseFloat(String(value ?? "0"));
-  if (!Number.isFinite(parsed)) {
-    return 0;
-  }
-
-  return Math.max(0, Math.round(parsed));
 }
 
 function getStripeClient() {
@@ -84,24 +73,7 @@ function parseDelivery(raw: unknown): StripeCheckoutDeliveryInput {
 }
 
 function parseItems(raw: unknown) {
-  if (!Array.isArray(raw) || raw.length === 0) {
-    throw new Error("Your basket is empty.");
-  }
-
-  return raw.map((line) => {
-    if (!line || typeof line !== "object") {
-      throw new Error("Invalid basket item.");
-    }
-
-    const slug = normalizeText((line as { slug?: unknown }).slug);
-    const quantity = normalizeInteger((line as { quantity?: unknown }).quantity);
-
-    if (!slug || quantity <= 0) {
-      throw new Error("Invalid basket item.");
-    }
-
-    return { slug, quantity };
-  });
+  return parseQuoteItems(raw);
 }
 
 function parsePayload(raw: unknown): StripeCheckoutPayload {
@@ -113,14 +85,14 @@ function parsePayload(raw: unknown): StripeCheckoutPayload {
     items?: unknown;
     contact?: unknown;
     delivery?: unknown;
-    tipCents?: unknown;
+    tip?: unknown;
   };
 
   return {
     items: parseItems(payload.items),
     contact: parseContact(payload.contact),
     delivery: parseDelivery(payload.delivery),
-    tipCents: normalizeMoney(payload.tipCents),
+    tip: parseQuoteTip(payload.tip),
   };
 }
 
@@ -137,8 +109,20 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const payload = parsePayload(body);
+    const authenticatedUser = await getAuthenticatedSupabaseUser(request);
+    const customerProfile = authenticatedUser
+      ? await ensureCustomerProfileForUser(authenticatedUser)
+      : null;
 
-    const draft = await createPendingStripeOrder(payload);
+    const draft = await createPendingStripeOrder({
+      ...payload,
+      customer: customerProfile
+        ? {
+            supabaseUserId: customerProfile.supabaseUserId,
+            customerProfileId: customerProfile.id,
+          }
+        : undefined,
+    });
     const stripe = getStripeClient();
 
     const paymentIntent = await stripe.paymentIntents.create({

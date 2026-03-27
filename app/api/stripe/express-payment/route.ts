@@ -1,5 +1,8 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
+import { parseQuoteItems, parseQuoteTip } from "@/lib/checkout-quote";
+import { getAuthenticatedSupabaseUser } from "@/lib/account-auth";
+import { ensureCustomerProfileForUser } from "@/lib/customer-profiles";
 import {
   STRIPE_CHECKOUT_COSTS,
   createPendingStripeOrder,
@@ -14,20 +17,6 @@ function normalizeText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function normalizeInteger(value: unknown) {
-  const parsed = Number.parseInt(String(value ?? ""), 10);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function normalizeMoney(value: unknown) {
-  const parsed = Number.parseFloat(String(value ?? "0"));
-  if (!Number.isFinite(parsed)) {
-    return 0;
-  }
-
-  return Math.max(0, Math.round(parsed));
-}
-
 function getStripeClient() {
   const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
   if (!secretKey) {
@@ -40,24 +29,7 @@ function getStripeClient() {
 }
 
 function parseItems(raw: unknown) {
-  if (!Array.isArray(raw) || raw.length === 0) {
-    throw new Error("Your basket is empty.");
-  }
-
-  return raw.map((line) => {
-    if (!line || typeof line !== "object") {
-      throw new Error("Invalid basket item.");
-    }
-
-    const slug = normalizeText((line as { slug?: unknown }).slug);
-    const quantity = normalizeInteger((line as { quantity?: unknown }).quantity);
-
-    if (!slug || quantity <= 0) {
-      throw new Error("Invalid basket item.");
-    }
-
-    return { slug, quantity };
-  });
+  return parseQuoteItems(raw);
 }
 
 function parseReturnUrlBase(raw: unknown) {
@@ -139,7 +111,7 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
       items?: unknown;
-      tipCents?: unknown;
+      tip?: unknown;
       confirmationTokenId?: unknown;
       returnUrlBase?: unknown;
       fallbackContact?: {
@@ -153,6 +125,10 @@ export async function POST(request: Request) {
       throw new Error("Express checkout could not be initialized.");
     }
 
+    const authenticatedUser = await getAuthenticatedSupabaseUser(request);
+    const customerProfile = authenticatedUser
+      ? await ensureCustomerProfileForUser(authenticatedUser)
+      : null;
     const items = parseItems(body.items);
     const returnUrlBase = parseReturnUrlBase(body.returnUrlBase);
     const stripe = getStripeClient();
@@ -168,7 +144,13 @@ export async function POST(request: Request) {
       items,
       contact,
       delivery,
-      tipCents: normalizeMoney(body.tipCents),
+      tip: parseQuoteTip(body.tip),
+      customer: customerProfile
+        ? {
+            supabaseUserId: customerProfile.supabaseUserId,
+            customerProfileId: customerProfile.id,
+          }
+        : undefined,
     });
 
     const paymentIntent = await stripe.paymentIntents.create({
