@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import AccountSignupForm from "@/components/account-signup-form";
 import type { AccountOrderSummary } from "@/lib/account-orders";
+import type { CustomerAddress, CustomerProfile } from "@/lib/customer-profiles";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import styles from "@/app/account/page.module.css";
 
@@ -26,7 +27,57 @@ type OrdersResponse = {
   error?: string;
 };
 
-function getDisplayName(user: User | null) {
+type ProfileResponse = {
+  profile?: CustomerProfile;
+  error?: string;
+};
+
+type AddressesResponse = {
+  addresses?: CustomerAddress[];
+  error?: string;
+};
+
+type ProfileFormState = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  marketingOptIn: boolean;
+};
+
+type AddressFormState = {
+  id?: number;
+  label: string;
+  firstName: string;
+  lastName: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  postcode: string;
+  country: string;
+  phone: string;
+  isDefault: boolean;
+};
+
+const emptyAddressForm: AddressFormState = {
+  label: "",
+  firstName: "",
+  lastName: "",
+  addressLine1: "",
+  addressLine2: "",
+  city: "",
+  postcode: "",
+  country: "United Kingdom",
+  phone: "",
+  isDefault: true,
+};
+
+function getDisplayName(user: User | null, profile: CustomerProfile | null) {
+  const profileName = [profile?.firstName, profile?.lastName].filter(Boolean).join(" ").trim();
+
+  if (profileName) {
+    return profileName;
+  }
+
   if (!user) {
     return "Customer";
   }
@@ -89,13 +140,59 @@ function getDeliverySummary(order: AccountOrderSummary) {
     .join(", ");
 }
 
+function mapProfileToForm(profile: CustomerProfile, user: User | null): ProfileFormState {
+  return {
+    firstName: profile.firstName || String(user?.user_metadata?.first_name ?? ""),
+    lastName: profile.lastName || String(user?.user_metadata?.last_name ?? ""),
+    phone: profile.phone,
+    marketingOptIn: profile.marketingOptIn,
+  };
+}
+
+function mapAddressToForm(address: CustomerAddress): AddressFormState {
+  return {
+    id: address.id,
+    label: address.label,
+    firstName: address.firstName,
+    lastName: address.lastName,
+    addressLine1: address.addressLine1,
+    addressLine2: address.addressLine2,
+    city: address.city,
+    postcode: address.postcode,
+    country: address.country,
+    phone: address.phone,
+    isDefault: address.isDefault,
+  };
+}
+
 export default function AccountPageClient() {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+
+  const [profile, setProfile] = useState<CustomerProfile | null>(null);
+  const [profileForm, setProfileForm] = useState<ProfileFormState>({
+    firstName: "",
+    lastName: "",
+    phone: "",
+    marketingOptIn: true,
+  });
+  const [profileMessage, setProfileMessage] = useState("");
+  const [profileError, setProfileError] = useState("");
+  const [isProfileSaving, setIsProfileSaving] = useState(false);
+
+  const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
+  const [addressForm, setAddressForm] = useState<AddressFormState>(emptyAddressForm);
+  const [addressMessage, setAddressMessage] = useState("");
+  const [addressError, setAddressError] = useState("");
+  const [isAddressSaving, setIsAddressSaving] = useState(false);
+  const [isAddressDeletingId, setIsAddressDeletingId] = useState<number | null>(null);
+
   const [orders, setOrders] = useState<AccountOrderSummary[]>([]);
   const [ordersError, setOrdersError] = useState("");
   const [isOrdersLoading, setIsOrdersLoading] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [isAddressesLoading, setIsAddressesLoading] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   useEffect(() => {
@@ -127,15 +224,101 @@ export default function AccountPageClient() {
   }, []);
 
   useEffect(() => {
-    async function loadOrders(accessToken: string) {
+    const accessToken = session?.access_token ?? "";
+
+    if (!accessToken || !user?.email) {
+      setProfile(null);
+      setProfileForm({
+        firstName: String(user?.user_metadata?.first_name ?? ""),
+        lastName: String(user?.user_metadata?.last_name ?? ""),
+        phone: "",
+        marketingOptIn: true,
+      });
+      setAddresses([]);
+      setAddressForm(emptyAddressForm);
+      setOrders([]);
+      setProfileError("");
+      setAddressError("");
+      setOrdersError("");
+      setProfileMessage("");
+      setAddressMessage("");
+      setIsProfileLoading(false);
+      setIsAddressesLoading(false);
+      setIsOrdersLoading(false);
+      return;
+    }
+
+    const headers = { Authorization: `Bearer ${accessToken}` };
+
+    async function loadProfile() {
+      setIsProfileLoading(true);
+      setProfileError("");
+
+      try {
+        const response = await fetch("/api/account/profile", {
+          headers,
+          cache: "no-store",
+        });
+        const payload = (await response.json().catch(() => ({}))) as ProfileResponse;
+
+        if (!response.ok || !payload.profile) {
+          setProfile(null);
+          setProfileError(payload.error || "We could not load your profile right now.");
+          return;
+        }
+
+        setProfile(payload.profile);
+        setProfileForm(mapProfileToForm(payload.profile, user));
+      } catch {
+        setProfile(null);
+        setProfileError("We could not load your profile right now.");
+      } finally {
+        setIsProfileLoading(false);
+      }
+    }
+
+    async function loadAddresses() {
+      setIsAddressesLoading(true);
+      setAddressError("");
+
+      try {
+        const response = await fetch("/api/account/addresses", {
+          headers,
+          cache: "no-store",
+        });
+        const payload = (await response.json().catch(() => ({}))) as AddressesResponse;
+
+        if (!response.ok) {
+          setAddresses([]);
+          setAddressError(payload.error || "We could not load your saved addresses right now.");
+          return;
+        }
+
+        const nextAddresses = Array.isArray(payload.addresses) ? payload.addresses : [];
+        setAddresses(nextAddresses);
+        setAddressForm((current) =>
+          current.id
+            ? current
+            : {
+                ...emptyAddressForm,
+                isDefault: nextAddresses.length === 0,
+              },
+        );
+      } catch {
+        setAddresses([]);
+        setAddressError("We could not load your saved addresses right now.");
+      } finally {
+        setIsAddressesLoading(false);
+      }
+    }
+
+    async function loadOrders() {
       setIsOrdersLoading(true);
       setOrdersError("");
 
       try {
         const response = await fetch("/api/account/orders", {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
+          headers,
           cache: "no-store",
         });
 
@@ -156,19 +339,10 @@ export default function AccountPageClient() {
       }
     }
 
-    const accessToken = session?.access_token ?? "";
+    void Promise.all([loadProfile(), loadAddresses(), loadOrders()]);
+  }, [session?.access_token, user, user?.email, user?.id]);
 
-    if (!accessToken || !user?.email) {
-      setOrders([]);
-      setOrdersError("");
-      setIsOrdersLoading(false);
-      return;
-    }
-
-    void loadOrders(accessToken);
-  }, [session?.access_token, user?.email]);
-
-  const displayName = useMemo(() => getDisplayName(user), [user]);
+  const displayName = useMemo(() => getDisplayName(user, profile), [user, profile]);
   const providerLabel = useMemo(() => getProviderLabel(user), [user]);
 
   async function handleSignOut() {
@@ -181,6 +355,135 @@ export default function AccountPageClient() {
     setIsSigningOut(true);
     await supabase.auth.signOut();
     setOrders([]);
+  }
+
+  async function handleProfileSave() {
+    const accessToken = session?.access_token ?? "";
+
+    if (!accessToken) {
+      return;
+    }
+
+    setIsProfileSaving(true);
+    setProfileMessage("");
+    setProfileError("");
+
+    try {
+      const response = await fetch("/api/account/profile", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(profileForm),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as ProfileResponse;
+
+      if (!response.ok || !payload.profile) {
+        throw new Error(payload.error || "We could not save your profile right now.");
+      }
+
+      setProfile(payload.profile);
+      setProfileForm(mapProfileToForm(payload.profile, user));
+      setProfileMessage("Profile saved.");
+    } catch (error) {
+      setProfileError(error instanceof Error ? error.message : "We could not save your profile right now.");
+    } finally {
+      setIsProfileSaving(false);
+    }
+  }
+
+  async function handleAddressSave() {
+    const accessToken = session?.access_token ?? "";
+
+    if (!accessToken) {
+      return;
+    }
+
+    setIsAddressSaving(true);
+    setAddressMessage("");
+    setAddressError("");
+
+    try {
+      const response = await fetch("/api/account/addresses", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "upsert",
+          address: addressForm,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as AddressesResponse;
+
+      if (!response.ok) {
+        throw new Error(payload.error || "We could not save your address right now.");
+      }
+
+      const nextAddresses = Array.isArray(payload.addresses) ? payload.addresses : [];
+      setAddresses(nextAddresses);
+      setAddressForm({
+        ...emptyAddressForm,
+        isDefault: nextAddresses.length === 0,
+      });
+      setAddressMessage(addressForm.id ? "Address updated." : "Address saved.");
+    } catch (error) {
+      setAddressError(error instanceof Error ? error.message : "We could not save your address right now.");
+    } finally {
+      setIsAddressSaving(false);
+    }
+  }
+
+  async function handleAddressDelete(addressId: number) {
+    const accessToken = session?.access_token ?? "";
+
+    if (!accessToken) {
+      return;
+    }
+
+    setIsAddressDeletingId(addressId);
+    setAddressMessage("");
+    setAddressError("");
+
+    try {
+      const response = await fetch("/api/account/addresses", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "delete",
+          addressId,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as AddressesResponse;
+
+      if (!response.ok) {
+        throw new Error(payload.error || "We could not delete your address right now.");
+      }
+
+      const nextAddresses = Array.isArray(payload.addresses) ? payload.addresses : [];
+      setAddresses(nextAddresses);
+      setAddressForm((current) =>
+        current.id === addressId
+          ? {
+              ...emptyAddressForm,
+              isDefault: nextAddresses.length === 0,
+            }
+          : current,
+      );
+      setAddressMessage("Address deleted.");
+    } catch (error) {
+      setAddressError(error instanceof Error ? error.message : "We could not delete your address right now.");
+    } finally {
+      setIsAddressDeletingId(null);
+    }
   }
 
   if (isInitializing) {
@@ -255,12 +558,11 @@ export default function AccountPageClient() {
             </a>
           ))}
         </nav>
-
         <section id="profile" className={styles.dashboardSection}>
           <div className={styles.sectionHeader}>
             <p className={styles.sectionEyebrow}>Profile</p>
             <h2>Your details</h2>
-            <p>These fields are laid out for a standard customer settings page and can be made editable later.</p>
+            <p>Manage the customer profile stored in your Grown Cookies account database.</p>
           </div>
 
           <div className={styles.settingsGrid}>
@@ -268,7 +570,8 @@ export default function AccountPageClient() {
               <span>First name</span>
               <input
                 type="text"
-                defaultValue={String(user.user_metadata?.first_name ?? "")}
+                value={profileForm.firstName}
+                onChange={(event) => setProfileForm((prev) => ({ ...prev, firstName: event.target.value }))}
                 placeholder="First name"
               />
             </label>
@@ -276,25 +579,50 @@ export default function AccountPageClient() {
               <span>Last name</span>
               <input
                 type="text"
-                defaultValue={String(user.user_metadata?.last_name ?? "")}
+                value={profileForm.lastName}
+                onChange={(event) => setProfileForm((prev) => ({ ...prev, lastName: event.target.value }))}
                 placeholder="Last name"
               />
             </label>
             <label className={styles.settingField}>
               <span>Email address</span>
-              <input type="email" defaultValue={user.email ?? ""} placeholder="Email address" />
+              <input type="email" value={user.email ?? ""} placeholder="Email address" disabled />
             </label>
             <label className={styles.settingField}>
               <span>Phone number</span>
-              <input type="tel" placeholder="Add a phone number" />
+              <input
+                type="tel"
+                value={profileForm.phone}
+                onChange={(event) => setProfileForm((prev) => ({ ...prev, phone: event.target.value }))}
+                placeholder="Add a phone number"
+              />
             </label>
           </div>
 
-          <div className={styles.placeholderRow}>
-            <button type="button" className={styles.secondaryButton}>
-              Save changes
+          <label className={styles.checkboxField}>
+            <input
+              type="checkbox"
+              checked={profileForm.marketingOptIn}
+              onChange={(event) =>
+                setProfileForm((prev) => ({ ...prev, marketingOptIn: event.target.checked }))
+              }
+            />
+            <span>Receive launch updates, offers, and seasonal product news by email.</span>
+          </label>
+
+          {isProfileLoading ? <p className={styles.sectionStatus}>Loading your saved profile...</p> : null}
+          {!isProfileLoading && profileError ? <p className={styles.sectionStatus}>{profileError}</p> : null}
+          {!isProfileLoading && profileMessage ? <p className={styles.inlineNotice}>{profileMessage}</p> : null}
+
+          <div className={styles.actionRow}>
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={() => void handleProfileSave()}
+              disabled={isProfileSaving}
+            >
+              {isProfileSaving ? "Saving..." : "Save changes"}
             </button>
-            <p>Profile editing is styled for the final settings flow and intentionally non-persistent in this version.</p>
           </div>
         </section>
 
@@ -341,37 +669,174 @@ export default function AccountPageClient() {
           <div className={styles.sectionHeader}>
             <p className={styles.sectionEyebrow}>Addresses</p>
             <h2>Saved addresses</h2>
-            <p>Add a preferred delivery address layout now; persistence can be connected later.</p>
+            <p>Store a preferred delivery address in D1 and reuse it for future orders.</p>
           </div>
+
+          {isAddressesLoading ? <p className={styles.sectionStatus}>Loading your saved addresses...</p> : null}
+          {!isAddressesLoading && addressError ? <p className={styles.sectionStatus}>{addressError}</p> : null}
+          {!isAddressesLoading && addressMessage ? <p className={styles.inlineNotice}>{addressMessage}</p> : null}
+
+          {addresses.length > 0 ? (
+            <div className={styles.addressList}>
+              {addresses.map((address) => (
+                <article key={address.id} className={styles.addressCard}>
+                  <div className={styles.addressCardTop}>
+                    <div>
+                      <h3>{address.label || (address.isDefault ? "Default address" : "Saved address")}</h3>
+                      <p className={styles.addressMeta}>
+                        {[address.firstName, address.lastName].filter(Boolean).join(" ")}
+                      </p>
+                    </div>
+                    {address.isDefault ? <span className={styles.orderStatus}>Default</span> : null}
+                  </div>
+                  <p className={styles.addressMeta}>
+                    {[address.addressLine1, address.addressLine2, address.city, address.postcode, address.country]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </p>
+                  {address.phone ? <p className={styles.addressMeta}>Phone: {address.phone}</p> : null}
+                  <div className={styles.addressActions}>
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={() => {
+                        setAddressForm(mapAddressToForm(address));
+                        setAddressMessage("");
+                        setAddressError("");
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={() => void handleAddressDelete(address.id)}
+                      disabled={isAddressDeletingId === address.id}
+                    >
+                      {isAddressDeletingId === address.id ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : null}
 
           <div className={styles.settingsGrid}>
             <label className={styles.settingField}>
+              <span>Label</span>
+              <input
+                type="text"
+                value={addressForm.label}
+                onChange={(event) => setAddressForm((prev) => ({ ...prev, label: event.target.value }))}
+                placeholder="Home, office, gifting"
+              />
+            </label>
+            <label className={styles.settingField}>
+              <span>Phone number</span>
+              <input
+                type="tel"
+                value={addressForm.phone}
+                onChange={(event) => setAddressForm((prev) => ({ ...prev, phone: event.target.value }))}
+                placeholder="Delivery contact number"
+              />
+            </label>
+            <label className={styles.settingField}>
+              <span>First name</span>
+              <input
+                type="text"
+                value={addressForm.firstName}
+                onChange={(event) => setAddressForm((prev) => ({ ...prev, firstName: event.target.value }))}
+                placeholder="First name"
+              />
+            </label>
+            <label className={styles.settingField}>
+              <span>Last name</span>
+              <input
+                type="text"
+                value={addressForm.lastName}
+                onChange={(event) => setAddressForm((prev) => ({ ...prev, lastName: event.target.value }))}
+                placeholder="Last name"
+              />
+            </label>
+            <label className={styles.settingField}>
               <span>Address line 1</span>
-              <input type="text" placeholder="Street address" />
+              <input
+                type="text"
+                value={addressForm.addressLine1}
+                onChange={(event) => setAddressForm((prev) => ({ ...prev, addressLine1: event.target.value }))}
+                placeholder="Street address"
+              />
             </label>
             <label className={styles.settingField}>
               <span>Address line 2</span>
-              <input type="text" placeholder="Flat, suite, or unit" />
+              <input
+                type="text"
+                value={addressForm.addressLine2}
+                onChange={(event) => setAddressForm((prev) => ({ ...prev, addressLine2: event.target.value }))}
+                placeholder="Flat, suite, or unit"
+              />
             </label>
             <label className={styles.settingField}>
               <span>Town or city</span>
-              <input type="text" placeholder="City" />
+              <input
+                type="text"
+                value={addressForm.city}
+                onChange={(event) => setAddressForm((prev) => ({ ...prev, city: event.target.value }))}
+                placeholder="City"
+              />
             </label>
             <label className={styles.settingField}>
               <span>Postcode</span>
-              <input type="text" placeholder="Postcode" />
+              <input
+                type="text"
+                value={addressForm.postcode}
+                onChange={(event) => setAddressForm((prev) => ({ ...prev, postcode: event.target.value }))}
+                placeholder="Postcode"
+              />
             </label>
             <label className={styles.settingField}>
               <span>Country</span>
-              <input type="text" placeholder="Country" />
+              <input
+                type="text"
+                value={addressForm.country}
+                onChange={(event) => setAddressForm((prev) => ({ ...prev, country: event.target.value }))}
+                placeholder="Country"
+              />
             </label>
           </div>
 
-          <div className={styles.placeholderRow}>
-            <button type="button" className={styles.secondaryButton}>
-              Add address
+          <label className={styles.checkboxField}>
+            <input
+              type="checkbox"
+              checked={addressForm.isDefault}
+              onChange={(event) => setAddressForm((prev) => ({ ...prev, isDefault: event.target.checked }))}
+            />
+            <span>Use this as my default delivery address.</span>
+          </label>
+
+          <div className={styles.actionRow}>
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={() => void handleAddressSave()}
+              disabled={isAddressSaving}
+            >
+              {isAddressSaving ? "Saving..." : addressForm.id ? "Update address" : "Add address"}
             </button>
-            <p>Address storage is not connected yet, but the section is structured like a standard customer account page.</p>
+            {addressForm.id ? (
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() =>
+                  setAddressForm({
+                    ...emptyAddressForm,
+                    isDefault: addresses.length === 0,
+                  })
+                }
+              >
+                Cancel edit
+              </button>
+            ) : null}
           </div>
         </section>
 
@@ -379,30 +844,30 @@ export default function AccountPageClient() {
           <div className={styles.sectionHeader}>
             <p className={styles.sectionEyebrow}>Notifications</p>
             <h2>Communication preferences</h2>
-            <p>Typical customer notification controls are included here as a presentational first pass.</p>
+            <p>Marketing preference is persisted in your profile. Order updates remain enabled for purchases.</p>
           </div>
 
           <div className={styles.preferenceList}>
             <label className={styles.preferenceCard}>
               <div>
                 <h3>Marketing emails</h3>
-                <p>Receive launch updates, limited drops, and seasonal promotions.</p>
+                <p>Saved from your profile preference and used for future account communication.</p>
               </div>
-              <input type="checkbox" defaultChecked />
+              <input type="checkbox" checked={profileForm.marketingOptIn} readOnly />
             </label>
             <label className={styles.preferenceCard}>
               <div>
                 <h3>Order updates</h3>
-                <p>Keep delivery and payment notifications enabled for your purchases.</p>
+                <p>Delivery and payment notifications remain tied to each order you place.</p>
               </div>
-              <input type="checkbox" defaultChecked />
+              <input type="checkbox" checked readOnly />
             </label>
             <label className={styles.preferenceCard}>
               <div>
                 <h3>Restock alerts</h3>
-                <p>Get notified when favourite items or limited flavours return.</p>
+                <p>This preference is not stored yet, but the account area is ready for it later.</p>
               </div>
-              <input type="checkbox" />
+              <input type="checkbox" readOnly />
             </label>
           </div>
         </section>
@@ -411,7 +876,7 @@ export default function AccountPageClient() {
           <div className={styles.sectionHeader}>
             <p className={styles.sectionEyebrow}>Orders</p>
             <h2>Order history</h2>
-            <p>Your past checkout records are matched to this account by email address.</p>
+            <p>Your checkout records are linked to this account by Supabase user ID with email backfill for older orders.</p>
           </div>
 
           {isOrdersLoading ? <p className={styles.ordersStatus}>Loading your order history...</p> : null}

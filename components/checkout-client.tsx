@@ -24,6 +24,7 @@ import {
   type BasketItem,
 } from "@/lib/basket-storage";
 import GiftCardTile from "@/components/gift-card-tile";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import styles from "@/components/checkout-client.module.css";
 
 type CheckoutError = {
@@ -87,6 +88,19 @@ function stripeErrorText(error: unknown): string {
   }
 
   return "Something went wrong. Please try again.";
+}
+
+async function getOptionalAuthHeaders(): Promise<Record<string, string>> {
+  const supabase = getSupabaseBrowserClient();
+
+  if (!supabase) {
+    return {};
+  }
+
+  const { data } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token ?? "";
+
+  return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
 }
 
 function PaymentElementForm({
@@ -305,11 +319,13 @@ export default function CheckoutClient({ shippingCents }: { shippingCents: numbe
     };
 
     try {
+      const authHeaders = await getOptionalAuthHeaders();
       const response = await fetch("/api/stripe/payment-intent", {
         method: "POST",
         body: JSON.stringify(payload),
         headers: {
           "Content-Type": "application/json",
+          ...authHeaders,
         },
       });
 

@@ -1,0 +1,8 @@
+name = "grown-cookies"
+compatibility_date = "2026-03-27"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "grown-cookies"
+database_id = "replace-with-your-cloudflare-d1-database-id"
+migrations_dir = "cloudflare/d1/migrations"

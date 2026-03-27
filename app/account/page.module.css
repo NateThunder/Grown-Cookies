@@ -245,6 +245,27 @@
   outline-offset: 2px;
 }
 
+.settingField input:disabled {
+  background: rgba(246, 239, 247, 0.8);
+  color: #6b5a70;
+}
+
+.checkboxField {
+  display: flex;
+  align-items: start;
+  gap: 12px;
+  margin-top: 20px;
+  color: #4d3b52;
+  line-height: 1.6;
+}
+
+.checkboxField input {
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  accent-color: #761A6C;
+}
+
 .placeholderRow,
 .actionRow {
   display: flex;
@@ -346,6 +367,49 @@
 
 .ordersStatus {
   margin-top: 0;
+}
+
+.sectionStatus,
+.inlineNotice {
+  margin: 18px 0 0;
+  color: #5c495f;
+  line-height: 1.6;
+}
+
+.inlineNotice {
+  color: #20653f;
+}
+
+.addressList {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.addressCard {
+  border: 1px solid rgba(118, 26, 108, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 20px;
+}
+
+.addressCardTop,
+.addressActions {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.addressMeta {
+  margin: 10px 0 0;
+  color: #5c495f;
+  line-height: 1.6;
+}
+
+.addressActions {
+  margin-top: 18px;
+  justify-content: start;
 }
 
 .emptyOrders {
@@ -504,7 +568,10 @@
   .actionRow,
   .orderTopRow,
   .orderMetaGrid,
-  .preferenceCard {
+  .preferenceCard,
+  .addressCardTop,
+  .addressActions,
+  .checkboxField {
     flex-direction: column;
     align-items: start;
   }
