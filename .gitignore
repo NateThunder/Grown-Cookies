@@ -40,6 +40,9 @@ yarn-error.log*
 # cloudflare local state
 .wrangler/
 
+# local browser automation artifacts
+.playwright-cli/
+
 # local dev logs
 .next-dev*.log
 
