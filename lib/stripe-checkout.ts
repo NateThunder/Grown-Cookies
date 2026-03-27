@@ -1,4 +1,5 @@
 import { executeCloudflareD1, hasCloudflareD1Config, queryCloudflareD1 } from "@/lib/cloudflare-d1";
+import { attachOrderToCustomerProfile, ensureCustomerAccountSchema } from "@/lib/customer-profiles";
 import { getAllProducts } from "@/lib/products";
 import { DEFAULT_DELIVERY_COST_CENTS, getDeliveryCostCents } from "@/lib/store-settings";
 
@@ -43,6 +44,10 @@ export type StripeCheckoutPayload = {
   contact: StripeCheckoutContactInput;
   delivery: StripeCheckoutDeliveryInput;
   tipCents: number;
+  customer?: {
+    supabaseUserId: string;
+    customerProfileId: number;
+  };
 };
 
 export type StripeCheckoutOrderLine = {
@@ -110,72 +115,6 @@ function sanitizeDelivery(input: StripeCheckoutDeliveryInput) {
   };
 }
 
-async function ensureOrderSchema() {
-  if (!hasCloudflareD1Config()) {
-    throw new Error("Database is not configured.");
-  }
-
-  await executeCloudflareD1(
-    `CREATE TABLE IF NOT EXISTS orders (
-       id INTEGER PRIMARY KEY AUTOINCREMENT,
-       public_id TEXT NOT NULL UNIQUE,
-       status TEXT NOT NULL DEFAULT 'pending',
-       currency TEXT NOT NULL,
-       subtotal_cents INTEGER NOT NULL,
-       shipping_cents INTEGER NOT NULL,
-       tip_cents INTEGER NOT NULL DEFAULT 0,
-       total_cents INTEGER NOT NULL,
-       email TEXT NOT NULL,
-       phone TEXT,
-       first_name TEXT,
-       last_name TEXT,
-       address_line1 TEXT,
-       address_line2 TEXT,
-       city TEXT,
-       postcode TEXT,
-       country TEXT,
-       stripe_payment_intent_id TEXT,
-       items_json TEXT NOT NULL,
-       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-     )`,
-  );
-
-  await executeCloudflareD1(
-    `CREATE TABLE IF NOT EXISTS order_items (
-       id INTEGER PRIMARY KEY AUTOINCREMENT,
-       order_id INTEGER NOT NULL,
-       product_slug TEXT NOT NULL,
-       product_name TEXT NOT NULL,
-       unit_price_cents INTEGER NOT NULL,
-       quantity INTEGER NOT NULL,
-       line_total_cents INTEGER NOT NULL,
-       FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
-     )`,
-  );
-
-  await executeCloudflareD1(
-    `CREATE TABLE IF NOT EXISTS order_webhook_events (
-       id INTEGER PRIMARY KEY AUTOINCREMENT,
-       stripe_event_id TEXT NOT NULL UNIQUE,
-       order_public_id TEXT,
-       event_type TEXT NOT NULL,
-       payload_json TEXT NOT NULL,
-       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-     )`,
-  );
-
-  await executeCloudflareD1(
-    `CREATE INDEX IF NOT EXISTS idx_orders_public_id
-       ON orders(public_id)`,
-  );
-
-  await executeCloudflareD1(
-    `CREATE INDEX IF NOT EXISTS idx_orders_payment_intent
-       ON orders(stripe_payment_intent_id)`,
-  );
-}
-
 export async function createPendingStripeOrder(payload: StripeCheckoutPayload): Promise<StripeCheckoutOrderDraft> {
   if (!hasCloudflareD1Config()) {
     throw new Error("Cloudflare D1 is not configured.");
@@ -240,7 +179,7 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
   const subtotalCents = lines.reduce((sum, item) => sum + item.lineTotalCents, 0);
   const totalCents = subtotalCents + shippingCents + tipCents;
 
-  await ensureOrderSchema();
+  await ensureCustomerAccountSchema();
 
   const orderPublicId = generateOrderPublicId();
   const itemsSnapshot = JSON.stringify({
@@ -299,6 +238,14 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
     ],
   );
 
+  if (payload.customer?.supabaseUserId && payload.customer.customerProfileId) {
+    await attachOrderToCustomerProfile({
+      orderPublicId,
+      supabaseUserId: normalizeText(payload.customer.supabaseUserId),
+      customerProfileId: payload.customer.customerProfileId,
+    });
+  }
+
   const orderRows = await queryCloudflareD1<{ id: number }>(`SELECT id FROM orders WHERE public_id = ? LIMIT 1`, [
     orderPublicId,
   ]);
@@ -334,7 +281,7 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
 }
 
 export async function setOrderPaymentIntentId(orderPublicId: string, paymentIntentId: string) {
-  await ensureOrderSchema();
+  await ensureCustomerAccountSchema();
 
   await executeCloudflareD1(
     `UPDATE orders
@@ -355,7 +302,7 @@ export async function updateOrderStatusByIdentifiers(params: {
     return false;
   }
 
-  await ensureOrderSchema();
+  await ensureCustomerAccountSchema();
 
   const rows = await queryCloudflareD1<{ id: number; status: string }>(
     `SELECT id, status
@@ -390,7 +337,7 @@ export async function registerWebhookEvent(input: {
   eventType: string;
   payload: unknown;
 }) {
-  await ensureOrderSchema();
+  await ensureCustomerAccountSchema();
 
   const eventId = normalizeText(input.stripeEventId);
   if (!eventId) {

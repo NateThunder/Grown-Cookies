@@ -1,33 +1,28 @@
 import { NextResponse } from "next/server";
-import { getAccountOrderSummariesByEmail } from "@/lib/account-orders";
-import { getSupabaseUserFromAccessToken } from "@/lib/supabase/admin-auth";
-
-function getBearerToken(request: Request) {
-  const authorization = request.headers.get("authorization") ?? "";
-
-  if (!authorization.toLowerCase().startsWith("bearer ")) {
-    return "";
-  }
-
-  return authorization.slice(7).trim();
-}
+import { getAuthenticatedSupabaseUser } from "@/lib/account-auth";
+import { getAccountOrderSummariesForCustomer } from "@/lib/account-orders";
+import { ensureCustomerProfileForUser } from "@/lib/customer-profiles";
 
 export async function GET(request: Request) {
-  const accessToken = getBearerToken(request);
+  const user = await getAuthenticatedSupabaseUser(request);
 
-  if (!accessToken) {
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  const user = await getSupabaseUserFromAccessToken(accessToken);
   const email = user?.email?.trim().toLowerCase() ?? "";
+  const supabaseUserId = user?.id?.trim() ?? "";
 
-  if (!email) {
+  if (!email || !supabaseUserId) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
   try {
-    const orders = await getAccountOrderSummariesByEmail(email);
+    const profile = await ensureCustomerProfileForUser(user);
+    const orders = await getAccountOrderSummariesForCustomer({
+      supabaseUserId: profile.supabaseUserId,
+      email,
+    });
     return NextResponse.json({ orders });
   } catch {
     return NextResponse.json(

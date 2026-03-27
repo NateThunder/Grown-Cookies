@@ -1,5 +1,7 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
+import { getAuthenticatedSupabaseUser } from "@/lib/account-auth";
+import { ensureCustomerProfileForUser } from "@/lib/customer-profiles";
 import {
   STRIPE_CHECKOUT_COSTS,
   createPendingStripeOrder,
@@ -153,6 +155,10 @@ export async function POST(request: Request) {
       throw new Error("Express checkout could not be initialized.");
     }
 
+    const authenticatedUser = await getAuthenticatedSupabaseUser(request);
+    const customerProfile = authenticatedUser
+      ? await ensureCustomerProfileForUser(authenticatedUser)
+      : null;
     const items = parseItems(body.items);
     const returnUrlBase = parseReturnUrlBase(body.returnUrlBase);
     const stripe = getStripeClient();
@@ -169,6 +175,12 @@ export async function POST(request: Request) {
       contact,
       delivery,
       tipCents: normalizeMoney(body.tipCents),
+      customer: customerProfile
+        ? {
+            supabaseUserId: customerProfile.supabaseUserId,
+            customerProfileId: customerProfile.id,
+          }
+        : undefined,
     });
 
     const paymentIntent = await stripe.paymentIntents.create({

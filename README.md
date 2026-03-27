@@ -39,6 +39,7 @@ npm run build
 npm run lint
 npm run cloudflare:build
 npm run cloudflare:deploy
+npm run cloudflare:d1:migrate
 ```
 
 ## Environment
@@ -70,3 +71,11 @@ npm run cloudflare:deploy
 ```
 
 Before deploying, verify Wrangler auth and token scope requirements in [`cloudflare-upload.md`](cloudflare-upload.md). That guide is the source of truth for authentication, Pages deploy commands, environment variables, and Stripe webhook setup.
+
+For D1 schema changes, this repo now includes `wrangler.toml` and migrations in `cloudflare/d1/migrations`. After authenticating with Cloudflare, apply the remote migration with:
+
+```bash
+npm run cloudflare:d1:migrate
+```
+
+Replace the placeholder `database_id` in `wrangler.toml` with your real D1 database ID before running migrations.

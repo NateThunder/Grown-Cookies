@@ -33,6 +33,26 @@ npm run cloudflare:build
 npx wrangler pages deploy .vercel/output/static --project-name grown-cookies --commit-dirty=true
 ```
 
+## 2a) Apply D1 migrations with Wrangler
+
+This repo now stores D1 migrations in `cloudflare/d1/migrations` and uses `wrangler.toml` for the database binding.
+
+Before applying migrations:
+
+1. Set the real D1 `database_id` in `wrangler.toml`.
+2. Confirm Wrangler auth with `npx wrangler whoami`.
+3. Run:
+
+```bash
+npm run cloudflare:d1:migrate
+```
+
+This resolves to:
+
+```bash
+npx wrangler d1 migrations apply grown-cookies --remote
+```
+
 ## 3) What to do if deploy fails
 
 - If you still see `Authentication error [code: 10000]`, re-check token scopes above.

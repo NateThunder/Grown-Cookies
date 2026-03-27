@@ -1,5 +1,7 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
+import { getAuthenticatedSupabaseUser } from "@/lib/account-auth";
+import { ensureCustomerProfileForUser } from "@/lib/customer-profiles";
 import {
   STRIPE_CHECKOUT_COSTS,
   createPendingStripeOrder,
@@ -137,8 +139,20 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const payload = parsePayload(body);
+    const authenticatedUser = await getAuthenticatedSupabaseUser(request);
+    const customerProfile = authenticatedUser
+      ? await ensureCustomerProfileForUser(authenticatedUser)
+      : null;
 
-    const draft = await createPendingStripeOrder(payload);
+    const draft = await createPendingStripeOrder({
+      ...payload,
+      customer: customerProfile
+        ? {
+            supabaseUserId: customerProfile.supabaseUserId,
+            customerProfileId: customerProfile.id,
+          }
+        : undefined,
+    });
     const stripe = getStripeClient();
 
     const paymentIntent = await stripe.paymentIntents.create({
