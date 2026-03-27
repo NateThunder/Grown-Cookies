@@ -822,3 +822,8 @@ This file tracks work completed in the repository for easy machine-readable revi
 - files: package.json, package-lock.json, eslint.config.mjs, HISTORY.md
 - status: completed
 
+## 2026-03-27
+- [done] Made basket and checkout pricing server-authoritative with quote-backed cart/checkout totals, structured tip handling, stale payment-session resets, `/terms` redirect coverage, and Supabase auth/RLS documentation notes.
+- files: README.md, app/api/basket/quote/route.ts, app/api/stripe/express-payment/route.ts, app/api/stripe/payment-intent/route.ts, app/checkout/page.tsx, app/layout.tsx, app/shop/[slug]/page.tsx, app/terms/page.tsx, components/cart-client.tsx, components/checkout-client.tsx, components/product-basket-controls.tsx, components/quick-add-button.tsx, lib/basket-storage.ts, lib/basket.ts, lib/checkout-quote.ts, lib/stripe-checkout.ts, HISTORY.md
+- status: completed
+

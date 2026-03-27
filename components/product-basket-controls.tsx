@@ -7,7 +7,7 @@ import { addToBasket } from "@/lib/basket-storage";
 import styles from "./product-basket-controls.module.css";
 
 type ProductBasketControlsProps = {
-  product: Pick<ShopProduct, "slug" | "name" | "price" | "image" | "imageAlt" | "isGiftCard">;
+  product: Pick<ShopProduct, "slug" | "name">;
 };
 
 export default function ProductBasketControls({ product }: ProductBasketControlsProps) {
@@ -18,7 +18,7 @@ export default function ProductBasketControls({ product }: ProductBasketControls
   const decrease = () => setQuantity((value) => Math.max(value - 1, 1));
 
   const handleAdd = () => {
-    addToBasket(product, quantity);
+    addToBasket(product.slug, quantity);
     setJustAdded(true);
     window.setTimeout(() => setJustAdded(false), 1100);
   };

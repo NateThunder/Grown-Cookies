@@ -11,18 +11,19 @@ import {
   useElements,
   useStripe,
 } from "@stripe/react-stripe-js";
-import {
-  type Stripe as StripeSDK,
-  loadStripe,
-} from "@stripe/stripe-js";
+import { type Stripe as StripeSDK, loadStripe } from "@stripe/stripe-js";
 import {
   BASKET_UPDATED_EVENT,
-  formatPrice,
   getBasket,
-  getBasketSubtotal,
-  parsePrice,
-  type BasketItem,
 } from "@/lib/basket-storage";
+import {
+  TIP_PRESET_OPTIONS,
+  formatPriceFromCents,
+  parseMoneyTextToCents,
+  type BasketQuote,
+  type BasketStoredItem,
+  type BasketTipInput,
+} from "@/lib/basket";
 import GiftCardTile from "@/components/gift-card-tile";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import styles from "@/components/checkout-client.module.css";
@@ -30,10 +31,6 @@ import styles from "@/components/checkout-client.module.css";
 type CheckoutError = {
   message: string;
 };
-
-const TIP_PRESET_OPTIONS = [10, 15, 20] as const;
-
-type TipChoice = "none" | "custom" | (typeof TIP_PRESET_OPTIONS)[number];
 
 type ContactDetails = {
   email: string;
@@ -51,10 +48,10 @@ type DeliveryDetails = {
 };
 
 type CreatePaymentPayload = {
-  items: Array<{ slug: string; quantity: number }>;
+  items: BasketStoredItem[];
   contact: ContactDetails;
   delivery: DeliveryDetails;
-  tipCents: number;
+  tip: BasketTipInput;
 };
 
 const defaultDelivery = {
@@ -73,10 +70,6 @@ type PaymentIntentResponse = {
   orderId?: string;
   totalCents?: number;
 };
-
-function toMoneyCents(value: number) {
-  return Math.max(0, Math.round(value * 100));
-}
 
 function stripeErrorText(error: unknown): string {
   if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
@@ -179,7 +172,6 @@ function PaymentElementForm({
             layout: {
               maxColumns: 1,
               maxRows: 3,
-              overflow: "never",
             },
             paymentMethodOrder: ["apple_pay", "google_pay", "paypal"],
             paymentMethods: {
@@ -228,44 +220,56 @@ function PaymentElementForm({
   );
 }
 
-export default function CheckoutClient({ shippingCents }: { shippingCents: number }) {
-  const [items, setItems] = useState<BasketItem[]>([]);
+export default function CheckoutClient() {
+  const [items, setItems] = useState<BasketStoredItem[]>([]);
+  const [quote, setQuote] = useState<BasketQuote | null>(null);
+  const [quoteError, setQuoteError] = useState("");
   const [paymentIntentClientSecret, setPaymentIntentClientSecret] = useState("");
   const [paymentPublishableKey, setPaymentPublishableKey] = useState("");
   const [orderId, setOrderId] = useState<string | null>(null);
   const [contact, setContact] = useState<ContactDetails>({ email: "", phone: "" });
   const [delivery, setDelivery] = useState<DeliveryDetails>(defaultDelivery);
-  const [tipChoice, setTipChoice] = useState<TipChoice>("none");
+  const [tipChoice, setTipChoice] = useState<"none" | "custom" | (typeof TIP_PRESET_OPTIONS)[number]>("none");
   const [customTip, setCustomTip] = useState("0.00");
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const [isPaymentStarted, setIsPaymentStarted] = useState(false);
   const [marketingOptIn, setMarketingOptIn] = useState(true);
   const [paymentError, setPaymentError] = useState("");
-
   const [stripePromise, setStripePromise] = useState<Promise<StripeSDK | null> | null>(null);
 
-  const subtotal = useMemo(() => getBasketSubtotal(items), [items]);
-  const subtotalCents = useMemo(() => toMoneyCents(subtotal), [subtotal]);
-  const parsedCustomTipCents = useMemo(
-    () => Math.max(0, Math.round(parsePrice(customTip) * 100)),
-    [customTip],
-  );
-
-  const computedTipCents = useMemo(() => {
+  const tipRequest = useMemo<BasketTipInput>(() => {
     if (tipChoice === "custom") {
-      return parsedCustomTipCents;
+      return {
+        mode: "custom",
+        amount: customTip,
+      };
     }
 
     if (tipChoice === "none") {
-      return 0;
+      return { mode: "none" };
     }
 
-    return Math.round(subtotalCents * (tipChoice / 100));
-  }, [subtotalCents, tipChoice, parsedCustomTipCents]);
-  const totalCents = subtotalCents + shippingCents + computedTipCents;
-  const total = totalCents / 100;
+    return {
+      mode: "percent",
+      percent: tipChoice,
+    };
+  }, [customTip, tipChoice]);
+
+  const paymentFingerprint = useMemo(
+    () =>
+      JSON.stringify({
+        items,
+        tipRequest,
+        contact,
+        delivery,
+      }),
+    [contact, delivery, items, tipRequest],
+  );
+
   const tipSelectionLabel =
     tipChoice === "custom" ? "Custom tip" : tipChoice === "none" ? "No tip" : `${tipChoice}% tip`;
+  const customTipPreviewCents =
+    tipChoice === "custom" ? quote?.tipCents ?? 0 : parseMoneyTextToCents(customTip);
 
   useEffect(() => {
     const refresh = () => setItems(getBasket());
@@ -281,14 +285,75 @@ export default function CheckoutClient({ shippingCents }: { shippingCents: numbe
     };
   }, []);
 
-  const setPresetTip = (value: Exclude<TipChoice, "custom">) => {
+  useEffect(() => {
+    if (items.length === 0) {
+      setQuote(null);
+      setQuoteError("");
+      return;
+    }
+
+    const abortController = new AbortController();
+
+    const loadQuote = async () => {
+      try {
+        const response = await fetch("/api/basket/quote", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            items,
+            tip: tipRequest,
+          }),
+          signal: abortController.signal,
+        });
+
+        if (!response.ok) {
+          const error = (await response.json().catch(() => ({}))) as { error?: string };
+          throw new Error(error.error || "Could not load checkout totals.");
+        }
+
+        const nextQuote = (await response.json()) as BasketQuote;
+        setQuote(nextQuote);
+        setQuoteError("");
+      } catch (error) {
+        if (abortController.signal.aborted) {
+          return;
+        }
+
+        setQuote(null);
+        setQuoteError(error instanceof Error ? error.message : "Could not load checkout totals.");
+      }
+    };
+
+    void loadQuote();
+
+    return () => {
+      abortController.abort();
+    };
+  }, [items, tipRequest]);
+
+  useEffect(() => {
+    if (!isPaymentStarted && !paymentIntentClientSecret && !paymentPublishableKey && !orderId) {
+      return;
+    }
+
+    setPaymentIntentClientSecret("");
+    setPaymentPublishableKey("");
+    setOrderId(null);
+    setIsPaymentStarted(false);
+    setStripePromise(null);
+    setPaymentError("Checkout details changed. Continue to secure payment again.");
+  }, [paymentFingerprint]);
+
+  const setPresetTip = (value: Exclude<typeof tipChoice, "custom">) => {
     setTipChoice(value);
   };
 
   const incrementCustomTip = (delta: number) => {
     setTipChoice("custom");
-    const next = Math.max(0, parsePrice(customTip) + delta);
-    setCustomTip(next.toFixed(2));
+    const nextCents = Math.max(0, parseMoneyTextToCents(customTip) + delta * 100);
+    setCustomTip((nextCents / 100).toFixed(2));
   };
 
   const handleCreatePaymentIntent = async (event: FormEvent<HTMLFormElement>) => {
@@ -299,8 +364,13 @@ export default function CheckoutClient({ shippingCents }: { shippingCents: numbe
       return;
     }
 
+    if (!quote || quoteError) {
+      setPaymentError(quoteError || "Basket totals are still loading.");
+      return;
+    }
+
     if (!contact.email.trim()) {
-      setPaymentError("Enter a contact email or phone number.");
+      setPaymentError("Enter a contact email address.");
       return;
     }
 
@@ -309,13 +379,10 @@ export default function CheckoutClient({ shippingCents }: { shippingCents: numbe
     setPaymentError("");
 
     const payload: CreatePaymentPayload = {
-      items: items.map((item) => ({
-        slug: item.slug,
-        quantity: item.quantity,
-      })),
+      items,
       contact,
       delivery,
-      tipCents: computedTipCents,
+      tip: tipRequest,
     };
 
     try {
@@ -351,6 +418,11 @@ export default function CheckoutClient({ shippingCents }: { shippingCents: numbe
       setIsCreatingPayment(false);
     }
   };
+
+  const lines = quote?.lines ?? [];
+  const shippingCents = quote?.shippingCents ?? 0;
+  const tipCents = quote?.tipCents ?? 0;
+  const totalCents = quote?.totalCents ?? 0;
 
   return (
     <section className={styles.checkout}>
@@ -494,7 +566,7 @@ export default function CheckoutClient({ shippingCents }: { shippingCents: numbe
                 <h2>Shipping method</h2>
                 <div className={styles.methodCard}>
                   <span>Standard</span>
-                  <strong>{formatPrice(shippingCents / 100)}</strong>
+                  <strong>{formatPriceFromCents(shippingCents)}</strong>
                 </div>
               </section>
 
@@ -508,36 +580,41 @@ export default function CheckoutClient({ shippingCents }: { shippingCents: numbe
                     </div>
                     <div className={styles.tipSummary}>
                       <span>{tipSelectionLabel}</span>
-                      <strong>{formatPrice(computedTipCents / 100)}</strong>
+                      <strong>{formatPriceFromCents(tipCents)}</strong>
                     </div>
                   </div>
 
                   <div className={styles.tipGrid}>
-                    {TIP_PRESET_OPTIONS.map((value) => (
-                      <button
-                        key={value}
-                        type="button"
-                        className={tipChoice === value ? styles.tipButtonActive : styles.tipButton}
-                        onClick={() => setPresetTip(value)}
-                      >
-                        <strong>{value}%</strong>
-                        <span>{formatPrice(subtotal * (value / 100))}</span>
-                      </button>
-                    ))}
+                    {TIP_PRESET_OPTIONS.map((value) => {
+                      const optionAmount =
+                        quote?.tipOptions.find((option) => option.percent === value)?.amountCents ?? 0;
+
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          className={tipChoice === value ? styles.tipButtonActive : styles.tipButton}
+                          onClick={() => setPresetTip(value)}
+                        >
+                          <strong>{value}%</strong>
+                          <span>{formatPriceFromCents(optionAmount)}</span>
+                        </button>
+                      );
+                    })}
                     <button
                       type="button"
                       className={tipChoice === "none" ? styles.tipButtonActive : styles.tipButton}
                       onClick={() => setPresetTip("none")}
                     >
                       <strong>None</strong>
-                      <span>{formatPrice(0)}</span>
+                      <span>{formatPriceFromCents(0)}</span>
                     </button>
                   </div>
 
                   <div className={styles.customTipSection}>
                     <div className={styles.customTipHeader}>
                       <span>Custom tip</span>
-                      <strong>{formatPrice(parsedCustomTipCents / 100)}</strong>
+                      <strong>{formatPriceFromCents(customTipPreviewCents)}</strong>
                     </div>
                     <div className={styles.customTipRow}>
                       <label
@@ -546,15 +623,15 @@ export default function CheckoutClient({ shippingCents }: { shippingCents: numbe
                         }
                       >
                         <span>Amount</span>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={customTip}
-                        onChange={(event) => {
-                          setTipChoice("custom");
-                          setCustomTip(event.target.value);
-                        }}
-                      />
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={customTip}
+                          onChange={(event) => {
+                            setTipChoice("custom");
+                            setCustomTip(event.target.value);
+                          }}
+                        />
                       </label>
                       <div className={styles.stepper}>
                         <button type="button" onClick={() => incrementCustomTip(-1)}>
@@ -574,9 +651,11 @@ export default function CheckoutClient({ shippingCents }: { shippingCents: numbe
               <section className={styles.section}>
                 <h2>Payment</h2>
                 <p className={styles.totalAmount}>
-                  <strong>Total amount:</strong> {formatPrice(total)}
+                  <strong>Total amount:</strong> {formatPriceFromCents(totalCents)}
                 </p>
                 <p className={styles.sectionNote}>All transactions are secure and encrypted.</p>
+
+                {quoteError ? <p className={styles.errorText}>{quoteError}</p> : null}
 
                 {isPaymentStarted && paymentIntentClientSecret && paymentPublishableKey && orderId ? (
                   <Elements
@@ -596,7 +675,7 @@ export default function CheckoutClient({ shippingCents }: { shippingCents: numbe
                     <button
                       type="submit"
                       className={styles.payButton}
-                      disabled={isCreatingPayment || isPaymentStarted}
+                      disabled={isCreatingPayment || isPaymentStarted || Boolean(quoteError)}
                     >
                       {isCreatingPayment ? "Preparing payment..." : "Continue to secure payment"}
                     </button>
@@ -617,62 +696,57 @@ export default function CheckoutClient({ shippingCents }: { shippingCents: numbe
         <aside className={styles.summaryColumn}>
           <div className={styles.summaryInner}>
             <ul className={styles.summaryItems}>
-              {items.map((item) => {
-                const isGiftCard =
-                  item.isGiftCard || item.slug === "gift-card" || /gift card/i.test(item.name);
-
-                return (
-                    <li
-                      key={item.slug}
-                      className={`${styles.summaryItem} ${isGiftCard ? styles.summaryItemGiftCard : ""}`}
-                    >
-                    <div
-                      className={`${styles.summaryImageWrap} ${
-                        isGiftCard ? styles.summaryImageWrapGiftCard : ""
-                      }`}
-                    >
-                      {item.image ? (
-                        isGiftCard ? (
-                          <GiftCardTile
-                            src={item.image}
-                            alt={item.imageAlt ?? item.name}
-                            className={styles.summaryGiftCardTile}
-                          />
-                        ) : (
-                          <div className={styles.summaryImageInner}>
-                            <Image
-                              src={item.image}
-                              alt={item.imageAlt ?? item.name}
-                              fill
-                              className={styles.summaryImage}
-                            />
-                          </div>
-                        )
+              {lines.map((item) => (
+                <li
+                  key={item.slug}
+                  className={`${styles.summaryItem} ${item.isGiftCard ? styles.summaryItemGiftCard : ""}`}
+                >
+                  <div
+                    className={`${styles.summaryImageWrap} ${
+                      item.isGiftCard ? styles.summaryImageWrapGiftCard : ""
+                    }`}
+                  >
+                    {item.image ? (
+                      item.isGiftCard ? (
+                        <GiftCardTile
+                          src={item.image}
+                          alt={item.imageAlt ?? item.name}
+                          className={styles.summaryGiftCardTile}
+                        />
                       ) : (
                         <div className={styles.summaryImageInner}>
-                          <span className={styles.summaryPlaceholder}>No image</span>
+                          <Image
+                            src={item.image}
+                            alt={item.imageAlt ?? item.name}
+                            fill
+                            className={styles.summaryImage}
+                          />
                         </div>
-                      )}
-                      <span className={styles.quantityBadge}>{item.quantity}</span>
-                    </div>
+                      )
+                    ) : (
+                      <div className={styles.summaryImageInner}>
+                        <span className={styles.summaryPlaceholder}>No image</span>
+                      </div>
+                    )}
+                    <span className={styles.quantityBadge}>{item.quantity}</span>
+                  </div>
 
-                    <div className={styles.summaryCopy}>
-                      <p>{item.name}</p>
-                      <span>
-                        {item.quantity} {item.quantity === 1 ? "cookie" : "cookies"}
-                      </span>
-                    </div>
+                  <div className={styles.summaryCopy}>
+                    <p>{item.name}</p>
+                    <span>
+                      {item.quantity} {item.quantity === 1 ? "cookie" : "cookies"}
+                    </span>
+                  </div>
 
-                    <strong>{formatPrice(parsePrice(item.price) * item.quantity)}</strong>
-                  </li>
-                );
-              })}
+                  <strong>{formatPriceFromCents(item.lineTotalCents)}</strong>
+                </li>
+              ))}
             </ul>
 
             <dl className={styles.totals}>
               <div>
                 <dt>Delivery fee</dt>
-                <dd>{formatPrice(shippingCents / 100)}</dd>
+                <dd>{formatPriceFromCents(shippingCents)}</dd>
               </div>
             </dl>
 
@@ -680,7 +754,7 @@ export default function CheckoutClient({ shippingCents }: { shippingCents: numbe
               <span>Total price</span>
               <div>
                 <small>GBP</small>
-                <strong>{formatPrice(total).replace("GBP ", "")}</strong>
+                <strong>{formatPriceFromCents(totalCents).replace("GBP ", "")}</strong>
               </div>
             </div>
           </div>
