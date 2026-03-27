@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { FiAlertCircle, FiCheckCircle, FiLogOut } from "react-icons/fi";
+import AdminLoginScreen from "@/components/admin-login-screen";
 import {
-  adminLoginAction,
   adminLogoutAction,
   updateBrandStoryContentAction,
   updateCookieOfMonthContentAction,
@@ -12,14 +12,14 @@ import { hasCloudflareD1Config } from "@/lib/cloudflare-d1";
 import {
   DEFAULT_BRAND_STORY_BODY,
   DEFAULT_COOKIE_OF_MONTH_CTA_LABEL,
+  DEFAULT_COOKIE_OF_MONTH_PRODUCT_SLUG,
   DEFAULT_COOKIE_OF_MONTH_TITLE,
   DEFAULT_SHOP_INTRO_BODY,
   DEFAULT_SHOP_INTRO_CTA_LABEL,
   DEFAULT_SHOP_INTRO_EYEBROW,
   DEFAULT_SHOP_INTRO_TITLE,
-  getBrandStorySectionSetting,
-  getCookieOfMonthSectionSetting,
-  getShopIntroSectionSetting,
+  getHomepageSectionSettings,
+  type HomepageSectionSettings,
 } from "@/lib/store-settings";
 import {
   ADMIN_AUTH_COOKIE,
@@ -60,67 +60,10 @@ function formatAdminDate(value?: string) {
   }).format(date);
 }
 
-function AdminLoginScreen({
-  error,
-  supabaseConfigured,
-}: {
-  error?: string;
-  supabaseConfigured: boolean;
-}) {
-  return (
-    <main className={styles.loginPage}>
-      <section className={styles.loginCard}>
-        <p className={styles.loginEyebrow}>Admin access</p>
-        <h1>Sign in to manage homepage content</h1>
-        <p className={styles.loginCopy}>
-          Use your Supabase account to access the Grown Cookies product studio.
-        </p>
-
-        {!supabaseConfigured ? (
-          <div className={`${styles.banner} ${styles.bannerError}`}>
-            <FiAlertCircle />
-            <span>
-              Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.
-            </span>
-          </div>
-        ) : null}
-
-        {error ? (
-          <div className={`${styles.banner} ${styles.bannerError}`}>
-            <FiAlertCircle />
-            <span>{error}</span>
-          </div>
-        ) : null}
-
-        <form action={adminLoginAction} className={styles.loginForm}>
-          <input type="hidden" name="returnPath" value="/admin/homepage" />
-
-          <label className={styles.loginField}>
-            <span>Email address</span>
-            <input name="email" type="email" autoComplete="email" required />
-          </label>
-
-          <label className={styles.loginField}>
-            <span>Password</span>
-            <input name="password" type="password" autoComplete="current-password" required />
-          </label>
-
-          <button
-            type="submit"
-            className={styles.loginButton}
-            disabled={!supabaseConfigured}
-          >
-            Sign in
-          </button>
-        </form>
-      </section>
-    </main>
-  );
-}
-
 export default async function HomepageAdminPage({ searchParams }: HomepageAdminPageProps) {
   const params = await searchParams;
   const notice = getFirstValue(params.notice);
+  const warning = getFirstValue(params.warning);
   const error = getFirstValue(params.error);
 
   const cookieStore = await cookies();
@@ -130,36 +73,45 @@ export default async function HomepageAdminPage({ searchParams }: HomepageAdminP
   const adminUser = isAdminUser(adminSessionUser) ? adminSessionUser : null;
 
   if (!adminUser) {
-    return <AdminLoginScreen error={error} supabaseConfigured={supabaseConfigured} />;
+    return (
+      <AdminLoginScreen
+        title="Sign in to manage homepage content"
+        returnPath="/admin/homepage"
+        error={error}
+        warning={warning}
+        supabaseConfigured={supabaseConfigured}
+      />
+    );
   }
 
   const d1Configured = hasCloudflareD1Config();
-  const cookieOfMonthSetting = d1Configured
-    ? await getCookieOfMonthSectionSetting()
-    : {
-        title: DEFAULT_COOKIE_OF_MONTH_TITLE,
-        ctaLabel: DEFAULT_COOKIE_OF_MONTH_CTA_LABEL,
-        productSlug: undefined,
-        isDefault: true,
-        updatedAt: undefined,
-      };
-  const shopIntroSetting = d1Configured
-    ? await getShopIntroSectionSetting()
-    : {
-        eyebrow: DEFAULT_SHOP_INTRO_EYEBROW,
-        title: DEFAULT_SHOP_INTRO_TITLE,
-        body: DEFAULT_SHOP_INTRO_BODY,
-        ctaLabel: DEFAULT_SHOP_INTRO_CTA_LABEL,
-        isDefault: true,
-        updatedAt: undefined,
-      };
-  const brandStorySetting = d1Configured
-    ? await getBrandStorySectionSetting()
-    : {
-        body: DEFAULT_BRAND_STORY_BODY,
-        isDefault: true,
-        updatedAt: undefined,
-      };
+  let cookieOfMonthSetting: HomepageSectionSettings["cookieOfMonth"] = {
+    title: DEFAULT_COOKIE_OF_MONTH_TITLE,
+    ctaLabel: DEFAULT_COOKIE_OF_MONTH_CTA_LABEL,
+    productSlug: DEFAULT_COOKIE_OF_MONTH_PRODUCT_SLUG,
+    isDefault: true,
+    updatedAt: undefined,
+  };
+  let shopIntroSetting: HomepageSectionSettings["shopIntro"] = {
+    eyebrow: DEFAULT_SHOP_INTRO_EYEBROW,
+    title: DEFAULT_SHOP_INTRO_TITLE,
+    body: DEFAULT_SHOP_INTRO_BODY,
+    ctaLabel: DEFAULT_SHOP_INTRO_CTA_LABEL,
+    isDefault: true,
+    updatedAt: undefined,
+  };
+  let brandStorySetting: HomepageSectionSettings["brandStory"] = {
+    body: DEFAULT_BRAND_STORY_BODY,
+    isDefault: true,
+    updatedAt: undefined,
+  };
+
+  if (d1Configured) {
+    const homepageSettings = await getHomepageSectionSettings();
+    cookieOfMonthSetting = homepageSettings.cookieOfMonth;
+    shopIntroSetting = homepageSettings.shopIntro;
+    brandStorySetting = homepageSettings.brandStory;
+  }
 
   return (
     <main className={styles.page}>

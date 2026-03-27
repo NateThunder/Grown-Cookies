@@ -1,5 +1,10 @@
 # Project History
 
+## 2026-03-27
+- [done] Reduced storefront latency by batching and caching homepage store-setting reads and deferring basket drawer cart mounting until opened.
+- files: lib/store-settings.ts, app/page.tsx, app/admin/homepage/page.tsx, app/admin/actions.ts, components/basket-link.tsx, HISTORY.md
+- status: completed
+
 ## 2026-03-18
 - [done] Replaced the repository README with a recruiter- and engineer-focused storefront overview, route map, stack, scripts, and env/config guidance.
 - files: README.md, HISTORY.md
@@ -828,6 +833,27 @@ This file tracks work completed in the repository for easy machine-readable revi
 - status: completed
 
 ## 2026-03-27
+- [done] Fixed the cart hydration state so direct `/cart` loads no longer flash a misleading `GBP 0.00` subtotal before the basket quote resolves.
+- files: components/cart-client.tsx, components/cart-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-27
+- [done] Reduced admin route load latency by parallelizing settings reads, deriving next product positions locally, and memoizing schema setup queries for admin/store settings.
+- files: app/admin/page.tsx, app/admin/homepage/page.tsx, lib/product-admin.ts, lib/store-settings.ts, lib/supabase/admin-auth.ts, HISTORY.md
+- status: completed
+
+## 2026-03-27
+- [done] Hardened admin sign-in with cooldown-based throttling, shared login warnings, and CSP/clickjacking headers.
+- files: .env.example, README.md, app/admin/actions.ts, app/admin/delivery/page.tsx, app/admin/homepage/page.tsx, app/admin/page.tsx, cloudflare/d1/migrations/0002_admin_login_attempts.sql, cloudflare/d1/schema.sql, components/admin-login-screen.tsx, lib/admin-login-throttle.ts, lib/supabase/admin-auth.ts, next.config.ts, HISTORY.md
+- status: completed
+
+## 2026-03-27
 - [done] Ignored local runtime artifacts and removed tracked dev logs, local state, and local database files from version control.
 - files: .gitignore, .playwright-cli, .wrangler, .next-dev.out.log, .next-dev.err.log, Products.db, HISTORY.md
 - status: completed
+
+## 2026-03-27
+- [done] Rewrote git history and force-pushed all branches to purge committed local runtime artifacts from the public repository.
+- files: HISTORY.md, .playwright-cli, .wrangler, .next-dev.out.log, .next-dev.err.log, Products.db
+- status: completed
+

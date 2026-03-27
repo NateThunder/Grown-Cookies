@@ -50,14 +50,21 @@ function getServerSupabaseClient() {
   return serverSupabaseClient;
 }
 
-function getAuthErrorMessage(rawError: unknown) {
-  if (
-    rawError &&
-    typeof rawError === "object" &&
-    "message" in rawError &&
-    typeof rawError.message === "string"
-  ) {
-    return rawError.message;
+function getAuthErrorMessage(payload?: unknown) {
+  if (payload && typeof payload === "object") {
+    const errorDescription =
+      "error_description" in payload ? payload.error_description : null;
+    const errorMessage = "msg" in payload ? payload.msg : null;
+    const message =
+      typeof errorDescription === "string"
+        ? errorDescription
+        : typeof errorMessage === "string"
+          ? errorMessage
+          : "";
+
+    if (message.trim()) {
+      return message.trim();
+    }
   }
 
   return "Sign in failed. Check your email and password.";

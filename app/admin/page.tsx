@@ -13,18 +13,19 @@ import {
   FiStar,
   FiX,
 } from "react-icons/fi";
+import AdminLoginScreen from "@/components/admin-login-screen";
 import AdminProductForm from "@/components/admin-product-form";
 import {
-  adminLoginAction,
   adminLogoutAction,
   moveFeaturedProductAction,
   updateCookieOfMonthProductAction,
 } from "./actions";
 import { hasCloudflareD1Config } from "@/lib/cloudflare-d1";
 import { hasCloudflareR2UploadConfig } from "@/lib/cloudflare-r2";
-import { getAdminProducts, getNextFeaturedPosition, getNextProductSortOrder } from "@/lib/product-admin";
+import { getAdminProducts } from "@/lib/product-admin";
 import {
   DEFAULT_COOKIE_OF_MONTH_CTA_LABEL,
+  DEFAULT_COOKIE_OF_MONTH_PRODUCT_SLUG,
   DEFAULT_COOKIE_OF_MONTH_TITLE,
   DEFAULT_DELIVERY_COST_CENTS,
   getCookieOfMonthSectionSetting,
@@ -103,62 +104,6 @@ function formatAdminCurrency(cents: number) {
     currency: "GBP",
   }).format(cents / 100);
 }
-
-function AdminLoginScreen({
-  error,
-  supabaseConfigured,
-}: {
-  error?: string;
-  supabaseConfigured: boolean;
-}) {
-  return (
-    <main className={styles.loginPage}>
-      <section className={styles.loginCard}>
-        <p className={styles.loginEyebrow}>Admin access</p>
-        <h1>Sign in to manage products</h1>
-        <p className={styles.loginCopy}>
-          Use your Supabase account to access the Grown Cookies product studio.
-        </p>
-
-        {!supabaseConfigured ? (
-          <div className={`${styles.banner} ${styles.bannerError}`}>
-            <FiAlertCircle />
-            <span>
-              Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.
-            </span>
-          </div>
-        ) : null}
-
-        {error ? (
-          <div className={`${styles.banner} ${styles.bannerError}`}>
-            <FiAlertCircle />
-            <span>{error}</span>
-          </div>
-        ) : null}
-
-        <form action={adminLoginAction} className={styles.loginForm}>
-          <label className={styles.loginField}>
-            <span>Email address</span>
-            <input name="email" type="email" autoComplete="email" required />
-          </label>
-
-          <label className={styles.loginField}>
-            <span>Password</span>
-            <input name="password" type="password" autoComplete="current-password" required />
-          </label>
-
-          <button
-            type="submit"
-            className={styles.loginButton}
-            disabled={!supabaseConfigured}
-          >
-            Sign in
-          </button>
-        </form>
-      </section>
-    </main>
-  );
-}
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   const params = await searchParams;
   const view: AdminView = getFirstValue(params.view) === "featured" ? "featured" : "all";
@@ -178,7 +123,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   if (!adminUser) {
     return (
       <AdminLoginScreen
+        title="Sign in to manage products"
+        returnPath="/admin"
         error={error}
+        warning={warning}
         supabaseConfigured={supabaseConfigured}
       />
     );
@@ -186,25 +134,37 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   const d1Configured = hasCloudflareD1Config();
   const uploadEnabled = hasCloudflareR2UploadConfig();
-  const products = d1Configured ? await getAdminProducts() : [];
-  const nextSortOrder = d1Configured ? await getNextProductSortOrder() : 1;
-  const nextFeaturedPosition = d1Configured ? await getNextFeaturedPosition() : 1;
-  const deliveryCostSetting = d1Configured
-    ? await getDeliveryCostSetting()
-    : {
-        deliveryCostCents: DEFAULT_DELIVERY_COST_CENTS,
-        isDefault: true,
-        updatedAt: undefined,
-      };
-  const cookieOfMonthSetting = d1Configured
-    ? await getCookieOfMonthSectionSetting()
-    : {
-        title: DEFAULT_COOKIE_OF_MONTH_TITLE,
-        ctaLabel: DEFAULT_COOKIE_OF_MONTH_CTA_LABEL,
-        productSlug: undefined,
-        isDefault: true,
-        updatedAt: undefined,
-      };
+  let products: Awaited<ReturnType<typeof getAdminProducts>> = [];
+  let deliveryCostSetting: Awaited<ReturnType<typeof getDeliveryCostSetting>> = {
+    deliveryCostCents: DEFAULT_DELIVERY_COST_CENTS,
+    isDefault: true,
+    updatedAt: undefined,
+  };
+  let cookieOfMonthSetting: Awaited<ReturnType<typeof getCookieOfMonthSectionSetting>> = {
+    title: DEFAULT_COOKIE_OF_MONTH_TITLE,
+    ctaLabel: DEFAULT_COOKIE_OF_MONTH_CTA_LABEL,
+    productSlug: DEFAULT_COOKIE_OF_MONTH_PRODUCT_SLUG,
+    isDefault: true,
+    updatedAt: undefined,
+  };
+
+  if (d1Configured) {
+    [products, deliveryCostSetting, cookieOfMonthSetting] = await Promise.all([
+      getAdminProducts(),
+      getDeliveryCostSetting(),
+      getCookieOfMonthSectionSetting(),
+    ]);
+  }
+
+  const nextSortOrder =
+    products.reduce((highestSortOrder, product) => Math.max(highestSortOrder, product.sortOrder), 0) +
+    1;
+  const nextFeaturedPosition =
+    products.reduce(
+      (highestFeaturedPosition, product) =>
+        Math.max(highestFeaturedPosition, product.featuredPosition ?? 0),
+      0,
+    ) + 1;
   const featuredProducts = products
     .filter((product) => product.featured)
     .sort((left, right) => {
@@ -531,4 +491,3 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     </main>
   );
 }
-

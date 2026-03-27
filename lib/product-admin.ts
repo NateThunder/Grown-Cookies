@@ -80,6 +80,7 @@ LEFT JOIN product_images pi
  AND pi.is_primary = 1`;
 
 let schemaEnsured = false;
+let schemaEnsurePromise: Promise<void> | null = null;
 
 function assertAdminStoreIsReady() {
   if (!hasCloudflareD1Config()) {
@@ -92,57 +93,68 @@ async function ensureAdminSchema() {
     return;
   }
 
-  assertAdminStoreIsReady();
+  if (!schemaEnsurePromise) {
+    schemaEnsurePromise = (async () => {
+      assertAdminStoreIsReady();
 
-  const columns = await queryCloudflareD1<ColumnInfo>(
-    "PRAGMA table_info(products)",
-    [],
-    { cache: "no-store" },
-  );
-
-  if (!columns.some((column) => column.name === "allergens")) {
-    try {
-      await executeCloudflareD1(
-        "ALTER TABLE products ADD COLUMN allergens TEXT NOT NULL DEFAULT ''",
+      const columns = await queryCloudflareD1<ColumnInfo>(
+        "PRAGMA table_info(products)",
+        [],
+        { cache: "no-store" },
       );
-    } catch (error) {
-      if (!(error instanceof Error) || !/duplicate column name/i.test(error.message)) {
-        throw error;
+
+      if (!columns.some((column) => column.name === "allergens")) {
+        try {
+          await executeCloudflareD1(
+            "ALTER TABLE products ADD COLUMN allergens TEXT NOT NULL DEFAULT ''",
+          );
+        } catch (error) {
+          if (!(error instanceof Error) || !/duplicate column name/i.test(error.message)) {
+            throw error;
+          }
+        }
       }
-    }
+
+      await executeCloudflareD1(
+        `CREATE TABLE IF NOT EXISTS featured_products (
+           product_slug TEXT NOT NULL PRIMARY KEY,
+           position INTEGER NOT NULL UNIQUE,
+           created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+           updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+           FOREIGN KEY (product_slug) REFERENCES products(slug) ON DELETE CASCADE
+         )`,
+      );
+
+      await executeCloudflareD1(
+        `CREATE INDEX IF NOT EXISTS idx_featured_products_position
+           ON featured_products(position)`,
+      );
+
+      const featuredRowCount = await queryCloudflareD1<{ total: number }>(
+        "SELECT COUNT(1) AS total FROM featured_products",
+        [],
+        { cache: "no-store" },
+      );
+
+      if ((featuredRowCount[0]?.total ?? 0) === 0) {
+        await executeCloudflareD1(
+          `INSERT OR IGNORE INTO featured_products (product_slug, position)
+           SELECT slug, ROW_NUMBER() OVER (ORDER BY sort_order ASC, name ASC)
+           FROM products
+           WHERE featured = 1`,
+        );
+      }
+
+      schemaEnsured = true;
+    })();
   }
 
-  await executeCloudflareD1(
-    `CREATE TABLE IF NOT EXISTS featured_products (
-       product_slug TEXT NOT NULL PRIMARY KEY,
-       position INTEGER NOT NULL UNIQUE,
-       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-       FOREIGN KEY (product_slug) REFERENCES products(slug) ON DELETE CASCADE
-     )`,
-  );
-
-  await executeCloudflareD1(
-    `CREATE INDEX IF NOT EXISTS idx_featured_products_position
-       ON featured_products(position)`,
-  );
-
-  const featuredRowCount = await queryCloudflareD1<{ total: number }>(
-    "SELECT COUNT(1) AS total FROM featured_products",
-    [],
-    { cache: "no-store" },
-  );
-
-  if ((featuredRowCount[0]?.total ?? 0) === 0) {
-    await executeCloudflareD1(
-      `INSERT OR IGNORE INTO featured_products (product_slug, position)
-       SELECT slug, ROW_NUMBER() OVER (ORDER BY sort_order ASC, name ASC)
-       FROM products
-       WHERE featured = 1`,
-    );
+  try {
+    await schemaEnsurePromise;
+  } catch (error) {
+    schemaEnsurePromise = null;
+    throw error;
   }
-
-  schemaEnsured = true;
 }
 
 function normalizeWhitespace(value: string) {

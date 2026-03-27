@@ -101,7 +101,9 @@ export default function BasketLink({ position = "top" }: BasketLinkProps) {
         </div>
 
         <div className={styles.drawerContent}>
-          <CartClient className={styles.cartInsideDrawer} layout="drawer" showTitle={false} />
+          {isOpen ? (
+            <CartClient className={styles.cartInsideDrawer} layout="drawer" showTitle={false} />
+          ) : null}
         </div>
       </aside>
     </>

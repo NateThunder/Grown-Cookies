@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { executeCloudflareD1, hasCloudflareD1Config, queryCloudflareD1 } from "@/lib/cloudflare-d1";
 
 const DELIVERY_COST_SETTING_KEY = "delivery_cost_cents";
@@ -9,6 +10,10 @@ const SHOP_INTRO_TITLE_KEY = "shop_intro_title";
 const SHOP_INTRO_BODY_KEY = "shop_intro_body";
 const SHOP_INTRO_CTA_LABEL_KEY = "shop_intro_cta_label";
 const BRAND_STORY_BODY_KEY = "brand_story_body";
+const STORE_SETTINGS_TAG = "store-settings";
+const HOMEPAGE_SETTINGS_TAG = "store-settings-homepage";
+const DELIVERY_SETTINGS_TAG = "store-settings-delivery";
+const STORE_SETTINGS_REVALIDATE_SECONDS = 300;
 
 export const DEFAULT_DELIVERY_COST_CENTS = 1000;
 export const DEFAULT_COOKIE_OF_MONTH_TITLE =
@@ -30,6 +35,13 @@ type StoreSettingRow = {
   updated_at?: string;
 };
 
+type StoreSettingValueRow = Required<Pick<StoreSettingRow, "key" | "value">> & {
+  updated_at?: string;
+};
+
+let storeSettingsSchemaEnsured = false;
+let storeSettingsSchemaPromise: Promise<void> | null = null;
+
 function parseStoredDeliveryCost(value: unknown) {
   const parsed = Number.parseInt(String(value ?? ""), 10);
 
@@ -45,13 +57,29 @@ async function ensureStoreSettingsSchema() {
     return;
   }
 
-  await executeCloudflareD1(
-    `CREATE TABLE IF NOT EXISTS store_settings (
-       key TEXT PRIMARY KEY,
-       value TEXT NOT NULL,
-       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-     )`,
-  );
+  if (storeSettingsSchemaEnsured) {
+    return;
+  }
+
+  if (!storeSettingsSchemaPromise) {
+    storeSettingsSchemaPromise = (async () => {
+      await executeCloudflareD1(
+        `CREATE TABLE IF NOT EXISTS store_settings (
+           key TEXT PRIMARY KEY,
+           value TEXT NOT NULL,
+           updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+         )`,
+      );
+      storeSettingsSchemaEnsured = true;
+    })();
+  }
+
+  try {
+    await storeSettingsSchemaPromise;
+  } catch (error) {
+    storeSettingsSchemaPromise = null;
+    throw error;
+  }
 }
 
 async function getStoreSetting(key: string) {
@@ -69,17 +97,15 @@ async function getStoreSetting(key: string) {
   return rows[0] ?? null;
 }
 
-async function getStoreSettings(keys: string[]) {
+async function getStoreSettings(keys: string[]): Promise<Map<string, StoreSettingValueRow>> {
   await ensureStoreSettingsSchema();
 
   if (keys.length === 0) {
-    return new Map<string, StoreSettingRow>();
+    return new Map<string, StoreSettingValueRow>();
   }
 
   const placeholders = keys.map(() => "?").join(", ");
-  const rows = await queryCloudflareD1<Required<Pick<StoreSettingRow, "key" | "value">> & {
-    updated_at?: string;
-  }>(
+  const rows = await queryCloudflareD1<StoreSettingValueRow>(
     `SELECT key, value, updated_at
      FROM store_settings
      WHERE key IN (${placeholders})`,
@@ -87,8 +113,151 @@ async function getStoreSettings(keys: string[]) {
     { cache: "no-store" },
   );
 
-  return new Map(rows.map((row) => [row.key, row]));
+  return new Map<string, StoreSettingValueRow>(rows.map((row) => [row.key, row]));
 }
+
+type DeliveryCostSetting = {
+  deliveryCostCents: number;
+  isDefault: boolean;
+  updatedAt?: string;
+};
+
+type CookieOfMonthSectionSetting = {
+  title: string;
+  ctaLabel: string;
+  productSlug?: string;
+  isDefault: boolean;
+  updatedAt?: string;
+};
+
+type ShopIntroSectionSetting = {
+  eyebrow: string;
+  title: string;
+  body: string;
+  ctaLabel: string;
+  isDefault: boolean;
+  updatedAt?: string;
+};
+
+type BrandStorySectionSetting = {
+  body: string;
+  isDefault: boolean;
+  updatedAt?: string;
+};
+
+export type HomepageSectionSettings = {
+  cookieOfMonth: CookieOfMonthSectionSetting;
+  shopIntro: ShopIntroSectionSetting;
+  brandStory: BrandStorySectionSetting;
+};
+
+function getLatestUpdatedAt(values: Array<string | undefined>) {
+  return values.filter((value): value is string => Boolean(value)).sort().at(-1);
+}
+
+function mapDeliveryCostSetting(row: StoreSettingRow | null): DeliveryCostSetting {
+  if (!row) {
+    return {
+      deliveryCostCents: DEFAULT_DELIVERY_COST_CENTS,
+      isDefault: true,
+    };
+  }
+
+  return {
+    deliveryCostCents: parseStoredDeliveryCost(row.value),
+    updatedAt: row.updated_at,
+    isDefault: false,
+  };
+}
+
+function mapCookieOfMonthSectionSetting(
+  settings: Map<string, StoreSettingValueRow>,
+): CookieOfMonthSectionSetting {
+  const titleRow = settings.get(COOKIE_OF_MONTH_TITLE_KEY);
+  const ctaLabelRow = settings.get(COOKIE_OF_MONTH_CTA_LABEL_KEY);
+  const productSlugRow = settings.get(COOKIE_OF_MONTH_PRODUCT_SLUG_KEY);
+
+  return {
+    title: titleRow?.value.trim() || DEFAULT_COOKIE_OF_MONTH_TITLE,
+    ctaLabel: ctaLabelRow?.value.trim() || DEFAULT_COOKIE_OF_MONTH_CTA_LABEL,
+    productSlug: productSlugRow?.value.trim() || DEFAULT_COOKIE_OF_MONTH_PRODUCT_SLUG,
+    isDefault: !titleRow && !ctaLabelRow && !productSlugRow,
+    updatedAt: getLatestUpdatedAt([
+      titleRow?.updated_at,
+      ctaLabelRow?.updated_at,
+      productSlugRow?.updated_at,
+    ]),
+  };
+}
+
+function mapShopIntroSectionSetting(
+  settings: Map<string, StoreSettingValueRow>,
+): ShopIntroSectionSetting {
+  const eyebrowRow = settings.get(SHOP_INTRO_EYEBROW_KEY);
+  const titleRow = settings.get(SHOP_INTRO_TITLE_KEY);
+  const bodyRow = settings.get(SHOP_INTRO_BODY_KEY);
+  const ctaLabelRow = settings.get(SHOP_INTRO_CTA_LABEL_KEY);
+
+  return {
+    eyebrow: eyebrowRow?.value.trim() || DEFAULT_SHOP_INTRO_EYEBROW,
+    title: titleRow?.value.trim() || DEFAULT_SHOP_INTRO_TITLE,
+    body: bodyRow?.value.trim() || DEFAULT_SHOP_INTRO_BODY,
+    ctaLabel: ctaLabelRow?.value.trim() || DEFAULT_SHOP_INTRO_CTA_LABEL,
+    isDefault: !eyebrowRow && !titleRow && !bodyRow && !ctaLabelRow,
+    updatedAt: getLatestUpdatedAt([
+      eyebrowRow?.updated_at,
+      titleRow?.updated_at,
+      bodyRow?.updated_at,
+      ctaLabelRow?.updated_at,
+    ]),
+  };
+}
+
+function mapBrandStorySectionSetting(row: StoreSettingRow | null): BrandStorySectionSetting {
+  return {
+    body: row?.value.trim() || DEFAULT_BRAND_STORY_BODY,
+    isDefault: !row,
+    updatedAt: row?.updated_at,
+  };
+}
+
+const getDeliveryCostSettingCached = unstable_cache(
+  async (): Promise<DeliveryCostSetting> => {
+    const row = await getStoreSetting(DELIVERY_COST_SETTING_KEY);
+    return mapDeliveryCostSetting(row);
+  },
+  ["store-settings-delivery"],
+  {
+    revalidate: STORE_SETTINGS_REVALIDATE_SECONDS,
+    tags: [STORE_SETTINGS_TAG, DELIVERY_SETTINGS_TAG],
+  },
+);
+
+const getHomepageSectionSettingsCached = unstable_cache(
+  async (): Promise<HomepageSectionSettings> => {
+    const settings = await getStoreSettings([
+      COOKIE_OF_MONTH_TITLE_KEY,
+      COOKIE_OF_MONTH_CTA_LABEL_KEY,
+      COOKIE_OF_MONTH_PRODUCT_SLUG_KEY,
+      SHOP_INTRO_EYEBROW_KEY,
+      SHOP_INTRO_TITLE_KEY,
+      SHOP_INTRO_BODY_KEY,
+      SHOP_INTRO_CTA_LABEL_KEY,
+      BRAND_STORY_BODY_KEY,
+    ]);
+
+    return {
+      cookieOfMonth: mapCookieOfMonthSectionSetting(settings),
+      shopIntro: mapShopIntroSectionSetting(settings),
+      brandStory: mapBrandStorySectionSetting(settings.get(BRAND_STORY_BODY_KEY) ?? null),
+    };
+  },
+  ["store-settings-homepage"],
+  {
+    revalidate: STORE_SETTINGS_REVALIDATE_SECONDS,
+    tags: [STORE_SETTINGS_TAG, HOMEPAGE_SETTINGS_TAG],
+  },
+);
 
 async function upsertStoreSetting(key: string, value: string) {
   await ensureStoreSettingsSchema();
@@ -115,20 +284,7 @@ export async function getDeliveryCostSetting() {
     };
   }
 
-  const row = await getStoreSetting(DELIVERY_COST_SETTING_KEY);
-
-  if (!row) {
-    return {
-      deliveryCostCents: DEFAULT_DELIVERY_COST_CENTS,
-      isDefault: true,
-    };
-  }
-
-  return {
-    deliveryCostCents: parseStoredDeliveryCost(row.value),
-    updatedAt: row.updated_at,
-    isDefault: false,
-  };
+  return getDeliveryCostSettingCached();
 }
 
 export async function getDeliveryCostCents() {
@@ -165,32 +321,8 @@ export async function getCookieOfMonthSectionSetting() {
     };
   }
 
-  const settings = await getStoreSettings([
-    COOKIE_OF_MONTH_TITLE_KEY,
-    COOKIE_OF_MONTH_CTA_LABEL_KEY,
-    COOKIE_OF_MONTH_PRODUCT_SLUG_KEY,
-  ]);
-
-  const titleRow = settings.get(COOKIE_OF_MONTH_TITLE_KEY);
-  const ctaLabelRow = settings.get(COOKIE_OF_MONTH_CTA_LABEL_KEY);
-  const productSlugRow = settings.get(COOKIE_OF_MONTH_PRODUCT_SLUG_KEY);
-
-  const title = titleRow?.value.trim() || DEFAULT_COOKIE_OF_MONTH_TITLE;
-  const ctaLabel = ctaLabelRow?.value.trim() || DEFAULT_COOKIE_OF_MONTH_CTA_LABEL;
-  const productSlug =
-    productSlugRow?.value.trim() || DEFAULT_COOKIE_OF_MONTH_PRODUCT_SLUG;
-  const updatedAt = [titleRow?.updated_at, ctaLabelRow?.updated_at, productSlugRow?.updated_at]
-    .filter((value): value is string => Boolean(value))
-    .sort()
-    .at(-1);
-
-  return {
-    title,
-    ctaLabel,
-    productSlug,
-    isDefault: !titleRow && !ctaLabelRow && !productSlugRow,
-    updatedAt,
-  };
+  const settings = await getHomepageSectionSettingsCached();
+  return settings.cookieOfMonth;
 }
 
 export async function updateCookieOfMonthSectionSetting({
@@ -257,35 +389,8 @@ export async function getShopIntroSectionSetting() {
     };
   }
 
-  const settings = await getStoreSettings([
-    SHOP_INTRO_EYEBROW_KEY,
-    SHOP_INTRO_TITLE_KEY,
-    SHOP_INTRO_BODY_KEY,
-    SHOP_INTRO_CTA_LABEL_KEY,
-  ]);
-
-  const eyebrowRow = settings.get(SHOP_INTRO_EYEBROW_KEY);
-  const titleRow = settings.get(SHOP_INTRO_TITLE_KEY);
-  const bodyRow = settings.get(SHOP_INTRO_BODY_KEY);
-  const ctaLabelRow = settings.get(SHOP_INTRO_CTA_LABEL_KEY);
-
-  const eyebrow = eyebrowRow?.value.trim() || DEFAULT_SHOP_INTRO_EYEBROW;
-  const title = titleRow?.value.trim() || DEFAULT_SHOP_INTRO_TITLE;
-  const body = bodyRow?.value.trim() || DEFAULT_SHOP_INTRO_BODY;
-  const ctaLabel = ctaLabelRow?.value.trim() || DEFAULT_SHOP_INTRO_CTA_LABEL;
-  const updatedAt = [eyebrowRow?.updated_at, titleRow?.updated_at, bodyRow?.updated_at, ctaLabelRow?.updated_at]
-    .filter((value): value is string => Boolean(value))
-    .sort()
-    .at(-1);
-
-  return {
-    eyebrow,
-    title,
-    body,
-    ctaLabel,
-    isDefault: !eyebrowRow && !titleRow && !bodyRow && !ctaLabelRow,
-    updatedAt,
-  };
+  const settings = await getHomepageSectionSettingsCached();
+  return settings.shopIntro;
 }
 
 export async function updateShopIntroSectionSetting({
@@ -346,13 +451,37 @@ export async function getBrandStorySectionSetting() {
     };
   }
 
-  const row = await getStoreSetting(BRAND_STORY_BODY_KEY);
+  const settings = await getHomepageSectionSettingsCached();
+  return settings.brandStory;
+}
 
-  return {
-    body: row?.value.trim() || DEFAULT_BRAND_STORY_BODY,
-    isDefault: !row,
-    updatedAt: row?.updated_at,
-  };
+export async function getHomepageSectionSettings() {
+  if (!hasCloudflareD1Config()) {
+    return {
+      cookieOfMonth: {
+        title: DEFAULT_COOKIE_OF_MONTH_TITLE,
+        ctaLabel: DEFAULT_COOKIE_OF_MONTH_CTA_LABEL,
+        productSlug: DEFAULT_COOKIE_OF_MONTH_PRODUCT_SLUG,
+        isDefault: true,
+        updatedAt: undefined,
+      },
+      shopIntro: {
+        eyebrow: DEFAULT_SHOP_INTRO_EYEBROW,
+        title: DEFAULT_SHOP_INTRO_TITLE,
+        body: DEFAULT_SHOP_INTRO_BODY,
+        ctaLabel: DEFAULT_SHOP_INTRO_CTA_LABEL,
+        isDefault: true,
+        updatedAt: undefined,
+      },
+      brandStory: {
+        body: DEFAULT_BRAND_STORY_BODY,
+        isDefault: true,
+        updatedAt: undefined,
+      },
+    };
+  }
+
+  return getHomepageSectionSettingsCached();
 }
 
 export async function updateBrandStorySectionSetting({

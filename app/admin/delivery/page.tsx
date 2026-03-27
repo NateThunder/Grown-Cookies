@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { FiAlertCircle, FiCheckCircle, FiLogOut } from "react-icons/fi";
-import { adminLoginAction, adminLogoutAction, updateDeliveryCostAction } from "../actions";
+import AdminLoginScreen from "@/components/admin-login-screen";
+import { adminLogoutAction, updateDeliveryCostAction } from "../actions";
 import { hasCloudflareD1Config } from "@/lib/cloudflare-d1";
 import { DEFAULT_DELIVERY_COST_CENTS, getDeliveryCostSetting } from "@/lib/store-settings";
 import {
@@ -50,67 +51,10 @@ function formatAdminCurrency(cents: number) {
   }).format(cents / 100);
 }
 
-function AdminLoginScreen({
-  error,
-  supabaseConfigured,
-}: {
-  error?: string;
-  supabaseConfigured: boolean;
-}) {
-  return (
-    <main className={styles.loginPage}>
-      <section className={styles.loginCard}>
-        <p className={styles.loginEyebrow}>Admin access</p>
-        <h1>Sign in to manage delivery</h1>
-        <p className={styles.loginCopy}>
-          Use your Supabase account to access the Grown Cookies product studio.
-        </p>
-
-        {!supabaseConfigured ? (
-          <div className={`${styles.banner} ${styles.bannerError}`}>
-            <FiAlertCircle />
-            <span>
-              Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.
-            </span>
-          </div>
-        ) : null}
-
-        {error ? (
-          <div className={`${styles.banner} ${styles.bannerError}`}>
-            <FiAlertCircle />
-            <span>{error}</span>
-          </div>
-        ) : null}
-
-        <form action={adminLoginAction} className={styles.loginForm}>
-          <input type="hidden" name="returnPath" value="/admin/delivery" />
-
-          <label className={styles.loginField}>
-            <span>Email address</span>
-            <input name="email" type="email" autoComplete="email" required />
-          </label>
-
-          <label className={styles.loginField}>
-            <span>Password</span>
-            <input name="password" type="password" autoComplete="current-password" required />
-          </label>
-
-          <button
-            type="submit"
-            className={styles.loginButton}
-            disabled={!supabaseConfigured}
-          >
-            Sign in
-          </button>
-        </form>
-      </section>
-    </main>
-  );
-}
-
 export default async function DeliveryAdminPage({ searchParams }: DeliveryAdminPageProps) {
   const params = await searchParams;
   const notice = getFirstValue(params.notice);
+  const warning = getFirstValue(params.warning);
   const error = getFirstValue(params.error);
 
   const cookieStore = await cookies();
@@ -122,7 +66,10 @@ export default async function DeliveryAdminPage({ searchParams }: DeliveryAdminP
   if (!adminUser) {
     return (
       <AdminLoginScreen
+        title="Sign in to manage delivery"
+        returnPath="/admin/delivery"
         error={error}
+        warning={warning}
         supabaseConfigured={supabaseConfigured}
       />
     );

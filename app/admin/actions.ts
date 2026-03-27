@@ -17,6 +17,13 @@ import {
   updateShopIntroSectionSetting,
 } from "@/lib/store-settings";
 import {
+  clearAdminLoginFailures,
+  getAdminLoginBlockedMessage,
+  getAdminLoginThrottleState,
+  getAdminLoginWarningMessage,
+  recordAdminLoginFailure,
+} from "@/lib/admin-login-throttle";
+import {
   ADMIN_AUTH_COOKIE,
   getAdminAccessDeniedMessage,
   getAdminAuthCookieOptions,
@@ -160,15 +167,30 @@ export async function adminLoginAction(formData: FormData) {
     return;
   }
 
+  const throttleState = await getAdminLoginThrottleState(email);
+
+  if (throttleState.blocked) {
+    redirectToAdmin({
+      returnPath,
+      error: getAdminLoginBlockedMessage(throttleState),
+    });
+    return;
+  }
+
   const result = await signInToSupabaseWithPassword({
     email,
     password,
   });
 
   if ("errorMessage" in result) {
+    const failedState = await recordAdminLoginFailure(email);
+
     redirectToAdmin({
       returnPath,
-      error: result.errorMessage,
+      error: failedState.blocked
+        ? getAdminLoginBlockedMessage(failedState)
+        : result.errorMessage,
+      warning: getAdminLoginWarningMessage(failedState) ?? undefined,
     });
     return;
   }
@@ -176,9 +198,14 @@ export async function adminLoginAction(formData: FormData) {
   const user = await getSupabaseUserFromAccessToken(result.accessToken);
 
   if (!isAdminUser(user)) {
+    const failedState = await recordAdminLoginFailure(email);
+
     redirectToAdmin({
       returnPath,
-      error: getAdminAccessDeniedMessage(),
+      error: failedState.blocked
+        ? getAdminLoginBlockedMessage(failedState)
+        : getAdminAccessDeniedMessage(),
+      warning: getAdminLoginWarningMessage(failedState) ?? undefined,
     });
     return;
   }
@@ -193,6 +220,12 @@ export async function adminLoginAction(formData: FormData) {
     path: "/",
     maxAge: cookieConfig.maxAge,
   });
+
+  try {
+    await clearAdminLoginFailures(email);
+  } catch {
+    // Successful admin logins should not fail if throttle-state cleanup is unavailable.
+  }
 
   redirectToAdmin({
     returnPath,
@@ -217,6 +250,7 @@ export async function updateDeliveryCostAction(formData: FormData) {
     await requireAdminSession();
 
     await updateDeliveryCostCents(getMoneyFieldInCents(formData, "deliveryCostValue"));
+    revalidateTag("store-settings-delivery", "max");
     revalidatePath("/admin");
     revalidatePath("/admin/delivery");
     revalidatePath("/checkout");
@@ -254,6 +288,7 @@ export async function updateCookieOfMonthContentAction(formData: FormData) {
     });
 
     revalidateTag("products", "max");
+    revalidateTag("store-settings-homepage", "max");
     revalidatePath("/");
     revalidatePath("/admin/homepage");
 
@@ -294,6 +329,7 @@ export async function updateCookieOfMonthProductAction(formData: FormData) {
 
     await updateCookieOfMonthProductSlug(isSelected ? productSlug : undefined);
     revalidateTag("products", "max");
+    revalidateTag("store-settings-homepage", "max");
     revalidatePath("/");
     revalidatePath("/admin/homepage");
 
@@ -331,6 +367,7 @@ export async function updateShopIntroContentAction(formData: FormData) {
       ctaLabel: getTextField(formData, "shopIntroCtaLabel"),
     });
 
+    revalidateTag("store-settings-homepage", "max");
     revalidatePath("/");
     revalidatePath("/admin/homepage");
 
@@ -362,6 +399,7 @@ export async function updateBrandStoryContentAction(formData: FormData) {
       body: getTextField(formData, "brandStoryBody"),
     });
 
+    revalidateTag("store-settings-homepage", "max");
     revalidatePath("/");
     revalidatePath("/admin/homepage");
 
