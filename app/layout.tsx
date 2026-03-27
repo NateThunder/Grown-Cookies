@@ -77,7 +77,7 @@ export default function RootLayout({
                   Somevi Labs
                 </a>
               </p>
-              <Link href="/terms">Terms and Policies</Link>
+              <Link href="/privacy">Privacy Policy</Link>
               <div className="site-footer-social">
                 <Link href="#" aria-label="Instagram">
                   <FiInstagram />
