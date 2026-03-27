@@ -72,8 +72,10 @@ export default function RootLayout({
 
             <div className="site-footer-bottom-row">
               <p>
-                {"\u00A9"} 2026 <span className="site-footer-brand">Grown Cookies</span>, Powered by
-                Shopify
+                {"\u00A9"} 2026 <span className="site-footer-brand">Grown Cookies</span>, Created by{" "}
+                <a href="https://nathansomevi.dev" target="_blank" rel="noreferrer">
+                  Somevi Labs
+                </a>
               </p>
               <Link href="/terms">Terms and Policies</Link>
               <div className="site-footer-social">
@@ -91,3 +93,6 @@ export default function RootLayout({
     </html>
   );
 }
+
+
+

@@ -1,0 +1,62 @@
+.page {
+  min-height: calc(100vh - var(--checkout-header-offset, 0px));
+  display: grid;
+  align-items: center;
+  padding: 40px 24px;
+  background: #ffffff;
+}
+
+.content {
+  width: min(560px, 100%);
+  margin: 0 auto;
+  border: 1px solid #ddd3df;
+  background: #fbf7fb;
+  border-radius: 20px;
+  padding: 32px;
+}
+
+.badge {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #995c14;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.content h1 {
+  margin: 10px 0 8px;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  line-height: 1.08;
+}
+
+.content p {
+  margin: 0 0 12px;
+  color: #3b2e3b;
+}
+
+.actions {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.button,
+.secondaryButton {
+  display: inline-flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  text-decoration: none;
+}
+
+.button {
+  background: #2e1b4f;
+  color: #ffffff;
+}
+
+.secondaryButton {
+  border: 1px solid #d0c5d4;
+  color: #2c2730;
+}

@@ -1,4 +1,6 @@
-import { hasCloudflareD1Config, queryCloudflareD1 } from "./cloudflare-d1";
+import { unstable_cache } from "next/cache";
+import { executeCloudflareD1, hasCloudflareD1Config, queryCloudflareD1 } from "./cloudflare-d1";
+import { buildProductImageUrl } from "./product-image-url";
 
 type ProductBase = {
   slug: string;
@@ -7,41 +9,90 @@ type ProductBase = {
   description: string;
   featured?: boolean;
   sortOrder?: number;
+  createdAt?: string;
   relatedSlugs?: string[];
 };
 
-export type ShopProduct =
-  | (ProductBase & {
-      image: string;
-      isGiftCard?: false;
-    })
-  | (ProductBase & {
-      isGiftCard: true;
-      image?: undefined;
-    });
+export type ShopProduct = ProductBase & {
+  image?: string;
+  imageAlt?: string;
+  isGiftCard?: boolean;
+};
+
+type StaticProductRecord = ProductBase & {
+  imageKey?: string;
+  imageAlt?: string;
+  isGiftCard?: boolean;
+};
 
 type ProductRow = {
   slug: string;
   name: string;
   price: string;
   description: string;
-  image_url: string | null;
+  image_key: string | null;
+  alt_text: string | null;
   is_gift_card: number;
-  featured: number;
+  featured_position: number | null;
   sort_order: number | null;
+  created_at: string | null;
   related_slugs: string | null;
 };
 
-const FALLBACK_PRODUCTS: ShopProduct[] = [
+let featuredSchemaEnsured = false;
+const PRODUCT_CACHE_TAG = "products";
+const PRODUCT_CACHE_REVALIDATE_SECONDS = 300;
+
+async function ensureFeaturedProductsSchema() {
+  if (featuredSchemaEnsured || !hasCloudflareD1Config()) {
+    return;
+  }
+
+  await executeCloudflareD1(
+    `CREATE TABLE IF NOT EXISTS featured_products (
+       product_slug TEXT NOT NULL PRIMARY KEY,
+       position INTEGER NOT NULL UNIQUE,
+       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+       FOREIGN KEY (product_slug) REFERENCES products(slug) ON DELETE CASCADE
+     )`,
+  );
+
+  await executeCloudflareD1(
+    `CREATE INDEX IF NOT EXISTS idx_featured_products_position
+       ON featured_products(position)`,
+  );
+
+  const featuredRowCount = await queryCloudflareD1<{ total: number }>(
+    "SELECT COUNT(1) AS total FROM featured_products",
+    [],
+    { cache: "no-store" },
+  );
+
+  if ((featuredRowCount[0]?.total ?? 0) === 0) {
+    await executeCloudflareD1(
+      `INSERT OR IGNORE INTO featured_products (product_slug, position)
+       SELECT slug, ROW_NUMBER() OVER (ORDER BY sort_order ASC, name ASC)
+       FROM products
+       WHERE featured = 1`,
+    );
+  }
+
+  featuredSchemaEnsured = true;
+}
+
+const FALLBACK_PRODUCTS: StaticProductRecord[] = [
   {
     slug: "dark-choc-maldon-salt",
     name: "Dark Choc & Maldon Salt",
     price: "GBP 22.00",
-    image: "/Dark_Choc-_Salt/_DSC6327.jpg",
+    imageKey: "Dark_Choc-_Salt/_DSC6327.jpg",
+    imageAlt: "Dark Choc & Maldon Salt cookie",
     description:
       "Indulge in the rich decadence of our Dark Choc & Maldon Salt Cookie. Bursting with delicious 70% dark chocolate, this elevated treat is further enhanced by the addition of Maldon salt, adding a unique and luxurious flavour to each bite.",
     featured: true,
-    sortOrder: 10,
+    sortOrder: 1,
+    createdAt: "2026-01-10T09:00:00.000Z",
     relatedSlugs: [
       "double-chocolate-hazelnut",
       "matcha-white-chocolate",
@@ -51,68 +102,81 @@ const FALLBACK_PRODUCTS: ShopProduct[] = [
   },
   {
     slug: "double-chocolate-hazelnut",
-    name: "Double Chocolate & Hazelnut",
+    name: "Double Choc & Hazelnut",
     price: "GBP 22.00",
-    image: "/Double_Choc_Hazelnut/_DSC6200.jpg",
+    imageKey: "Double_Choc_Hazelnut/_DSC6200.jpg",
+    imageAlt: "Double Choc & Hazelnut cookie",
     description:
       "Our Double Chocolate & Hazelnut cookie is packed with deep cocoa notes, crunchy roasted hazelnuts, and a soft center that stays rich in every bite.",
     featured: true,
-    sortOrder: 20,
+    sortOrder: 2,
+    createdAt: "2026-01-12T09:00:00.000Z",
     relatedSlugs: [],
   },
   {
     slug: "gift-card",
     name: "Gift Card",
     price: "GBP 10.00",
+    imageKey: "products/gift-card/1773484475889-growncookies-1024-transparent-cropped.png",
+    imageAlt: "Grown Cookies gift card",
     isGiftCard: true,
     description:
       "Send a Grown Cookies gift card and let them choose their own flavour favourites. Perfect for birthdays, celebrations, and thoughtful surprises.",
     featured: true,
-    sortOrder: 30,
+    sortOrder: 3,
+    createdAt: "2026-01-15T09:00:00.000Z",
     relatedSlugs: [],
   },
   {
     slug: "granola-raisin",
     name: "Granola Raisin",
     price: "GBP 22.00",
-    image: "/Crunchy_Granola/_DSC6127.jpg",
+    imageKey: "Crunchy_Granola/_DSC6127.jpg",
+    imageAlt: "Granola Raisin cookie",
     description:
       "A comforting oat-forward cookie with toasted granola clusters and juicy raisins for a warm, nostalgic bite.",
     featured: false,
     sortOrder: 40,
+    createdAt: "2026-01-18T09:00:00.000Z",
     relatedSlugs: [],
   },
   {
     slug: "matcha-white-chocolate",
     name: "Matcha White Chocolate",
     price: "GBP 22.00",
-    image: "/Matcha/_DSC6441.jpg",
+    imageKey: "Matcha/_DSC6441.jpg",
+    imageAlt: "Matcha White Chocolate cookie",
     description:
       "Earthy matcha and creamy white chocolate come together for a balanced cookie with vibrant colour and smooth sweetness.",
     featured: false,
     sortOrder: 50,
+    createdAt: "2026-01-22T09:00:00.000Z",
     relatedSlugs: [],
   },
   {
     slug: "red-velvet",
     name: "Red Velvet",
     price: "GBP 22.00",
-    image: "/Red_Velvet/_DSC6161.jpg",
+    imageKey: "Red_Velvet/_DSC6161.jpg",
+    imageAlt: "Red Velvet cookie",
     description:
       "Our Red Velvet cookie blends cocoa richness with a velvety texture and a subtle tang for a bold dessert-style treat.",
     featured: false,
     sortOrder: 60,
+    createdAt: "2026-01-25T09:00:00.000Z",
     relatedSlugs: [],
   },
   {
     slug: "double-choc-box",
     name: "Double Choc Box",
     price: "GBP 22.00",
-    image: "/Box_Shots/_DSC6145.jpg",
+    imageKey: "Box_Shots/_DSC6145.jpg",
+    imageAlt: "Double Choc Box",
     description:
       "A curated cookie box featuring crowd-favourite chocolate flavours, baked fresh and ready to share.",
     featured: false,
     sortOrder: 70,
+    createdAt: "2026-01-28T09:00:00.000Z",
     relatedSlugs: [],
   },
 ];
@@ -132,27 +196,35 @@ function normalizeRelatedSlugs(value: string | null) {
   }
 }
 
+function mapStaticProduct(record: StaticProductRecord): ShopProduct {
+  return {
+    slug: record.slug,
+    name: record.name,
+    price: record.price,
+    description: record.description,
+    featured: record.featured,
+    sortOrder: record.sortOrder,
+    createdAt: record.createdAt,
+    relatedSlugs: record.relatedSlugs,
+    image: buildProductImageUrl(record.imageKey),
+    imageAlt: record.imageAlt,
+    isGiftCard: record.isGiftCard,
+  };
+}
+
 function mapRowToProduct(row: ProductRow): ShopProduct {
-  const base = {
+  return {
     slug: row.slug,
     name: row.name,
     price: row.price,
     description: row.description,
-    featured: Boolean(row.featured),
-    sortOrder: row.sort_order ?? 0,
+    featured: row.featured_position !== null,
+    sortOrder: row.featured_position ?? row.sort_order ?? 0,
+    createdAt: row.created_at ?? undefined,
     relatedSlugs: normalizeRelatedSlugs(row.related_slugs),
-  };
-
-  if (Boolean(row.is_gift_card)) {
-    return {
-      ...base,
-      isGiftCard: true,
-    };
-  }
-
-  return {
-    ...base,
-    image: row.image_url ?? "",
+    image: buildProductImageUrl(row.image_key),
+    imageAlt: row.alt_text ?? undefined,
+    isGiftCard: Boolean(row.is_gift_card),
   };
 }
 
@@ -169,38 +241,134 @@ function sortProducts(products: ShopProduct[]) {
   });
 }
 
+function getFallbackProducts() {
+  return sortProducts(FALLBACK_PRODUCTS.map(mapStaticProduct));
+}
+
 async function fetchProductsFromD1() {
+  await ensureFeaturedProductsSchema();
+
   const rows = await queryCloudflareD1<ProductRow>(
-    `SELECT slug, name, price, description, image_url, is_gift_card, featured, sort_order, related_slugs
-     FROM products
-     ORDER BY sort_order ASC, name ASC`,
+    `SELECT
+       p.slug,
+       p.name,
+       p.price,
+       p.description,
+       p.is_gift_card,
+       fp.position AS featured_position,
+       p.sort_order,
+       p.created_at,
+       p.related_slugs,
+       pi.image_key,
+       pi.alt_text
+     FROM products p
+     LEFT JOIN featured_products fp
+       ON fp.product_slug = p.slug
+     LEFT JOIN product_images pi
+       ON pi.product_id = p.id
+      AND pi.is_primary = 1
+     ORDER BY p.sort_order ASC, p.name ASC`,
   );
 
   return rows.map(mapRowToProduct);
 }
 
+const getAllProductsCached = unstable_cache(
+  async () => sortProducts(await fetchProductsFromD1()),
+  ["products-all"],
+  {
+    revalidate: PRODUCT_CACHE_REVALIDATE_SECONDS,
+    tags: [PRODUCT_CACHE_TAG],
+  },
+);
+
+const getFeaturedProductsCached = unstable_cache(
+  async (count: number) => {
+    await ensureFeaturedProductsSchema();
+
+    const rows = await queryCloudflareD1<ProductRow>(
+      `SELECT
+         p.slug,
+         p.name,
+         p.price,
+         p.description,
+         p.is_gift_card,
+         fp.position AS featured_position,
+         p.sort_order,
+         p.created_at,
+         p.related_slugs,
+         pi.image_key,
+         pi.alt_text
+       FROM featured_products fp
+       JOIN products p
+         ON p.slug = fp.product_slug
+       LEFT JOIN product_images pi
+         ON pi.product_id = p.id
+        AND pi.is_primary = 1
+       ORDER BY fp.position ASC, p.name ASC
+       LIMIT ?`,
+      [count],
+      { next: { revalidate: PRODUCT_CACHE_REVALIDATE_SECONDS, tags: [PRODUCT_CACHE_TAG] } },
+    );
+
+    if (rows.length >= count) {
+      return rows.map(mapRowToProduct);
+    }
+
+    const products = sortProducts(await fetchProductsFromD1());
+    const featuredProducts = products.filter((product) => product.featured);
+
+    if (featuredProducts.length >= count) {
+      return featuredProducts.slice(0, count);
+    }
+
+    return products.slice(0, count);
+  },
+  ["products-featured"],
+  {
+    revalidate: PRODUCT_CACHE_REVALIDATE_SECONDS,
+    tags: [PRODUCT_CACHE_TAG],
+  },
+);
+
 export async function getAllProducts() {
   if (!hasCloudflareD1Config()) {
-    return sortProducts(FALLBACK_PRODUCTS);
+    return getFallbackProducts();
   }
 
   try {
-    return sortProducts(await fetchProductsFromD1());
+    return await getAllProductsCached();
   } catch (error) {
     console.warn("Falling back to local product data.", error);
-    return sortProducts(FALLBACK_PRODUCTS);
+    return getFallbackProducts();
   }
 }
 
 export async function getFeaturedProducts(count = 3) {
-  const products = await getAllProducts();
-  const featuredProducts = products.filter((product) => product.featured);
+  if (!hasCloudflareD1Config()) {
+    const products = getFallbackProducts();
+    const featuredProducts = products.filter((product) => product.featured);
 
-  if (featuredProducts.length >= count) {
-    return featuredProducts.slice(0, count);
+    if (featuredProducts.length >= count) {
+      return featuredProducts.slice(0, count);
+    }
+
+    return products.slice(0, count);
   }
 
-  return products.slice(0, count);
+  try {
+    return await getFeaturedProductsCached(count);
+  } catch (error) {
+    console.warn("Falling back to local featured product data.", error);
+    const products = getFallbackProducts();
+    const featuredProducts = products.filter((product) => product.featured);
+
+    if (featuredProducts.length >= count) {
+      return featuredProducts.slice(0, count);
+    }
+
+    return products.slice(0, count);
+  }
 }
 
 export async function getShopProduct(slug: string) {

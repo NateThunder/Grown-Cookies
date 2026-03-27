@@ -56,6 +56,10 @@ a {
   background-color: #761A6C;
 }
 
+body:has(main.account-page) .site-footer {
+  display: none;
+}
+
 .site-footer-main {
   background-color: #761A6C;
   color: #ffffff;

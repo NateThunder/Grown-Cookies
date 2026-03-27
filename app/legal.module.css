@@ -1,0 +1,103 @@
+.page {
+  min-height: 100vh;
+  background: #fff8fb;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
+  gap: 40px;
+  align-items: start;
+  padding: 72px 48px 96px;
+}
+
+.copy {
+  padding-top: 24px;
+}
+
+.eyebrow {
+  margin: 0 0 14px;
+  color: #761A6C;
+  font-family: var(--font-header--family);
+  font-size: 0.85rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.copy h1 {
+  margin: 0;
+  max-width: 10ch;
+  color: #240f26;
+  font-family: var(--font-heading--family);
+  font-size: clamp(2.6rem, 5vw, 5.2rem);
+  line-height: 0.98;
+}
+
+.description {
+  max-width: 38rem;
+  margin: 24px 0 0;
+  color: #4f3c51;
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.panel {
+  border: 1px solid rgba(118, 26, 108, 0.12);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 28px 60px rgba(118, 26, 108, 0.1);
+  padding: 32px;
+  backdrop-filter: blur(10px);
+}
+
+.section + .section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(118, 26, 108, 0.12);
+}
+
+.section h2 {
+  margin: 0 0 10px;
+  color: #240f26;
+  font-family: var(--font-heading--family);
+  font-size: clamp(1.4rem, 2vw, 2rem);
+}
+
+.section p {
+  margin: 0;
+  color: #5c495f;
+  line-height: 1.7;
+}
+
+.section a {
+  color: #761A6C;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+    padding: 48px 24px 72px;
+  }
+
+  .copy {
+    padding-top: 0;
+  }
+
+  .copy h1 {
+    max-width: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero {
+    gap: 28px;
+    padding: 36px 16px 56px;
+  }
+
+  .panel {
+    padding: 24px 18px;
+    border-radius: 22px;
+  }
+}

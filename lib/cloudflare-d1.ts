@@ -10,6 +10,13 @@ type D1ApiResponse<Row> = {
   result?: Array<D1QueryResult<Row>>;
 };
 
+type D1RequestOptions = RequestInit & {
+  next?: {
+    revalidate?: number;
+    tags?: string[];
+  };
+};
+
 function getD1Config() {
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
   const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
@@ -26,10 +33,11 @@ export function hasCloudflareD1Config() {
   return Boolean(getD1Config());
 }
 
-export async function queryCloudflareD1<Row>(
+async function requestCloudflareD1<Row>(
   sql: string,
   params: Array<string | number | null> = [],
-): Promise<Row[]> {
+  options: D1RequestOptions = { next: { revalidate: 300 } },
+): Promise<D1QueryResult<Row>> {
   const config = getD1Config();
 
   if (!config) {
@@ -39,13 +47,13 @@ export async function queryCloudflareD1<Row>(
   const response = await fetch(
     `https://api.cloudflare.com/client/v4/accounts/${config.accountId}/d1/database/${config.databaseId}/query`,
     {
+      ...options,
       method: "POST",
       headers: {
         Authorization: `Bearer ${config.apiToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ sql, params }),
-      next: { revalidate: 300 },
     },
   );
 
@@ -62,5 +70,21 @@ export async function queryCloudflareD1<Row>(
     throw new Error(errorMessage);
   }
 
-  return payload.result?.[0]?.results ?? [];
+  return payload.result?.[0] ?? {};
+}
+
+export async function queryCloudflareD1<Row>(
+  sql: string,
+  params: Array<string | number | null> = [],
+  options: D1RequestOptions = { next: { revalidate: 300 } },
+): Promise<Row[]> {
+  const result = await requestCloudflareD1<Row>(sql, params, options);
+  return result.results ?? [];
+}
+
+export async function executeCloudflareD1(
+  sql: string,
+  params: Array<string | number | null> = [],
+) {
+  return requestCloudflareD1<never>(sql, params, { cache: "no-store" });
 }

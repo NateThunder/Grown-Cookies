@@ -1,9 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { FiShoppingBag } from "react-icons/fi";
 import GiftCardTile from "@/components/gift-card-tile";
-import { getAllProducts, getRelatedProducts, getShopProduct } from "@/lib/products";
+import ProductBasketControls from "@/components/product-basket-controls";
+import { getAllProducts } from "@/lib/products";
 import SiteHeader from "@/components/site-header";
 import styles from "./page.module.css";
 
@@ -18,33 +18,52 @@ export default async function ProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = await getShopProduct(slug);
+  const products = await getAllProducts();
+  const product = products.find((item) => item.slug === slug);
 
   if (!product) {
     notFound();
   }
 
-  const relatedProducts = await getRelatedProducts(product.slug);
+  const productMap = new Map(products.map((item) => [item.slug, item]));
+  const curatedProducts = (product.relatedSlugs ?? [])
+    .map((itemSlug) => productMap.get(itemSlug))
+    .filter((item): item is (typeof products)[number] => Boolean(item));
+  const fallbackProducts = products.filter(
+    (item) => !item.isGiftCard && item.slug !== product.slug,
+  );
+  const relatedProducts = [...curatedProducts];
+
+  for (const item of fallbackProducts) {
+    if (!relatedProducts.some((existing) => existing.slug === item.slug)) {
+      relatedProducts.push(item);
+    }
+  }
+
 
   return (
     <main className={styles.page}>
-      <SiteHeader activeRoute="shop" />
+      <SiteHeader activeRoute="shop" products={products} />
 
       <section className={styles.productSection}>
         <div className={styles.imageColumn}>
           {product.isGiftCard ? (
-            <GiftCardTile className={styles.giftHero} />
-          ) : (
+            <GiftCardTile
+              className={styles.giftHero}
+              src={product.image}
+              alt={product.imageAlt ?? product.name}
+            />
+          ) : product.image ? (
             <div className={styles.heroImageWrap}>
               <Image
                 src={product.image}
-                alt={product.name}
+                alt={product.imageAlt ?? product.name}
                 fill
                 priority
                 className={styles.heroImage}
               />
             </div>
-          )}
+          ) : null}
         </div>
 
         <div className={styles.infoColumn}>
@@ -58,30 +77,15 @@ export default async function ProductPage({
             6 Cookies
           </button>
 
-          <div className={styles.purchaseRow}>
-            <div className={styles.quantityControl} aria-label="Quantity selector">
-              <button type="button" aria-label="Decrease quantity">
-                -
-              </button>
-              <span>1</span>
-              <button type="button" aria-label="Increase quantity">
-                +
-              </button>
-            </div>
-
-            <button type="button" className={styles.addToCart}>
-              <FiShoppingBag />
-              Add to cart
-            </button>
-          </div>
-
-          <button type="button" className={styles.shopPay}>
-            Buy with <strong>shop</strong>
-          </button>
-
-          <button type="button" className={styles.paymentOptions}>
-            More payment options
-          </button>
+          <ProductBasketControls
+            product={{
+              slug: product.slug,
+              name: product.name,
+              price: product.price,
+              image: product.image,
+              imageAlt: product.imageAlt,
+            }}
+          />
 
           <p className={styles.description}>{product.description}</p>
         </div>
@@ -101,15 +105,19 @@ export default async function ProductPage({
             >
               <div className={styles.relatedImageWrap}>
                 {item.isGiftCard ? (
-                  <GiftCardTile className={styles.relatedGiftCardTile} />
-                ) : (
+                  <GiftCardTile
+                    className={styles.relatedGiftCardTile}
+                    src={item.image}
+                    alt={item.imageAlt ?? item.name}
+                  />
+                ) : item.image ? (
                   <Image
                     src={item.image}
-                    alt={item.name}
+                    alt={item.imageAlt ?? item.name}
                     fill
                     className={styles.relatedImage}
                   />
-                )}
+                ) : null}
               </div>
               <h3>{item.name}</h3>
             </Link>

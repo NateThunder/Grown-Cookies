@@ -1,3 +1,40 @@
+.authCard {
+  display: grid;
+  gap: 20px;
+}
+
+.modeSwitch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 6px;
+  border-radius: 999px;
+  background: rgba(118, 26, 108, 0.08);
+}
+
+.modeButton {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #5c495f;
+  cursor: pointer;
+  font-family: var(--font-header--family);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  padding: 12px 16px;
+  text-transform: uppercase;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.modeButtonActive {
+  background: #ffffff;
+  color: #240f26;
+  box-shadow: 0 8px 20px rgba(118, 26, 108, 0.12);
+}
+
 .form {
   display: grid;
   gap: 18px;
@@ -39,7 +76,7 @@
 }
 
 .submit,
-.facebookButton {
+.googleButton {
   border: 0;
   color: #ffffff;
   cursor: pointer;
@@ -59,48 +96,50 @@
   padding: 15px 22px;
 }
 
-.facebookButton {
+.googleButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 16px;
   border-radius: 12px;
-  background: #3b82f6;
-  box-shadow: 0 6px 14px rgba(59, 130, 246, 0.22);
+  background: #ffffff;
+  border: 1px solid rgba(118, 26, 108, 0.18);
+  box-shadow: 0 10px 22px rgba(118, 26, 108, 0.08);
   font-family: var(--font-body--family);
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0;
   text-transform: none;
+  color: #1d1021;
   padding: 18px 24px;
 }
 
-.facebookIconBadge {
+.googleIconBadge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 34px;
   height: 34px;
   border-radius: 999px;
-  background: #ffffff;
+  background: linear-gradient(135deg, #ffffff 0%, #f7ecff 100%);
   flex: 0 0 auto;
 }
 
-.facebookIconBadge svg {
+.googleIconBadge svg {
   width: 20px;
   height: 20px;
-  color: #3b82f6;
+  color: #db4437;
 }
 
 .submit:hover,
 .submit:focus-visible,
-.facebookButton:hover,
-.facebookButton:focus-visible {
+.googleButton:hover,
+.googleButton:focus-visible {
   transform: translateY(-1px);
 }
 
 .submit:disabled,
-.facebookButton:disabled {
+.googleButton:disabled {
   opacity: 0.7;
   cursor: wait;
   transform: none;
@@ -122,12 +161,45 @@
   color: #1f6a45;
 }
 
+.accountState {
+  display: grid;
+  gap: 18px;
+}
+
+.accountSummary {
+  padding: 22px;
+  border: 1px solid rgba(118, 26, 108, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.accountEyebrow {
+  margin: 0 0 8px;
+  color: #761A6C;
+  font-family: var(--font-header--family);
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.accountSummary h3 {
+  margin: 0;
+  color: #240f26;
+  font-family: var(--font-heading--family);
+  font-size: 1.5rem;
+}
+
+.accountSummary p:last-child {
+  margin: 10px 0 0;
+  color: #5c495f;
+}
+
 @media (max-width: 640px) {
   .identityGrid {
     grid-template-columns: 1fr;
   }
 
-  .facebookButton {
+  .googleButton {
     padding: 16px 20px;
     font-size: 0.95rem;
   }

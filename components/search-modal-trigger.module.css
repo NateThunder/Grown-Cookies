@@ -89,11 +89,11 @@
 
 .results {
   overflow: auto;
-  padding: 4px 0 14px;
+  padding: 8px 0 16px;
 }
 
 .section {
-  padding: 14px 18px 6px;
+  padding: 16px 18px 10px;
 }
 
 .section + .section {
@@ -104,7 +104,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
   gap: 10px;
 }
 
@@ -113,7 +113,7 @@
   margin: 0;
   font-family: var(--font-body--family);
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
@@ -136,114 +136,187 @@
   font-size: 0.8rem;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-  align-items: stretch;
-}
-
+.grid,
 .recentGrid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
+  justify-items: stretch;
 }
 
 .card {
   position: relative;
-  color: inherit;
-  text-decoration: none;
-  display: grid;
-  grid-template-rows: auto auto auto;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   gap: 6px;
+  min-width: 0;
+  width: 100%;
+  max-width: 176px;
   height: 100%;
-  border-radius: 8px;
-  padding: 8px;
-  transition: background-color 180ms ease;
-}
-
-.giftCardPositioned {
-  align-content: center;
-  min-height: 100%;
-  padding-top: 14px;
+  padding: 0 0 8px;
+  color: inherit;
+  background: #ffffff;
+  border: 1px solid #ececec;
+  border-radius: 12px;
+  overflow: hidden;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .card:hover,
 .card:focus-visible {
-  background: #f8f8f8;
+  background: #fcfcfc;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.giftCardPositioned {
+  justify-content: flex-start;
 }
 
 .imageWrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 1.15;
+  aspect-ratio: 4 / 5;
+  margin-bottom: 0;
   overflow: hidden;
-  border-radius: 6px;
-  display: grid;
-  place-items: center;
-  background: #8D029B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.giftCardPositioned .imageWrap {
+  aspect-ratio: 1 / 1.25;
+  overflow: hidden;
+  min-height: 0;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #ececec;
+}
+
+.card:not(.giftCardPositioned) .imageWrap {
+  aspect-ratio: 1 / 1.25;
+}
+
+.imageLink,
+.contentLink {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.imageLink {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.giftCardImageLink {
+  display: block;
+  width: min(100%, 144px);
+  height: auto;
+  flex: 0 0 auto;
+  background: transparent;
+  overflow: visible;
+}
+
+.giftCardPositioned .contentLink {
+  width: 100%;
+  align-self: stretch;
 }
 
 .image {
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   object-position: center;
-  padding: 8px;
+  display: block;
+  border-radius: 12px 12px 0 0;
+}
+
+.contentLink {
+  padding: 0 10px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .giftCardTile {
-  --gift-card-aspect-ratio: 1.58 / 1;
-  --gift-card-radius: 6px;
-  --gift-card-gap: 10px;
-  --gift-card-padding: 8px;
-  --gift-card-brand-size: clamp(1.35rem, 1.8vw, 2rem);
+  --gift-card-aspect-ratio: 1.62 / 1;
+  --gift-card-radius: 10px;
+  --gift-card-gap: 8px;
+  --gift-card-image-fit: cover;
+  --gift-card-image-position: center;
+  --gift-card-image-scale: 1.04;
+  --gift-card-image-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.12),
+    0 3px 8px rgba(0, 0, 0, 0.08);
+  --gift-card-shadow-after-bg: rgba(0, 0, 0, 0.16);
+  --gift-card-shadow-after-opacity: 0.22;
+  --gift-card-shadow-after-hover-opacity: 0.28;
+  --gift-card-padding: 0;
+  --gift-card-brand-size: clamp(1.2rem, 1.8vw, 1.8rem);
   --gift-card-text-size: 0.72rem;
   --gift-card-transform-transition: 220ms cubic-bezier(0.22, 1, 0.36, 1);
   --gift-card-shadow-transition: 220ms ease;
   --gift-card-filter-transition: 200ms ease;
-  --gift-card-shadow:
-    0 8px 14px rgba(33, 10, 39, 0.22),
-    0 1px 0 rgba(33, 10, 39, 0.25);
+  width: min(100%, 156px);
 }
 
 .name {
-  margin: 0;
-  min-height: 2.5em;
+  margin: 2px 0 0;
+  width: 100%;
+  min-width: 0;
   font-family: var(--font-body--family);
-  font-size: 0.95rem;
-  line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  font-size: 0.85rem;
+  line-height: 1.14;
+  overflow-wrap: break-word;
 }
 
 .price {
   margin: 0;
+  width: 100%;
+  min-width: 0;
   font-family: var(--font-body--family);
-  font-size: 0.95rem;
+  font-size: 0.84rem;
   font-weight: 700;
 }
 
 .quickIcon {
   position: absolute;
-  right: 10px;
-  bottom: 10px;
-  width: 34px;
+  right: 12px;
+  top: 12px;
+  min-width: 34px;
   height: 34px;
+  padding: 0 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid #8D029B;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #d8d8d8;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #8D029B;
+  color: #333333;
   opacity: 0;
   transform: translateY(8px);
   transition: opacity 200ms ease, transform 220ms ease;
-  pointer-events: none;
+  cursor: pointer;
+}
+
+.quickIcon[data-added="true"] {
+  background: #8d029b;
+  border-color: #8d029b;
+  color: #ffffff;
 }
 
 .card:hover .quickIcon,
-.card:focus-visible .quickIcon {
+.card:focus-within .quickIcon {
   opacity: 1;
   transform: translateY(0);
 }
@@ -251,11 +324,14 @@
 .card:hover .giftCardTile,
 .card:focus-visible .giftCardTile,
 .card:focus-within .giftCardTile {
-  transform: translateY(-3px) scale(1.01);
+  transform: translateY(-2px) scale(1.01);
   filter: none;
-  box-shadow:
-    0 11px 18px rgba(33, 10, 39, 0.28),
-    0 1px 0 rgba(33, 10, 39, 0.3);
+}
+
+.card:hover .giftCardTile::after,
+.card:focus-visible .giftCardTile::after,
+.card:focus-within .giftCardTile::after {
+  transform: translateY(4px);
 }
 
 .emptyState {
@@ -267,9 +343,6 @@
 }
 
 @media (max-width: 900px) {
-  .giftCardPositioned {
-    padding-top: 8px;
-  }
   .backdrop {
     padding-top: 82px;
   }
@@ -285,9 +358,11 @@
 }
 
 @media (max-width: 600px) {
-  .giftCardPositioned {
-    padding-top: 0;
+  .quickIcon {
+    opacity: 1;
+    transform: translateY(0);
   }
+
   .backdrop {
     padding: 68px 10px 10px;
   }
@@ -305,19 +380,11 @@
   }
 
   .section {
-    padding: 12px 10px 6px;
+    padding: 12px 10px 8px;
   }
 
-  .grid {
-    grid-template-columns: 1fr;
-  }
-
+  .grid,
   .recentGrid {
     grid-template-columns: 1fr;
   }
 }
-
-
-
-
-

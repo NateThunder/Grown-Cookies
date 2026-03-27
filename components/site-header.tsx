@@ -1,13 +1,17 @@
 import Link from "next/link";
-import { getAllProducts } from "@/lib/products";
+import { getAllProducts, type ShopProduct } from "@/lib/products";
+import MobileNav from "@/components/mobile-nav";
 import SearchModalTrigger from "@/components/search-modal-trigger";
-import { FiShoppingBag, FiUser } from "react-icons/fi";
+import BasketLink from "@/components/basket-link";
+import HeaderAccountLink from "@/components/header-account-link";
 import styles from "./site-header.module.css";
 
 type NavRoute = "home" | "shop" | "contact" | "faqs";
 
 type SiteHeaderProps = {
   activeRoute?: NavRoute;
+  products?: ShopProduct[];
+  showAnnouncement?: boolean;
 };
 
 const navItems: Array<{ href: string; label: string; route: NavRoute }> = [
@@ -17,12 +21,28 @@ const navItems: Array<{ href: string; label: string; route: NavRoute }> = [
   { href: "/faqs", label: "FAQ's", route: "faqs" },
 ];
 
-export default async function SiteHeader({ activeRoute }: SiteHeaderProps) {
-  const products = await getAllProducts();
+export default async function SiteHeader({
+  activeRoute,
+  products: providedProducts,
+  showAnnouncement = true,
+}: SiteHeaderProps) {
+  const products = providedProducts ?? (await getAllProducts());
+  const mobileNavItems = navItems.map((item) => ({
+    href: item.href,
+    label: item.label,
+    isActive: activeRoute === item.route,
+  }));
 
   return (
     <>
       <header className={styles.header}>
+        <div className={styles.mobileLeftActions}>
+          <MobileNav items={mobileNavItems} />
+          <div className={styles.mobileSearch}>
+            <SearchModalTrigger products={products} />
+          </div>
+        </div>
+
         <nav className={styles.leftNav} aria-label="Primary navigation">
           {navItems.map((item) => (
             <Link
@@ -47,17 +67,15 @@ export default async function SiteHeader({ activeRoute }: SiteHeaderProps) {
         </Link>
 
         <div className={styles.iconNav} aria-label="Actions">
-          <SearchModalTrigger products={products} />
-          <Link href="/account" aria-label="Account">
-            <FiUser />
-          </Link>
-          <Link href="/cart" aria-label="Cart">
-            <FiShoppingBag />
-          </Link>
+          <div className={styles.desktopSearch}>
+            <SearchModalTrigger products={products} />
+          </div>
+          <HeaderAccountLink />
+          <BasketLink position="both" />
         </div>
       </header>
 
-      <div className={styles.announcement}>Shop our latest arrivals</div>
+      {showAnnouncement ? <div className={styles.announcement}>Shop our latest arrivals</div> : null}
     </>
   );
 }

@@ -7,32 +7,18 @@ export default function ContactPage() {
       <SiteHeader activeRoute="contact" />
 
       <section className={styles.contactSection}>
-        <h1>CONTACT US</h1>
-
         <div className={styles.contentWrap}>
-          <h2>
-            We Want To Hear
-            <br />
-            From You
-          </h2>
-
-          <p className={styles.bodyText}>
-            Please feel free to <strong>Email:</strong>
-            <br />
-            <a href="mailto:orders@growncookies.co.uk">orders@growncookies.co.uk</a>{" "}
-            or just speak your mind below. We love to talk about all things
-            cookies!
-            <br />
-            Please allow 1 Business day to respond.
-          </p>
-
-          <h3>INQUIRIES</h3>
-          <p className={styles.bodyText}>
-            For all event, wedding and corporate, enquiries, or product
-            questions you may have, please fill out the contact form or{" "}
-            <strong>Email:</strong>
-            <br />
-            <a href="mailto:orders@growncookies.co.uk">orders@growncookies.co.uk</a>.
+          <h1>Contact Us</h1>
+          <p className={styles.introText}>
+            Questions about events, weddings, corporate orders or products?
+            Fill out the form below or email us at{" "}
+            <a
+              className={styles.emailLink}
+              href="mailto:orders@growncookies.co.uk"
+            >
+              orders@growncookies.co.uk
+            </a>
+            . We usually reply within 1 business day.
           </p>
         </div>
 

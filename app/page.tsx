@@ -1,17 +1,20 @@
 import Image from "next/image";
 import Link from "next/link";
-import { FiPlus, FiShoppingBag } from "react-icons/fi";
 import GiftCardTile from "@/components/gift-card-tile";
+import QuickAddButton from "@/components/quick-add-button";
 import SiteHeader from "@/components/site-header";
-import { getFeaturedProducts } from "@/lib/products";
+import { getAllProducts } from "@/lib/products";
 import styles from "./page.module.css";
 
 export default async function Home() {
-  const featuredProducts = await getFeaturedProducts(3);
+  const products = await getAllProducts();
+  const featuredProducts = products.filter((product) => product.featured);
+  const homepageProducts =
+    featuredProducts.length >= 3 ? featuredProducts.slice(0, 3) : products.slice(0, 3);
 
   return (
     <main className={`${styles.page} ${styles.pageWidthWide}`}>
-      <SiteHeader activeRoute="home" />
+      <SiteHeader activeRoute="home" products={products} />
 
       <section className={styles.hero}>
         <Image
@@ -34,34 +37,37 @@ export default async function Home() {
       <section className={styles.featured}>
         <h2>Featured products</h2>
         <div className={styles.grid}>
-          {featuredProducts.map((product) => (
-            <Link
+          {homepageProducts.map((product) => (
+            <article
               key={product.slug}
-              href={`/shop/${product.slug}`}
               className={`${styles.card} ${
                 product.isGiftCard ? styles.giftCardPositioned : ""
               }`}
-              aria-label={`View ${product.name}`}
             >
-              {product.isGiftCard ? (
-                <GiftCardTile className={styles.giftCardTile} />
-              ) : (
-                <div className={styles.cardImageWrap}>
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    fill
-                    className={styles.cardImage}
-                  />
-                  <span className={styles.quickAdd} aria-hidden="true">
-                    <FiShoppingBag />
-                    <FiPlus />
-                  </span>
-                </div>
-              )}
-              <h3>{product.name}</h3>
-              <p>{product.price}</p>
-            </Link>
+              <div className={styles.cardImageWrap}>
+                <Link href={`/shop/${product.slug}`} className={styles.cardMediaLink}>
+                  {product.isGiftCard ? (
+                    <GiftCardTile
+                      className={styles.giftCardTile}
+                      src={product.image}
+                      alt={product.imageAlt ?? product.name}
+                    />
+                  ) : product.image ? (
+                    <Image
+                      src={product.image}
+                      alt={product.imageAlt ?? product.name}
+                      fill
+                      className={styles.cardImage}
+                    />
+                  ) : null}
+                </Link>
+                <QuickAddButton product={product} className={styles.quickAdd} />
+              </div>
+              <Link href={`/shop/${product.slug}`} className={styles.cardContentLink}>
+                <h3>{product.name}</h3>
+                <p>{product.price}</p>
+              </Link>
+            </article>
           ))}
         </div>
       </section>
@@ -107,9 +113,15 @@ export default async function Home() {
           </h2>
           <p className={styles.shopIntroBody}>
             Our cookies come in a variety of flavours, ensuring there&apos;s
-            something for everyone. From classic favourites like chocolate
-            cookies to unique creations like matcha white chocolate, our
-            selection caters to diverse tastes and preferences. These
+            something for everyone. From classic favourites like{" "}
+            <Link href="/shop" className={styles.shopIntroInlineLink}>
+              chocolate cookies
+            </Link>{" "}
+            to unique creations like{" "}
+            <Link href="/shop" className={styles.shopIntroInlineLink}>
+              matcha white chocolate
+            </Link>
+            , our selection caters to diverse tastes and preferences. These
             delectable cookies are baked to perfection by our professional
             bakers, making them a highlight at any gathering.
           </p>
