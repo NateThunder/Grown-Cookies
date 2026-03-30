@@ -48,6 +48,7 @@ Create `.env.local` with the services this app depends on:
 
 - Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - Admin security: `ADMIN_LOGIN_THROTTLE_SECRET`
+- Checkout security: `CHECKOUT_THROTTLE_SECRET`
 - Stripe: `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`
 - Cloudflare: account/D1/R2 values used by the admin, catalog, and deploy flows
 
@@ -60,6 +61,8 @@ Supabase Row Level Security still needs to be verified in the Supabase project i
 Admin access is controlled from Supabase user `app_metadata`, not from an environment-variable allowlist. Mark an admin user in Supabase by setting either `role: "admin"`, `user_role: "admin"`, or `is_admin: true` inside that user's `raw_app_meta_data`.
 
 Admin sign-in applies a temporary cooldown after repeated failed attempts and stores only hashed email/IP identifiers in D1. Set `ADMIN_LOGIN_THROTTLE_SECRET` to a long random server-only value before deploying so those hashes are salted consistently across instances.
+
+Checkout payment confirmation now applies a D1-backed attempt throttle before order creation and PaymentIntent creation. Set `CHECKOUT_THROTTLE_SECRET` to a long random server-only value before deploying so hashed checkout identifiers stay stable across instances. If you intentionally want one shared salt, the checkout throttle falls back to `ADMIN_LOGIN_THROTTLE_SECRET`, but a dedicated value is preferred.
 
 Enable Supabase MFA for every admin user in the Supabase dashboard. This repo now hardens the login surface with throttling and browser security headers, but MFA still needs to be enforced in Supabase itself.
 

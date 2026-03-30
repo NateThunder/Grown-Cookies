@@ -470,6 +470,13 @@
   font-weight: 600;
 }
 
+.savedPaymentScrollHint {
+  display: none;
+  margin: -4px 0 0;
+  color: #6b5c6d;
+  font-size: 0.88rem;
+}
+
 .savedPaymentList {
   display: grid;
   gap: 10px;
@@ -484,6 +491,49 @@
   border-radius: 16px;
   background: #ffffff;
   padding: 16px 18px;
+}
+
+.savedAddressPicker {
+  display: grid;
+  gap: 12px;
+}
+
+.savedAddressOption {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #ddd3df;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 16px 18px;
+}
+
+.savedAddressMeta {
+  color: #6b5c6d;
+  font-size: 0.96rem;
+  line-height: 1.5;
+}
+
+.savedAddressSummary {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #ddd3df;
+  border-radius: 16px;
+  background: #f8f5f9;
+  padding: 18px;
+}
+
+.savedAddressSummaryTitle {
+  margin: 0;
+  color: #1c111d;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.savedAddressSummaryText {
+  margin: 0;
+  color: #6b5c6d;
+  font-size: 0.96rem;
+  line-height: 1.5;
 }
 
 .savedPaymentSummary {
@@ -856,6 +906,34 @@
   .savedPaymentOption {
     align-items: start;
     flex-direction: column;
+  }
+
+  .savedPaymentList[data-mobile-scroll="true"] {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(240px, 84%);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-bottom: 4px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .savedPaymentList[data-mobile-scroll="true"]::-webkit-scrollbar {
+    display: none;
+  }
+
+  .savedPaymentList[data-mobile-scroll="true"] .savedPaymentOption {
+    min-height: 100%;
+    scroll-snap-align: start;
+  }
+
+  .savedPaymentScrollHint {
+    display: block;
+  }
+
+  .savedAddressOption {
+    padding: 16px;
   }
 
   .paymentDetail {

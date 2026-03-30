@@ -459,6 +459,69 @@
   padding: 24px;
 }
 
+.orderItems {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.orderItem {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.orderItemImageFrame {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  overflow: hidden;
+  border: 1px solid rgba(118, 26, 108, 0.12);
+  border-radius: 18px;
+  background: rgba(247, 239, 248, 0.72);
+}
+
+.orderItemImage {
+  object-fit: cover;
+}
+
+.orderItemImageFallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: #761A6C;
+  font-family: var(--font-heading--family);
+  font-size: 1.25rem;
+}
+
+.orderItemBody {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.orderItemName,
+.orderItemMeta,
+.orderItemTotal {
+  margin: 0;
+}
+
+.orderItemName {
+  color: #240f26;
+  font-family: var(--font-heading--family);
+  font-size: 1rem;
+}
+
+.orderItemMeta,
+.orderItemTotal {
+  margin-top: 6px;
+  color: #5c495f;
+  line-height: 1.5;
+}
+
 .orderTopRow,
 .orderMetaGrid {
   display: flex;
@@ -602,6 +665,7 @@
   .actionRow,
   .orderTopRow,
   .orderMetaGrid,
+  .orderItemBody,
   .preferenceCard,
   .addressCardTop,
   .addressActions,
@@ -613,6 +677,10 @@
   .primaryButton,
   .secondaryButton {
     width: 100%;
+  }
+
+  .orderItem {
+    grid-template-columns: 1fr;
   }
 
   .preferenceCard input {

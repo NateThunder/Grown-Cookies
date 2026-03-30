@@ -128,6 +128,7 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb",
     },
   },
+  poweredByHeader: false,
   async headers() {
     return [
       {

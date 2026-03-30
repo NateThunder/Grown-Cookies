@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import type { Session, User } from "@supabase/supabase-js";
 import AccountSignupForm from "@/components/account-signup-form";
-import type { AccountOrderSummary } from "@/lib/account-orders";
+import type { AccountOrderItem, AccountOrderSummary } from "@/lib/account-orders";
 import type { CustomerAddress, CustomerProfile } from "@/lib/customer-profiles";
 import type { SavedPaymentMethod } from "@/lib/saved-payment-methods";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -155,6 +156,14 @@ function getDeliverySummary(order: AccountOrderSummary) {
   ]
     .filter(Boolean)
     .join(", ");
+}
+
+function getOrderItemSubtotal(item: AccountOrderItem) {
+  if (item.lineTotalCents > 0) {
+    return item.lineTotalCents;
+  }
+
+  return item.unitPriceCents * item.quantity;
 }
 
 function mapProfileToForm(profile: CustomerProfile, user: User | null): ProfileFormState {
@@ -959,7 +968,7 @@ export default function AccountPageClient() {
           <div className={styles.sectionHeader}>
             <p className={styles.sectionEyebrow}>Addresses</p>
             <h2>Saved addresses</h2>
-            <p>Store a preferred delivery address in D1 and reuse it for future orders.</p>
+            <p>Save a delivery address here and reuse it during checkout.</p>
           </div>
 
           {isAddressesLoading ? <p className={styles.sectionStatus}>Loading your saved addresses...</p> : null}
@@ -1111,7 +1120,7 @@ export default function AccountPageClient() {
               onClick={() => void handleAddressSave()}
               disabled={isAddressSaving}
             >
-              {isAddressSaving ? "Saving..." : addressForm.id ? "Update address" : "Add address"}
+              {isAddressSaving ? "Saving..." : addressForm.id ? "Update address" : "Save address"}
             </button>
             {addressForm.id ? (
               <button
@@ -1275,6 +1284,44 @@ export default function AccountPageClient() {
                       <p>{formatMoney(order.totalCents, order.currency)}</p>
                     </div>
                   </div>
+
+                  {order.items.length > 0 ? (
+                    <div className={styles.orderItems}>
+                      {order.items.map((item, index) => (
+                        <div key={`${order.orderId}-${item.slug || item.name}-${index}`} className={styles.orderItem}>
+                          <div className={styles.orderItemImageFrame}>
+                            {item.image ? (
+                              <Image
+                                src={item.image}
+                                alt={item.imageAlt || item.name}
+                                fill
+                                sizes="72px"
+                                className={styles.orderItemImage}
+                              />
+                            ) : (
+                              <div className={styles.orderItemImageFallback} aria-hidden="true">
+                                {item.name.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                          <div className={styles.orderItemBody}>
+                            <div>
+                              <p className={styles.orderItemName}>{item.name}</p>
+                              <p className={styles.orderItemMeta}>
+                                Qty {item.quantity}
+                                {item.unitPriceCents > 0
+                                  ? ` · ${formatMoney(item.unitPriceCents, order.currency)} each`
+                                  : ""}
+                              </p>
+                            </div>
+                            <p className={styles.orderItemTotal}>
+                              {formatMoney(getOrderItemSubtotal(item), order.currency)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
 
                   <div className={styles.orderDelivery}>
                     <p className={styles.orderMetaLabel}>Delivery</p>

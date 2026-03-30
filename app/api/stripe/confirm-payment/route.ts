@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { parseQuoteItems, parseQuoteTip } from "@/lib/checkout-quote";
 import { getAuthenticatedSupabaseUser } from "@/lib/account-auth";
+import { consumeCheckoutAttempt } from "@/lib/checkout-attempt-throttle";
 import { ensureCustomerProfileForUser } from "@/lib/customer-profiles";
 import {
   ensureStripeCustomerForProfile,
@@ -46,13 +47,12 @@ function parseItems(raw: unknown) {
   return parseQuoteItems(raw);
 }
 
-function parseReturnUrlBase(raw: unknown) {
-  const value = normalizeText(raw).replace(/\/+$/, "");
-  if (!/^https?:\/\//i.test(value)) {
+function getRequestOrigin(request: Request) {
+  try {
+    return new URL(request.url).origin.replace(/\/+$/, "");
+  } catch {
     throw new Error("Return URL is invalid.");
   }
-
-  return value;
 }
 
 function parseFallbackContact(raw: unknown): FallbackContact {
@@ -200,7 +200,6 @@ export async function POST(request: Request) {
       items?: unknown;
       tip?: unknown;
       confirmationTokenId?: unknown;
-      returnUrlBase?: unknown;
       contact?: unknown;
       delivery?: unknown;
       savePaymentMethod?: unknown;
@@ -215,7 +214,7 @@ export async function POST(request: Request) {
 
     const items = parseItems(body.items);
     const tip = parseQuoteTip(body.tip);
-    const returnUrlBase = parseReturnUrlBase(body.returnUrlBase);
+    const returnUrlBase = getRequestOrigin(request);
     const savePaymentMethod = body.savePaymentMethod === true;
     const stripe = getStripeClient();
     const fallbackContact = parseFallbackContact(body.contact);
@@ -230,16 +229,23 @@ export async function POST(request: Request) {
       throw new Error("Sign in again to use a saved payment method.");
     }
 
-    const customerProfilePromise = authenticatedUser
-      ? ensureCustomerProfileForUser(authenticatedUser, {
+    const confirmationToken = await confirmationTokenPromise;
+    const contact = getContactFromSources(confirmationToken, fallbackContact);
+    const delivery = getDeliveryFromSources(confirmationToken, fallbackDelivery);
+
+    await consumeCheckoutAttempt({
+      request,
+      email: contact.email,
+      delivery,
+      items,
+    });
+
+    const customerProfile = authenticatedUser
+      ? await ensureCustomerProfileForUser(authenticatedUser, {
           linkOrdersByEmail: false,
           syncMissingProfileFields: false,
         })
-      : Promise.resolve(null);
-    const confirmationToken = await confirmationTokenPromise;
-    const customerProfile = await customerProfilePromise;
-    const contact = getContactFromSources(confirmationToken, fallbackContact);
-    const delivery = getDeliveryFromSources(confirmationToken, fallbackDelivery);
+      : null;
     const shouldUseSavedPaymentMethod = Boolean(customerProfile && savedPaymentMethodId);
 
     if (savedPaymentMethodId && !shouldUseSavedPaymentMethod) {
