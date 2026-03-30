@@ -8,6 +8,7 @@ export type CustomerProfile = {
   firstName: string;
   lastName: string;
   phone: string;
+  stripeCustomerId: string;
   marketingOptIn: boolean;
   createdAt: string;
   updatedAt: string;
@@ -50,6 +51,11 @@ export type UpsertCustomerAddressInput = {
   isDefault?: boolean;
 };
 
+export type EnsureCustomerProfileOptions = {
+  linkOrdersByEmail?: boolean;
+  syncMissingProfileFields?: boolean;
+};
+
 type CustomerProfileRow = {
   id: number;
   supabase_user_id: string;
@@ -57,6 +63,7 @@ type CustomerProfileRow = {
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
+  stripe_customer_id: string | null;
   marketing_opt_in: number | null;
   created_at: string;
   updated_at: string;
@@ -119,6 +126,7 @@ function toCustomerProfile(row: CustomerProfileRow): CustomerProfile {
     firstName: normalizeText(row.first_name),
     lastName: normalizeText(row.last_name),
     phone: normalizeText(row.phone),
+    stripeCustomerId: normalizeText(row.stripe_customer_id),
     marketingOptIn: normalizeBoolean(row.marketing_opt_in, true),
     createdAt: normalizeText(row.created_at),
     updatedAt: normalizeText(row.updated_at),
@@ -161,6 +169,18 @@ async function ensureOrderTableColumns() {
   if (!orderColumns.has("customer_profile_id")) {
     await executeCloudflareD1("ALTER TABLE orders ADD COLUMN customer_profile_id INTEGER");
   }
+
+  if (!orderColumns.has("delivered_at")) {
+    await executeCloudflareD1("ALTER TABLE orders ADD COLUMN delivered_at TEXT");
+  }
+}
+
+async function ensureCustomerProfileTableColumns() {
+  const profileColumns = await getTableColumnNames("customer_profiles");
+
+  if (!profileColumns.has("stripe_customer_id")) {
+    await executeCloudflareD1("ALTER TABLE customer_profiles ADD COLUMN stripe_customer_id TEXT");
+  }
 }
 
 export async function ensureCustomerAccountSchema() {
@@ -175,6 +195,7 @@ export async function ensureCustomerAccountSchema() {
            id INTEGER PRIMARY KEY AUTOINCREMENT,
            public_id TEXT NOT NULL UNIQUE,
            status TEXT NOT NULL DEFAULT 'pending',
+           delivered_at TEXT,
            currency TEXT NOT NULL,
            subtotal_cents INTEGER NOT NULL,
            shipping_cents INTEGER NOT NULL,
@@ -230,11 +251,14 @@ export async function ensureCustomerAccountSchema() {
            first_name TEXT,
            last_name TEXT,
            phone TEXT,
+           stripe_customer_id TEXT,
            marketing_opt_in INTEGER NOT NULL DEFAULT 1,
            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
          )`,
       );
+
+      await ensureCustomerProfileTableColumns();
 
       await executeCloudflareD1(
         `CREATE TABLE IF NOT EXISTS customer_addresses (
@@ -267,6 +291,9 @@ export async function ensureCustomerAccountSchema() {
       );
       await executeCloudflareD1(
         "CREATE INDEX IF NOT EXISTS idx_orders_email ON orders(email)",
+      );
+      await executeCloudflareD1(
+        "CREATE INDEX IF NOT EXISTS idx_orders_delivered_at ON orders(delivered_at)",
       );
       await executeCloudflareD1(
         "CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id)",
@@ -321,6 +348,7 @@ async function getCustomerProfileRowByUserId(supabaseUserId: string) {
        first_name,
        last_name,
        phone,
+       stripe_customer_id,
        marketing_opt_in,
        created_at,
        updated_at
@@ -356,9 +384,14 @@ export async function linkOrdersToCustomerProfileByEmail(
   );
 }
 
-export async function ensureCustomerProfileForUser(user: User) {
+export async function ensureCustomerProfileForUser(
+  user: User,
+  options: EnsureCustomerProfileOptions = {},
+) {
   const supabaseUserId = normalizeText(user.id);
   const email = normalizeText(user.email).toLowerCase();
+  const shouldLinkOrdersByEmail = options.linkOrdersByEmail !== false;
+  const shouldSyncMissingProfileFields = options.syncMissingProfileFields !== false;
 
   if (!supabaseUserId || !email) {
     throw new Error("Authenticated customer details are incomplete.");
@@ -375,56 +408,87 @@ export async function ensureCustomerProfileForUser(user: User) {
 
   const existing = await getCustomerProfileRowByUserId(supabaseUserId);
 
-  if (!existing) {
-    await executeCloudflareD1(
-      `INSERT INTO customer_profiles (
-         supabase_user_id,
-         email,
-         first_name,
-         last_name,
-         phone,
-         marketing_opt_in
-       )
-       VALUES (?, ?, ?, ?, ?, 1)`,
-      [
-        supabaseUserId,
-        email,
-        normalizeNullableText(firstName),
-        normalizeNullableText(lastName),
-        normalizeNullableText(phone),
-      ],
-    );
-  } else {
-    const nextFirstName = normalizeText(existing.first_name) || firstName;
-    const nextLastName = normalizeText(existing.last_name) || lastName;
-    const nextPhone = normalizeText(existing.phone) || phone;
+  if (existing) {
+    const nextFirstName = shouldSyncMissingProfileFields
+      ? normalizeText(existing.first_name) || firstName
+      : normalizeText(existing.first_name);
+    const nextLastName = shouldSyncMissingProfileFields
+      ? normalizeText(existing.last_name) || lastName
+      : normalizeText(existing.last_name);
+    const nextPhone = shouldSyncMissingProfileFields
+      ? normalizeText(existing.phone) || phone
+      : normalizeText(existing.phone);
+    const shouldUpdateProfile =
+      normalizeText(existing.email).toLowerCase() !== email ||
+      normalizeText(existing.first_name) !== nextFirstName ||
+      normalizeText(existing.last_name) !== nextLastName ||
+      normalizeText(existing.phone) !== nextPhone;
 
-    await executeCloudflareD1(
-      `UPDATE customer_profiles
-       SET email = ?,
-           first_name = ?,
-           last_name = ?,
-           phone = ?,
-           updated_at = CURRENT_TIMESTAMP
-       WHERE supabase_user_id = ?`,
-      [
-        email,
-        normalizeNullableText(nextFirstName),
-        normalizeNullableText(nextLastName),
-        normalizeNullableText(nextPhone),
-        supabaseUserId,
-      ],
-    );
+    if (shouldUpdateProfile) {
+      await executeCloudflareD1(
+        `UPDATE customer_profiles
+         SET email = ?,
+             first_name = ?,
+             last_name = ?,
+             phone = ?,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE supabase_user_id = ?`,
+        [
+          email,
+          normalizeNullableText(nextFirstName),
+          normalizeNullableText(nextLastName),
+          normalizeNullableText(nextPhone),
+          supabaseUserId,
+        ],
+      );
+    }
+
+    const row = shouldUpdateProfile
+      ? await getCustomerProfileRowByUserId(supabaseUserId)
+      : existing;
+
+    if (!row) {
+      throw new Error("Customer profile could not be created.");
+    }
+
+    if (shouldLinkOrdersByEmail) {
+      await linkOrdersToCustomerProfileByEmail(supabaseUserId, row.id, email);
+    }
+
+    return toCustomerProfile(row);
   }
 
-  const row = await getCustomerProfileRowByUserId(supabaseUserId);
+  await executeCloudflareD1(
+    `INSERT INTO customer_profiles (
+       supabase_user_id,
+       email,
+       first_name,
+       last_name,
+       phone,
+       stripe_customer_id,
+       marketing_opt_in
+     )
+     VALUES (?, ?, ?, ?, ?, NULL, 1)`,
+    [
+      supabaseUserId,
+      email,
+      normalizeNullableText(firstName),
+      normalizeNullableText(lastName),
+      normalizeNullableText(phone),
+    ],
+  );
 
-  if (!row) {
+  const created = await getCustomerProfileRowByUserId(supabaseUserId);
+
+  if (!created) {
     throw new Error("Customer profile could not be created.");
   }
 
-  await linkOrdersToCustomerProfileByEmail(supabaseUserId, row.id, email);
-  return toCustomerProfile(row);
+  if (shouldLinkOrdersByEmail) {
+    await linkOrdersToCustomerProfileByEmail(supabaseUserId, created.id, email);
+  }
+
+  return toCustomerProfile(created);
 }
 
 export async function getCustomerProfileForUser(user: User) {
@@ -441,6 +505,7 @@ export async function updateCustomerProfileForUser(user: User, input: UpdateCust
          first_name = ?,
          last_name = ?,
          phone = ?,
+         stripe_customer_id = ?,
          marketing_opt_in = ?,
          updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
@@ -449,6 +514,7 @@ export async function updateCustomerProfileForUser(user: User, input: UpdateCust
       normalizeNullableText(input.firstName),
       normalizeNullableText(input.lastName),
       normalizeNullableText(input.phone),
+      profile.stripeCustomerId || null,
       input.marketingOptIn ? 1 : 0,
       profile.id,
     ],
@@ -465,6 +531,11 @@ export async function updateCustomerProfileForUser(user: User, input: UpdateCust
 
 export async function listCustomerAddressesForUser(user: User) {
   const profile = await ensureCustomerProfileForUser(user);
+  return listCustomerAddressesForProfileId(profile.id);
+}
+
+export async function listCustomerAddressesForProfileId(profileId: number) {
+  await ensureCustomerAccountSchema();
 
   const rows = await queryCloudflareD1<CustomerAddressRow>(
     `SELECT
@@ -484,7 +555,7 @@ export async function listCustomerAddressesForUser(user: User) {
      FROM customer_addresses
      WHERE customer_profile_id = ?
      ORDER BY is_default DESC, datetime(updated_at) DESC, id DESC`,
-    [profile.id],
+    [profileId],
     { cache: "no-store" },
   );
 
@@ -637,17 +708,13 @@ export async function deleteCustomerAddressForUser(user: User, addressId: number
   return listCustomerAddressesForUser(user);
 }
 
-export async function attachOrderToCustomerProfile(params: {
-  orderPublicId: string;
-  supabaseUserId: string;
-  customerProfileId: number;
-}) {
+export async function setStripeCustomerIdForProfile(profileId: number, stripeCustomerId: string) {
   await ensureCustomerAccountSchema();
 
   await executeCloudflareD1(
-    `UPDATE orders
-     SET supabase_user_id = ?, customer_profile_id = ?, updated_at = CURRENT_TIMESTAMP
-     WHERE public_id = ?`,
-    [params.supabaseUserId, params.customerProfileId, params.orderPublicId],
+    `UPDATE customer_profiles
+     SET stripe_customer_id = ?, updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [normalizeText(stripeCustomerId), profileId],
   );
 }

@@ -665,9 +665,64 @@
   color: #6a215d;
 }
 
+.statusPaid {
+  background: rgba(45, 128, 85, 0.12);
+  color: #226748;
+}
+
+.statusPending,
+.statusWarning {
+  background: rgba(188, 132, 23, 0.12);
+  color: #8a5710;
+}
+
+.statusDelivered {
+  background: rgba(45, 112, 128, 0.12);
+  color: #1f5f70;
+}
+
+.statusFailed {
+  background: rgba(183, 62, 81, 0.12);
+  color: #9d2941;
+}
+
 .statusMuted {
   background: rgba(74, 63, 69, 0.08);
   color: #7b5f6b;
+}
+
+.orderCell {
+  display: grid;
+  gap: 0.24rem;
+  min-width: 0;
+}
+
+.orderCell strong {
+  color: #351927;
+  font-size: 0.96rem;
+}
+
+.orderCell span {
+  color: rgba(70, 43, 55, 0.68);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.ordersEmptyState {
+  padding: 0 1.5rem 1.5rem;
+}
+
+.ordersEmptyState h3 {
+  margin: 0;
+  color: #42172e;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: 1.3rem;
+}
+
+.ordersEmptyState p {
+  margin: 0.55rem 0 0;
+  color: rgba(70, 43, 55, 0.72);
+  line-height: 1.6;
 }
 
 .actionsColumn {
@@ -766,6 +821,8 @@
 }
 
 .modalCard {
+  display: flex;
+  flex-direction: column;
   width: min(72rem, calc(100vw - 2.5rem));
   max-height: calc(100vh - 2.5rem);
   overflow: hidden;
@@ -808,7 +865,8 @@
 }
 
 .modalBody {
-  max-height: calc(100vh - 10rem);
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: auto;
 }
 
@@ -911,7 +969,8 @@
   }
 
   .modalBody {
-    max-height: calc(100vh - 8.5rem);
+    flex: 1 1 auto;
+    min-height: 0;
   }
 }
 

@@ -135,6 +135,9 @@ export default async function HomepageAdminPage({ searchParams }: HomepageAdminP
           <Link href="/admin/homepage" className={`${styles.navItem} ${styles.navItemActive}`.trim()}>
             Home page
           </Link>
+          <Link href="/admin/orders" className={styles.navItem}>
+            Orders
+          </Link>
           <Link href="/admin/delivery" className={styles.navItem}>
             Delivery costs
           </Link>

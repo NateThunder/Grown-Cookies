@@ -15,6 +15,7 @@ import {
 } from "react-icons/fi";
 import AdminLoginScreen from "@/components/admin-login-screen";
 import AdminProductForm from "@/components/admin-product-form";
+import { getAdminOrders } from "@/lib/admin-orders";
 import {
   adminLogoutAction,
   moveFeaturedProductAction,
@@ -98,10 +99,10 @@ function formatAdminDate(value?: string) {
   }).format(date);
 }
 
-function formatAdminCurrency(cents: number) {
+function formatAdminCurrency(cents: number, currency = "GBP") {
   return new Intl.NumberFormat("en-GB", {
     style: "currency",
-    currency: "GBP",
+    currency: currency.toUpperCase() || "GBP",
   }).format(cents / 100);
 }
 export default async function AdminPage({ searchParams }: AdminPageProps) {
@@ -135,6 +136,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const d1Configured = hasCloudflareD1Config();
   const uploadEnabled = hasCloudflareR2UploadConfig();
   let products: Awaited<ReturnType<typeof getAdminProducts>> = [];
+  let adminOrders: Awaited<ReturnType<typeof getAdminOrders>> = [];
   let deliveryCostSetting: Awaited<ReturnType<typeof getDeliveryCostSetting>> = {
     deliveryCostCents: DEFAULT_DELIVERY_COST_CENTS,
     isDefault: true,
@@ -149,8 +151,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   };
 
   if (d1Configured) {
-    [products, deliveryCostSetting, cookieOfMonthSetting] = await Promise.all([
+    [products, adminOrders, deliveryCostSetting, cookieOfMonthSetting] = await Promise.all([
       getAdminProducts(),
+      getAdminOrders(),
       getDeliveryCostSetting(),
       getCookieOfMonthSectionSetting(),
     ]);
@@ -211,6 +214,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <Link href="/admin/homepage" className={styles.navItem}>
             Home page
           </Link>
+          <Link href="/admin/orders" className={styles.navItem}>
+            Orders
+          </Link>
           <Link href="/admin/delivery" className={styles.navItem}>
             Delivery costs
           </Link>
@@ -234,6 +240,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               <Link href={getAdminHref({ view: "all" })} className={styles.metricCardLink}>
                 <span>Total products</span>
                 <strong>{products.length}</strong>
+              </Link>
+              <Link href="/admin/orders" className={styles.metricCardLink}>
+                <span>Orders</span>
+                <strong>{adminOrders.length}</strong>
               </Link>
               <Link href={getAdminHref({ view: "featured" })} className={styles.metricCardLink}>
                 <span>Featured</span>
