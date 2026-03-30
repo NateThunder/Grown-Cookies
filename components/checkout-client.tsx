@@ -52,7 +52,6 @@ type ConfirmPaymentPayload = {
   savePaymentMethod?: boolean;
   items: BasketStoredItem[];
   tip: BasketTipInput;
-  returnUrlBase: string;
   contact?: ContactDetails;
   delivery?: DeliveryDetails;
 };
@@ -299,6 +298,10 @@ function formatCardBrand(brand: string) {
     .join(" ");
 }
 
+function getSavedAddressLabel(address: CustomerAddress) {
+  return address.label || (address.isDefault ? "Default address" : "Saved address");
+}
+
 function mapProfileToContact(profile: CustomerProfile) {
   return {
     email: profile.email,
@@ -382,7 +385,6 @@ function PaymentElementForm({
         savePaymentMethod: params.savePaymentMethod,
         items,
         tip,
-        returnUrlBase: window.location.origin,
         contact,
         delivery,
       } satisfies ConfirmPaymentPayload),
@@ -578,7 +580,8 @@ function PaymentElementForm({
       {savedPaymentMethods.length > 0 ? (
         <div className={styles.savedPaymentMethods}>
           <p className={styles.savedPaymentHeading}>Saved payment methods</p>
-          <div className={styles.savedPaymentList}>
+          <p className={styles.savedPaymentScrollHint}>Swipe left or right to view all payment options.</p>
+          <div className={styles.savedPaymentList} data-mobile-scroll="true">
             {savedPaymentMethods.map((paymentMethod) => (
               <label key={paymentMethod.id} className={styles.savedPaymentOption}>
                 <div className={styles.paymentHeading}>
@@ -719,6 +722,8 @@ export default function CheckoutClient() {
   const [customTip, setCustomTip] = useState("0.00");
   const [marketingOptIn, setMarketingOptIn] = useState(true);
   const [authAccessToken, setAuthAccessToken] = useState("");
+  const [savedAddresses, setSavedAddresses] = useState<CustomerAddress[]>([]);
+  const [selectedSavedAddressId, setSelectedSavedAddressId] = useState<number | null>(null);
   const [savedPaymentMethods, setSavedPaymentMethods] = useState<SavedPaymentMethod[]>([]);
   const [selectedSavedPaymentMethodId, setSelectedSavedPaymentMethodId] = useState("");
   const [savePaymentMethod, setSavePaymentMethod] = useState(false);
@@ -763,6 +768,11 @@ export default function CheckoutClient() {
     tipChoice === "custom" ? "Custom tip" : tipChoice === "none" ? "No tip" : `${tipChoice}% tip`;
   const customTipPreviewCents =
     tipChoice === "custom" ? quote?.tipCents ?? 0 : parseMoneyTextToCents(customTip);
+  const hasSavedAddresses = savedAddresses.length > 0;
+  const selectedSavedAddress =
+    selectedSavedAddressId === null
+      ? null
+      : savedAddresses.find((address) => address.id === selectedSavedAddressId) ?? null;
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -788,6 +798,8 @@ export default function CheckoutClient() {
 
   useEffect(() => {
     if (!authAccessToken) {
+      setSavedAddresses([]);
+      setSelectedSavedAddressId(null);
       setSavedPaymentMethods([]);
       setSelectedSavedPaymentMethodId("");
       setSavePaymentMethod(false);
@@ -833,23 +845,14 @@ export default function CheckoutClient() {
           setMarketingOptIn(profile.marketingOptIn);
         }
 
-        if (defaultAddress) {
-          const nextDelivery = mapAddressToDelivery(defaultAddress);
-          setDelivery((current) => ({
-            firstName: current.firstName || nextDelivery.firstName,
-            lastName: current.lastName || nextDelivery.lastName,
-            address: current.address || nextDelivery.address,
-            flatNumber: current.flatNumber || nextDelivery.flatNumber,
-            city: current.city || nextDelivery.city,
-            postcode: current.postcode || nextDelivery.postcode,
-            country: current.country || nextDelivery.country,
-          }));
-          setContact((current) => ({
-            email: current.email,
-            phone: current.phone || defaultAddress.phone,
-          }));
-        }
+        setSavedAddresses(addresses);
+        setSelectedSavedAddressId((current) => {
+          if (current && addresses.some((address) => address.id === current)) {
+            return current;
+          }
 
+          return defaultAddress?.id ?? null;
+        });
         setSavedPaymentMethods(paymentMethods);
         setSelectedSavedPaymentMethodId((current) => {
           if (current && paymentMethods.some((paymentMethod) => paymentMethod.id === current)) {
@@ -866,6 +869,8 @@ export default function CheckoutClient() {
         setAccountLoadError(
           error instanceof Error ? error.message : "We could not load your saved checkout details.",
         );
+        setSavedAddresses([]);
+        setSelectedSavedAddressId(null);
         setSavedPaymentMethods([]);
         setSelectedSavedPaymentMethodId("");
       } finally {
@@ -881,6 +886,23 @@ export default function CheckoutClient() {
       abortController.abort();
     };
   }, [authAccessToken]);
+
+  useEffect(() => {
+    if (!selectedSavedAddressId) {
+      return;
+    }
+
+    const selectedAddress = savedAddresses.find((address) => address.id === selectedSavedAddressId);
+    if (!selectedAddress) {
+      return;
+    }
+
+    setDelivery(mapAddressToDelivery(selectedAddress));
+    setContact((current) => ({
+      ...current,
+      phone: selectedAddress.phone || current.phone,
+    }));
+  }, [savedAddresses, selectedSavedAddressId]);
 
   useEffect(() => {
     const refresh = () => setItems(getBasket());
@@ -950,6 +972,22 @@ export default function CheckoutClient() {
     }
   }, [savedPaymentMethods, selectedSavedPaymentMethodId]);
 
+  useEffect(() => {
+    if (selectedSavedAddressId && !savedAddresses.some((address) => address.id === selectedSavedAddressId)) {
+      setSelectedSavedAddressId(null);
+    }
+  }, [savedAddresses, selectedSavedAddressId]);
+
+  const updateDelivery = <K extends keyof DeliveryDetails>(key: K, value: DeliveryDetails[K]) => {
+    setSelectedSavedAddressId(null);
+    setDelivery((current) => ({ ...current, [key]: value }));
+  };
+
+  const updateContactPhone = (value: string) => {
+    setSelectedSavedAddressId(null);
+    setContact((current) => ({ ...current, phone: value }));
+  };
+
   const setPresetTip = (value: Exclude<typeof tipChoice, "custom">) => {
     setTipChoice(value);
   };
@@ -1006,101 +1044,152 @@ export default function CheckoutClient() {
               <section className={styles.section}>
                 <h2>Delivery</h2>
                 <div className={styles.fieldStack}>
-                  <label className={`${styles.field} ${styles.selectField}`}>
-                    <span>Country/Region</span>
-                    <select
-                      value={delivery.country}
-                      onChange={(event) =>
-                        setDelivery((prev) => ({ ...prev, country: event.target.value }))
-                      }
-                    >
-                      {SUPPORTED_COUNTRIES.map((country) => (
-                        <option key={country.code}>{country.label}</option>
-                      ))}
-                    </select>
-                    <FiChevronDown />
-                  </label>
+                  {isAuthenticated && hasSavedAddresses ? (
+                    <div className={styles.savedAddressPicker}>
+                      <p className={styles.savedPaymentHeading}>Saved addresses</p>
+                      <div className={styles.savedPaymentList}>
+                        {savedAddresses.map((address) => (
+                          <label key={address.id} className={styles.savedAddressOption}>
+                            <div className={styles.paymentHeading}>
+                              <input
+                                type="radio"
+                                name="saved-address"
+                                checked={selectedSavedAddressId === address.id}
+                                onChange={() => setSelectedSavedAddressId(address.id)}
+                              />
+                              <span>{getSavedAddressLabel(address)}</span>
+                            </div>
+                            <span className={styles.savedAddressMeta}>
+                              {[address.addressLine1, address.addressLine2, address.city, address.postcode]
+                                .filter(Boolean)
+                                .join(", ")}
+                            </span>
+                          </label>
+                        ))}
+                        <label className={styles.savedAddressOption}>
+                          <div className={styles.paymentHeading}>
+                            <input
+                              type="radio"
+                              name="saved-address"
+                              checked={selectedSavedAddressId === null}
+                              onChange={() => setSelectedSavedAddressId(null)}
+                            />
+                            <span>Enter a new address</span>
+                          </div>
+                          <span className={styles.savedAddressMeta}>
+                            Use a different delivery address for this order
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  ) : null}
 
-                  <div className={styles.twoUp}>
-                    <label className={styles.field}>
-                      <span>First name</span>
-                      <input
-                        type="text"
-                        value={delivery.firstName}
-                        onChange={(event) =>
-                          setDelivery((prev) => ({ ...prev, firstName: event.target.value }))
-                        }
-                      />
-                    </label>
-                    <label className={styles.field}>
-                      <span>Last name</span>
-                      <input
-                        type="text"
-                        value={delivery.lastName}
-                        onChange={(event) =>
-                          setDelivery((prev) => ({ ...prev, lastName: event.target.value }))
-                        }
-                      />
-                    </label>
-                  </div>
+                  {selectedSavedAddress ? (
+                    <div className={styles.savedAddressSummary}>
+                      <p className={styles.savedAddressSummaryTitle}>Using saved address</p>
+                      <p className={styles.savedAddressSummaryText}>
+                        {[selectedSavedAddress.firstName, selectedSavedAddress.lastName]
+                          .filter(Boolean)
+                          .join(" ")}
+                      </p>
+                      <p className={styles.savedAddressSummaryText}>
+                        {[
+                          selectedSavedAddress.addressLine1,
+                          selectedSavedAddress.addressLine2,
+                          selectedSavedAddress.city,
+                          selectedSavedAddress.postcode,
+                          selectedSavedAddress.country,
+                        ]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </p>
+                      {contact.phone ? (
+                        <p className={styles.savedAddressSummaryText}>Phone: {contact.phone}</p>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <>
+                      <label className={`${styles.field} ${styles.selectField}`}>
+                        <span>Country/Region</span>
+                        <select
+                          value={delivery.country}
+                          onChange={(event) => updateDelivery("country", event.target.value)}
+                        >
+                          {SUPPORTED_COUNTRIES.map((country) => (
+                            <option key={country.code}>{country.label}</option>
+                          ))}
+                        </select>
+                        <FiChevronDown />
+                      </label>
 
-                  <label className={`${styles.field} ${styles.iconField}`}>
-                    <span>Address</span>
-                    <input
-                      type="text"
-                      value={delivery.address}
-                      onChange={(event) =>
-                        setDelivery((prev) => ({ ...prev, address: event.target.value }))
-                      }
-                    />
-                    <FiSearch />
-                  </label>
+                      <div className={styles.twoUp}>
+                        <label className={styles.field}>
+                          <span>First name</span>
+                          <input
+                            type="text"
+                            value={delivery.firstName}
+                            onChange={(event) => updateDelivery("firstName", event.target.value)}
+                          />
+                        </label>
+                        <label className={styles.field}>
+                          <span>Last name</span>
+                          <input
+                            type="text"
+                            value={delivery.lastName}
+                            onChange={(event) => updateDelivery("lastName", event.target.value)}
+                          />
+                        </label>
+                      </div>
 
-                  <label className={styles.field}>
-                    <span>Flat number (optional)</span>
-                    <input
-                      type="text"
-                      value={delivery.flatNumber}
-                      onChange={(event) =>
-                        setDelivery((prev) => ({ ...prev, flatNumber: event.target.value }))
-                      }
-                    />
-                  </label>
+                      <label className={`${styles.field} ${styles.iconField}`}>
+                        <span>Address</span>
+                        <input
+                          type="text"
+                          value={delivery.address}
+                          onChange={(event) => updateDelivery("address", event.target.value)}
+                        />
+                        <FiSearch />
+                      </label>
 
-                  <div className={styles.twoUp}>
-                    <label className={styles.field}>
-                      <span>City</span>
-                      <input
-                        type="text"
-                        value={delivery.city}
-                        onChange={(event) =>
-                          setDelivery((prev) => ({ ...prev, city: event.target.value }))
-                        }
-                      />
-                    </label>
-                    <label className={styles.field}>
-                      <span>Postcode</span>
-                      <input
-                        type="text"
-                        value={delivery.postcode}
-                        onChange={(event) =>
-                          setDelivery((prev) => ({ ...prev, postcode: event.target.value }))
-                        }
-                      />
-                    </label>
-                  </div>
+                      <label className={styles.field}>
+                        <span>Flat number (optional)</span>
+                        <input
+                          type="text"
+                          value={delivery.flatNumber}
+                          onChange={(event) => updateDelivery("flatNumber", event.target.value)}
+                        />
+                      </label>
 
-                  <label className={`${styles.field} ${styles.iconField}`}>
-                    <span>Phone (optional)</span>
-                    <input
-                      type="text"
-                      value={contact.phone}
-                      onChange={(event) =>
-                        setContact((prev) => ({ ...prev, phone: event.target.value }))
-                      }
-                    />
-                    <span className={styles.flag}>GB</span>
-                  </label>
+                      <div className={styles.twoUp}>
+                        <label className={styles.field}>
+                          <span>City</span>
+                          <input
+                            type="text"
+                            value={delivery.city}
+                            onChange={(event) => updateDelivery("city", event.target.value)}
+                          />
+                        </label>
+                        <label className={styles.field}>
+                          <span>Postcode</span>
+                          <input
+                            type="text"
+                            value={delivery.postcode}
+                            onChange={(event) => updateDelivery("postcode", event.target.value)}
+                          />
+                        </label>
+                      </div>
+
+                      <label className={`${styles.field} ${styles.iconField}`}>
+                        <span>Phone (optional)</span>
+                        <input
+                          type="text"
+                          value={contact.phone}
+                          onChange={(event) => updateContactPhone(event.target.value)}
+                        />
+                        <span className={styles.flag}>GB</span>
+                      </label>
+                    </>
+                  )}
                 </div>
               </section>
 

@@ -1,6 +1,36 @@
 # Project History
 
 ## 2026-03-30
+- [done] Hardened checkout payment confirmation with D1-backed attempt throttling, server-derived Stripe return URLs, and disabled framework fingerprinting headers.
+- files: .env.example, README.md, app/api/stripe/confirm-payment/route.ts, cloudflare/d1/schema.sql, cloudflare/d1/migrations/0005_checkout_payment_attempts.sql, components/checkout-client.tsx, lib/checkout-attempt-throttle.ts, next.config.ts, HISTORY.md
+- status: completed
+
+## 2026-03-30
+- [done] Made mobile saved-card payment options horizontally swipeable with a visible scroll hint when the list overflows.
+- files: components/checkout-client.tsx, components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-30
+- [done] Added a security review report covering checkout abuse risk, return URL validation, CSP posture, and live-site header observations.
+- files: security_best_practices_report.md, HISTORY.md
+- status: completed
+
+## 2026-03-30
+- [done] Hid the manual checkout delivery fields while a saved address is selected and showed them again when entering a different address.
+- files: components/checkout-client.tsx, components/checkout-client.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-30
+- [done] Added explicit saved-address selection in checkout for signed-in customers and aligned the account address action copy with save-address wording.
+- files: components/checkout-client.tsx, components/checkout-client.module.css, components/account-page-client.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-30
+- [done] Restored account order-history product names and thumbnails by exposing stored checkout line items to the account API and rendering them in the orders UI.
+- files: lib/account-orders.ts, components/account-page-client.tsx, app/account/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-30
 - [done] Extended stale-order cleanup to also purge legacy orders already marked expired from D1 during the shared timeout cleanup path.
 - files: lib/stripe-checkout.ts, HISTORY.md
 - status: completed
