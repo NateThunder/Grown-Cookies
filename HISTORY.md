@@ -1,6 +1,11 @@
 # Project History
 
 ## 2026-03-30
+- [done] Switched customer auth redirects to prefer a canonical public site URL instead of browser-origin localhost fallbacks.
+- files: components/account-signup-form.tsx, .env.example, README.md, HISTORY.md
+- status: completed
+
+## 2026-03-30
 - [done] Hardened checkout payment confirmation with D1-backed attempt throttling, server-derived Stripe return URLs, and disabled framework fingerprinting headers.
 - files: .env.example, README.md, app/api/stripe/confirm-payment/route.ts, cloudflare/d1/schema.sql, cloudflare/d1/migrations/0005_checkout_payment_attempts.sql, components/checkout-client.tsx, lib/checkout-attempt-throttle.ts, next.config.ts, HISTORY.md
 - status: completed
