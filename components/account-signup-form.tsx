@@ -18,6 +18,20 @@ const initialStatus: Status = {
   message: "",
 };
 
+function getCanonicalAccountRedirectUrl() {
+  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, "");
+
+  if (configuredSiteUrl && /^https?:\/\//i.test(configuredSiteUrl)) {
+    return `${configuredSiteUrl}/account`;
+  }
+
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+
+  return `${window.location.origin}/account`;
+}
+
 export default function AccountSignupForm() {
   const [mode, setMode] = useState<AuthMode>("signup");
   const [session, setSession] = useState<Session | null>(null);
@@ -120,10 +134,7 @@ export default function AccountSignupForm() {
 
     setIsGoogleSubmitting(true);
 
-    const redirectTo =
-      typeof window === "undefined"
-        ? undefined
-        : `${window.location.origin}/account`;
+    const redirectTo = getCanonicalAccountRedirectUrl();
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -187,10 +198,7 @@ export default function AccountSignupForm() {
     let error: string | null = null;
 
     if (mode === "signup") {
-      const emailRedirectTo =
-        typeof window === "undefined"
-          ? undefined
-          : `${window.location.origin}/account`;
+      const emailRedirectTo = getCanonicalAccountRedirectUrl();
 
       const response = await supabase.auth.signUp({
         email,

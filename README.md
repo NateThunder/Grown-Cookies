@@ -46,7 +46,7 @@ npm run cloudflare:d1:migrate
 
 Create `.env.local` with the services this app depends on:
 
-- Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`
 - Admin security: `ADMIN_LOGIN_THROTTLE_SECRET`
 - Checkout security: `CHECKOUT_THROTTLE_SECRET`
 - Stripe: `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`
@@ -55,6 +55,8 @@ Create `.env.local` with the services this app depends on:
 Do not commit `.env.local` or real credentials.
 
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` is expected to be public in the browser bundle for Supabase Auth. This app uses Supabase for authentication only; storefront and admin data access in this repo is handled through server-side routes and Cloudflare services, not direct browser table queries.
+
+Set `NEXT_PUBLIC_SITE_URL` to the canonical public origin used by customer auth redirects, for example `https://growncookies.netlify.app`. The Google OAuth flow and Supabase email confirmation links now prefer this value over `window.location.origin`, which prevents production auth from bouncing back to `localhost` when Supabase redirect settings fall back to the project site URL.
 
 Supabase Row Level Security still needs to be verified in the Supabase project itself. This repository does not contain repo-managed Supabase policy files, so confirm in the Supabase dashboard or SQL editor that `anon` and non-admin authenticated users cannot read or mutate any admin-only data.
 
