@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
 import type { Session, User } from "@supabase/supabase-js";
 import AccountSignupForm from "@/components/account-signup-form";
 import type { AccountOrderSummary } from "@/lib/account-orders";
 import type { CustomerAddress, CustomerProfile } from "@/lib/customer-profiles";
+import type { SavedPaymentMethod } from "@/lib/saved-payment-methods";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import styles from "@/app/account/page.module.css";
 
@@ -18,6 +21,7 @@ const dashboardNavItems = [
   { href: "#profile", label: "Profile" },
   { href: "#security", label: "Security" },
   { href: "#addresses", label: "Addresses" },
+  { href: "#payments", label: "Payments" },
   { href: "#notifications", label: "Notifications" },
   { href: "#orders", label: "Order history" },
 ] as const;
@@ -34,6 +38,16 @@ type ProfileResponse = {
 
 type AddressesResponse = {
   addresses?: CustomerAddress[];
+  error?: string;
+};
+
+type PaymentMethodsResponse = {
+  paymentMethods?: SavedPaymentMethod[];
+  error?: string;
+};
+
+type SetupIntentResponse = {
+  clientSecret?: string;
   error?: string;
 };
 
@@ -70,6 +84,9 @@ const emptyAddressForm: AddressFormState = {
   phone: "",
   isDefault: true,
 };
+
+const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() ?? "";
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 function getDisplayName(user: User | null, profile: CustomerProfile | null) {
   const profileName = [profile?.firstName, profile?.lastName].filter(Boolean).join(" ").trim();
@@ -165,6 +182,111 @@ function mapAddressToForm(address: CustomerAddress): AddressFormState {
   };
 }
 
+function formatCardBrand(brand: string) {
+  return brand
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function stripeErrorText(error: unknown) {
+  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
+    return error.message;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Something went wrong. Please try again.";
+}
+
+function AddPaymentMethodForm({
+  clientSecret,
+  onCancel,
+  onSuccess,
+}: {
+  clientSecret: string;
+  onCancel: () => void;
+  onSuccess: () => Promise<void>;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isPaymentElementReady, setIsPaymentElementReady] = useState(false);
+  const [hasPaymentMethodSelection, setHasPaymentMethodSelection] = useState(false);
+
+  async function handleSubmit() {
+    if (!stripe || !elements) {
+      setErrorMessage("Payment form is still loading. Please wait.");
+      return;
+    }
+
+    if (!isPaymentElementReady) {
+      setErrorMessage("Payment form is still loading. Please wait.");
+      return;
+    }
+
+    if (!hasPaymentMethodSelection) {
+      setErrorMessage("Choose a payment method before saving it.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage("");
+
+    try {
+      const submitResult = await elements.submit();
+      if (submitResult.error) {
+        throw new Error(stripeErrorText(submitResult.error));
+      }
+
+      const confirmationResult = await stripe.confirmSetup({
+        clientSecret,
+        elements,
+        redirect: "if_required",
+      });
+
+      if (confirmationResult.error) {
+        throw new Error(stripeErrorText(confirmationResult.error));
+      }
+
+      await onSuccess();
+    } catch (error) {
+      setErrorMessage(stripeErrorText(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div className={styles.paymentSetupCard}>
+      <div className={styles.paymentElementWrap}>
+        <PaymentElement
+          onReady={() => setIsPaymentElementReady(true)}
+          onChange={(event) => setHasPaymentMethodSelection(Boolean(event.value.type))}
+        />
+      </div>
+      {errorMessage ? <p className={styles.sectionStatus}>{errorMessage}</p> : null}
+      <div className={styles.actionRow}>
+        <button
+          type="button"
+          className={styles.primaryButton}
+          onClick={() => void handleSubmit()}
+          disabled={isSubmitting || !isPaymentElementReady}
+        >
+          {isSubmitting ? "Saving..." : "Save payment method"}
+        </button>
+        <button type="button" className={styles.secondaryButton} onClick={onCancel} disabled={isSubmitting}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AccountPageClient() {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -187,6 +309,15 @@ export default function AccountPageClient() {
   const [addressError, setAddressError] = useState("");
   const [isAddressSaving, setIsAddressSaving] = useState(false);
   const [isAddressDeletingId, setIsAddressDeletingId] = useState<number | null>(null);
+  const [paymentMethods, setPaymentMethods] = useState<SavedPaymentMethod[]>([]);
+  const [paymentsError, setPaymentsError] = useState("");
+  const [paymentsMessage, setPaymentsMessage] = useState("");
+  const [isPaymentsLoading, setIsPaymentsLoading] = useState(false);
+  const [isPaymentDeletingId, setIsPaymentDeletingId] = useState("");
+  const [isAddingPaymentMethod, setIsAddingPaymentMethod] = useState(false);
+  const [paymentSetupClientSecret, setPaymentSetupClientSecret] = useState("");
+  const [paymentSetupError, setPaymentSetupError] = useState("");
+  const [isPaymentSetupLoading, setIsPaymentSetupLoading] = useState(false);
 
   const [orders, setOrders] = useState<AccountOrderSummary[]>([]);
   const [ordersError, setOrdersError] = useState("");
@@ -236,14 +367,22 @@ export default function AccountPageClient() {
       });
       setAddresses([]);
       setAddressForm(emptyAddressForm);
+      setPaymentMethods([]);
       setOrders([]);
       setProfileError("");
       setAddressError("");
+      setPaymentsError("");
       setOrdersError("");
       setProfileMessage("");
       setAddressMessage("");
+      setPaymentsMessage("");
+      setIsAddingPaymentMethod(false);
+      setPaymentSetupClientSecret("");
+      setPaymentSetupError("");
+      setIsPaymentSetupLoading(false);
       setIsProfileLoading(false);
       setIsAddressesLoading(false);
+      setIsPaymentsLoading(false);
       setIsOrdersLoading(false);
       return;
     }
@@ -339,11 +478,56 @@ export default function AccountPageClient() {
       }
     }
 
-    void Promise.all([loadProfile(), loadAddresses(), loadOrders()]);
+    async function loadPaymentMethods() {
+      setIsPaymentsLoading(true);
+      setPaymentsError("");
+
+      try {
+        const response = await fetch("/api/account/payment-methods", {
+          headers,
+          cache: "no-store",
+        });
+        const payload = (await response.json().catch(() => ({}))) as PaymentMethodsResponse;
+
+        if (!response.ok) {
+          setPaymentMethods([]);
+          setPaymentsError(payload.error || "We could not load your saved payment methods right now.");
+          return;
+        }
+
+        setPaymentMethods(Array.isArray(payload.paymentMethods) ? payload.paymentMethods : []);
+      } catch {
+        setPaymentMethods([]);
+        setPaymentsError("We could not load your saved payment methods right now.");
+      } finally {
+        setIsPaymentsLoading(false);
+      }
+    }
+
+    void Promise.all([loadProfile(), loadAddresses(), loadPaymentMethods(), loadOrders()]);
   }, [session?.access_token, user, user?.email, user?.id]);
 
   const displayName = useMemo(() => getDisplayName(user, profile), [user, profile]);
   const providerLabel = useMemo(() => getProviderLabel(user), [user]);
+
+  async function reloadPaymentMethods(accessToken: string) {
+    const response = await fetch("/api/account/payment-methods", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      cache: "no-store",
+    });
+
+    const payload = (await response.json().catch(() => ({}))) as PaymentMethodsResponse;
+
+    if (!response.ok) {
+      throw new Error(payload.error || "We could not load your saved payment methods right now.");
+    }
+
+    const nextPaymentMethods = Array.isArray(payload.paymentMethods) ? payload.paymentMethods : [];
+    setPaymentMethods(nextPaymentMethods);
+    return nextPaymentMethods;
+  }
 
   async function handleSignOut() {
     const supabase = getSupabaseBrowserClient();
@@ -484,6 +668,112 @@ export default function AccountPageClient() {
     } finally {
       setIsAddressDeletingId(null);
     }
+  }
+
+  async function handlePaymentMethodDelete(paymentMethodId: string) {
+    const accessToken = session?.access_token ?? "";
+
+    if (!accessToken) {
+      return;
+    }
+
+    setIsPaymentDeletingId(paymentMethodId);
+    setPaymentsMessage("");
+    setPaymentsError("");
+
+    try {
+      const response = await fetch("/api/account/payment-methods", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "detach",
+          paymentMethodId,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as PaymentMethodsResponse;
+
+      if (!response.ok) {
+        throw new Error(payload.error || "We could not update your saved payment methods right now.");
+      }
+
+      setPaymentMethods(Array.isArray(payload.paymentMethods) ? payload.paymentMethods : []);
+      setPaymentsMessage("Saved payment method removed.");
+    } catch (error) {
+      setPaymentsError(
+        error instanceof Error
+          ? error.message
+          : "We could not update your saved payment methods right now.",
+      );
+    } finally {
+      setIsPaymentDeletingId("");
+    }
+  }
+
+  async function handleStartAddPaymentMethod() {
+    const accessToken = session?.access_token ?? "";
+
+    if (!accessToken) {
+      return;
+    }
+
+    if (!stripePromise) {
+      setPaymentSetupError("Stripe is not configured.");
+      return;
+    }
+
+    setIsAddingPaymentMethod(true);
+    setIsPaymentSetupLoading(true);
+    setPaymentSetupError("");
+    setPaymentsMessage("");
+
+    try {
+      const response = await fetch("/api/account/payment-methods/setup-intent", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as SetupIntentResponse;
+
+      if (!response.ok || !payload.clientSecret) {
+        throw new Error(payload.error || "We could not start payment method setup right now.");
+      }
+
+      setPaymentSetupClientSecret(payload.clientSecret);
+    } catch (error) {
+      setPaymentSetupClientSecret("");
+      setPaymentSetupError(
+        error instanceof Error ? error.message : "We could not start payment method setup right now.",
+      );
+    } finally {
+      setIsPaymentSetupLoading(false);
+    }
+  }
+
+  function handleCancelAddPaymentMethod() {
+    setIsAddingPaymentMethod(false);
+    setPaymentSetupClientSecret("");
+    setPaymentSetupError("");
+    setIsPaymentSetupLoading(false);
+  }
+
+  async function handlePaymentMethodAdded() {
+    const accessToken = session?.access_token ?? "";
+
+    if (!accessToken) {
+      return;
+    }
+
+    await reloadPaymentMethods(accessToken);
+    setIsAddingPaymentMethod(false);
+    setPaymentSetupClientSecret("");
+    setPaymentSetupError("");
+    setPaymentsMessage("Payment method saved.");
   }
 
   if (isInitializing) {
@@ -838,6 +1128,74 @@ export default function AccountPageClient() {
               </button>
             ) : null}
           </div>
+        </section>
+
+        <section id="payments" className={styles.dashboardSection}>
+          <div className={styles.sectionHeader}>
+            <p className={styles.sectionEyebrow}>Payments</p>
+            <h2>Saved payment methods</h2>
+            <p>Cards saved during checkout appear here for faster repeat purchases.</p>
+          </div>
+
+          <div className={styles.actionRow}>
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={() => void handleStartAddPaymentMethod()}
+              disabled={isPaymentSetupLoading}
+            >
+              {isPaymentSetupLoading ? "Loading..." : "Add payment method"}
+            </button>
+          </div>
+
+          {isPaymentsLoading ? <p className={styles.sectionStatus}>Loading your saved payment methods...</p> : null}
+          {!isPaymentsLoading && paymentsError ? <p className={styles.sectionStatus}>{paymentsError}</p> : null}
+          {!isPaymentsLoading && paymentsMessage ? <p className={styles.inlineNotice}>{paymentsMessage}</p> : null}
+          {paymentSetupError ? <p className={styles.sectionStatus}>{paymentSetupError}</p> : null}
+
+          {isAddingPaymentMethod && paymentSetupClientSecret && stripePromise ? (
+            <Elements stripe={stripePromise} options={{ clientSecret: paymentSetupClientSecret }}>
+              <AddPaymentMethodForm
+                clientSecret={paymentSetupClientSecret}
+                onCancel={handleCancelAddPaymentMethod}
+                onSuccess={handlePaymentMethodAdded}
+              />
+            </Elements>
+          ) : null}
+
+          {!isPaymentsLoading && !paymentsError && paymentMethods.length === 0 ? (
+            <div className={styles.paymentEmptyState}>
+              <h3>No saved payment methods</h3>
+              <p>Add a card here or save one during checkout for faster future orders.</p>
+            </div>
+          ) : null}
+
+          {paymentMethods.length > 0 ? (
+            <div className={styles.addressList}>
+              {paymentMethods.map((paymentMethod) => (
+                <article key={paymentMethod.id} className={styles.addressCard}>
+                  <div className={styles.addressCardTop}>
+                    <div>
+                      <h3>{formatCardBrand(paymentMethod.brand)} ending in {paymentMethod.last4}</h3>
+                      <p className={styles.addressMeta}>
+                        Expires {String(paymentMethod.expMonth).padStart(2, "0")}/{paymentMethod.expYear}
+                      </p>
+                    </div>
+                  </div>
+                  <div className={styles.addressActions}>
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={() => void handlePaymentMethodDelete(paymentMethod.id)}
+                      disabled={isPaymentDeletingId === paymentMethod.id}
+                    >
+                      {isPaymentDeletingId === paymentMethod.id ? "Removing..." : "Remove"}
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : null}
         </section>
 
         <section id="notifications" className={styles.dashboardSection}>

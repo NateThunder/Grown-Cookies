@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS orders (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   public_id TEXT NOT NULL UNIQUE,
   status TEXT NOT NULL DEFAULT 'pending',
+  delivered_at TEXT,
   currency TEXT NOT NULL,
   subtotal_cents INTEGER NOT NULL,
   shipping_cents INTEGER NOT NULL,
@@ -74,6 +75,7 @@ CREATE TABLE IF NOT EXISTS customer_profiles (
   first_name TEXT,
   last_name TEXT,
   phone TEXT,
+  stripe_customer_id TEXT,
   marketing_opt_in INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP

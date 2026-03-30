@@ -9,6 +9,7 @@ import {
   moveFeaturedProductPosition,
   updateAdminProduct,
 } from "@/lib/product-admin";
+import { markAdminOrderDelivered } from "@/lib/admin-orders";
 import {
   updateBrandStorySectionSetting,
   updateCookieOfMonthProductSlug,
@@ -539,6 +540,36 @@ export async function moveFeaturedProductAction(formData: FormData) {
         error instanceof Error
           ? error.message
           : "The featured product could not be moved.",
+    });
+  }
+}
+
+export async function markOrderDeliveredAction(formData: FormData) {
+  try {
+    await requireAdminSession();
+
+    const returnView = getTextField(formData, "returnView");
+    const returnPath = getTextField(formData, "returnPath");
+    const orderId = getTextField(formData, "orderId");
+    const result = await markAdminOrderDelivered(orderId);
+
+    revalidatePath("/admin");
+    revalidatePath("/account");
+
+    redirectToAdmin({
+      returnPath,
+      returnView,
+      notice: result.alreadyDelivered ? "Order already marked as delivered." : "Order marked as delivered.",
+    });
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    redirectToAdmin({
+      returnPath: getTextField(formData, "returnPath"),
+      returnView: getTextField(formData, "returnView"),
+      error: error instanceof Error ? error.message : "The order could not be updated.",
     });
   }
 }

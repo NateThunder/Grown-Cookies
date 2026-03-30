@@ -458,6 +458,41 @@
   gap: 18px;
 }
 
+.savedPaymentMethods {
+  display: grid;
+  gap: 12px;
+}
+
+.savedPaymentHeading {
+  margin: 0;
+  color: #5f4c63;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.savedPaymentList {
+  display: grid;
+  gap: 10px;
+}
+
+.savedPaymentOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid #ddd3df;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 16px 18px;
+}
+
+.savedPaymentSummary {
+  border: 1px solid #ddd3df;
+  border-radius: 16px;
+  background: #f8f5f9;
+  padding: 16px 18px;
+}
+
 .expressCheckoutWrap,
 .expressCheckoutWrapHidden {
   display: grid;
@@ -814,6 +849,11 @@
   }
 
   .paymentOption {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .savedPaymentOption {
     align-items: start;
     flex-direction: column;
   }

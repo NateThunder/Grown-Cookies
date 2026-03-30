@@ -11,11 +11,12 @@ import {
   useElements,
   useStripe,
 } from "@stripe/react-stripe-js";
-import { type Stripe as StripeSDK, loadStripe } from "@stripe/stripe-js";
 import {
-  BASKET_UPDATED_EVENT,
-  getBasket,
-} from "@/lib/basket-storage";
+  type StripeElementsOptions,
+  type StripeExpressCheckoutElementConfirmEvent,
+  loadStripe,
+} from "@stripe/stripe-js";
+import { BASKET_UPDATED_EVENT, getBasket } from "@/lib/basket-storage";
 import {
   TIP_PRESET_OPTIONS,
   formatPriceFromCents,
@@ -25,12 +26,10 @@ import {
   type BasketTipInput,
 } from "@/lib/basket";
 import GiftCardTile from "@/components/gift-card-tile";
+import type { CustomerAddress, CustomerProfile } from "@/lib/customer-profiles";
+import type { SavedPaymentMethod } from "@/lib/saved-payment-methods";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import styles from "@/components/checkout-client.module.css";
-
-type CheckoutError = {
-  message: string;
-};
 
 type ContactDetails = {
   email: string;
@@ -47,12 +46,36 @@ type DeliveryDetails = {
   country: string;
 };
 
-type CreatePaymentPayload = {
+type ConfirmPaymentPayload = {
+  confirmationTokenId?: string;
+  savedPaymentMethodId?: string;
+  savePaymentMethod?: boolean;
   items: BasketStoredItem[];
-  contact: ContactDetails;
-  delivery: DeliveryDetails;
   tip: BasketTipInput;
+  returnUrlBase: string;
+  contact?: ContactDetails;
+  delivery?: DeliveryDetails;
 };
+
+type ConfirmPaymentResponse = {
+  orderId?: string;
+  paymentIntentId?: string;
+  clientSecret?: string;
+  status?: string;
+};
+
+type CheckoutAccountResponse = {
+  profile?: CustomerProfile;
+  addresses?: CustomerAddress[];
+  paymentMethods?: SavedPaymentMethod[];
+  error?: string;
+};
+
+const SUPPORTED_COUNTRIES = [
+  { code: "GB", label: "United Kingdom" },
+  { code: "US", label: "United States" },
+  { code: "CA", label: "Canada" },
+] as const;
 
 const defaultDelivery = {
   firstName: "",
@@ -64,12 +87,8 @@ const defaultDelivery = {
   country: "United Kingdom",
 };
 
-type PaymentIntentResponse = {
-  clientSecret?: string;
-  publishableKey?: string;
-  orderId?: string;
-  totalCents?: number;
-};
+const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() ?? "";
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 function stripeErrorText(error: unknown): string {
   if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
@@ -83,82 +102,525 @@ function stripeErrorText(error: unknown): string {
   return "Something went wrong. Please try again.";
 }
 
-async function getOptionalAuthHeaders(): Promise<Record<string, string>> {
-  const supabase = getSupabaseBrowserClient();
+function normalizeText(value: string) {
+  return value.trim();
+}
 
-  if (!supabase) {
-    return {};
+function getCountryCodeFromLabel(label: string) {
+  const normalized = normalizeText(label);
+  const match = SUPPORTED_COUNTRIES.find((country) => country.label === normalized);
+  return match?.code ?? null;
+}
+
+function isSupportedCountryCode(code: string) {
+  const normalized = normalizeText(code).toUpperCase();
+  return SUPPORTED_COUNTRIES.some((country) => country.code === normalized);
+}
+
+function buildFullName(firstName: string, lastName: string) {
+  return [normalizeText(firstName), normalizeText(lastName)].filter(Boolean).join(" ");
+}
+
+function buildRedirectUrl(params: {
+  orderId: string;
+  paymentIntentId: string;
+  clientSecret?: string;
+}) {
+  const searchParams = new URLSearchParams({
+    orderId: params.orderId,
+    payment_intent: params.paymentIntentId,
+  });
+
+  if (params.clientSecret) {
+    searchParams.set("payment_intent_client_secret", params.clientSecret);
   }
 
-  const { data } = await supabase.auth.getSession();
-  const accessToken = data.session?.access_token ?? "";
+  return `/checkout/success?${searchParams.toString()}`;
+}
 
-  return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+function validateManualCheckoutDetails(contact: ContactDetails, delivery: DeliveryDetails) {
+  if (!normalizeText(contact.email)) {
+    return "Enter a contact email address.";
+  }
+
+  const requiredDeliveryValues = [
+    delivery.firstName,
+    delivery.lastName,
+    delivery.address,
+    delivery.city,
+    delivery.postcode,
+    delivery.country,
+  ];
+
+  if (requiredDeliveryValues.some((value) => !normalizeText(value))) {
+    return "Enter complete delivery details.";
+  }
+
+  if (!getCountryCodeFromLabel(delivery.country)) {
+    return "Select a supported delivery country.";
+  }
+
+  return "";
+}
+
+function buildAddress(address: {
+  line1: string;
+  line2?: string | null;
+  city: string;
+  postalCode: string;
+  country: string;
+  state?: string;
+}) {
+  return {
+    line1: normalizeText(address.line1),
+    line2: normalizeText(address.line2 ?? "") || null,
+    city: normalizeText(address.city),
+    postal_code: normalizeText(address.postalCode),
+    country: normalizeText(address.country),
+    state: normalizeText(address.state ?? "") || null,
+  };
+}
+
+function buildManualShipping(delivery: DeliveryDetails, phone: string) {
+  const countryCode = getCountryCodeFromLabel(delivery.country);
+  if (!countryCode) {
+    return undefined;
+  }
+
+  return {
+    name: buildFullName(delivery.firstName, delivery.lastName),
+    phone: normalizeText(phone) || undefined,
+    address: buildAddress({
+      line1: delivery.address,
+      line2: delivery.flatNumber,
+      city: delivery.city,
+      postalCode: delivery.postcode,
+      country: countryCode,
+    }),
+  };
+}
+
+function buildManualBillingDetails(contact: ContactDetails, delivery: DeliveryDetails) {
+  const shipping = buildManualShipping(delivery, contact.phone);
+  const billingDetails = {
+    name: buildFullName(delivery.firstName, delivery.lastName) || undefined,
+    email: normalizeText(contact.email) || undefined,
+    phone: normalizeText(contact.phone) || undefined,
+    address: shipping?.address,
+  };
+
+  if (!billingDetails.name && !billingDetails.email && !billingDetails.phone && !billingDetails.address) {
+    return undefined;
+  }
+
+  return billingDetails;
+}
+
+function buildExpressBillingDetails(
+  event: StripeExpressCheckoutElementConfirmEvent,
+  contact: ContactDetails,
+  delivery: DeliveryDetails,
+) {
+  const billingAddress = event.billingDetails?.address
+    ? buildAddress({
+        line1: event.billingDetails.address.line1,
+        line2: event.billingDetails.address.line2,
+        city: event.billingDetails.address.city,
+        postalCode: event.billingDetails.address.postal_code,
+        country: event.billingDetails.address.country,
+        state: event.billingDetails.address.state,
+      })
+    : undefined;
+
+  const fallbackName = buildFullName(delivery.firstName, delivery.lastName);
+  const billingDetails = {
+    name: normalizeText(event.billingDetails?.name ?? "") || event.shippingAddress?.name || fallbackName || undefined,
+    email: normalizeText(event.billingDetails?.email ?? "") || normalizeText(contact.email) || undefined,
+    phone: normalizeText(event.billingDetails?.phone ?? "") || normalizeText(contact.phone) || undefined,
+    address: billingAddress,
+  };
+
+  if (!billingDetails.name && !billingDetails.email && !billingDetails.phone && !billingDetails.address) {
+    return undefined;
+  }
+
+  return billingDetails;
+}
+
+function buildExpressShipping(
+  event: StripeExpressCheckoutElementConfirmEvent,
+  contact: ContactDetails,
+) {
+  if (!event.shippingAddress) {
+    return undefined;
+  }
+
+  return {
+    name: normalizeText(event.shippingAddress.name),
+    phone: normalizeText(event.billingDetails?.phone ?? "") || normalizeText(contact.phone) || undefined,
+    address: buildAddress({
+      line1: event.shippingAddress.address.line1,
+      line2: event.shippingAddress.address.line2,
+      city: event.shippingAddress.address.city,
+      postalCode: event.shippingAddress.address.postal_code,
+      country: event.shippingAddress.address.country,
+      state: event.shippingAddress.address.state,
+    }),
+  };
+}
+
+function getExpressFailureReason(message: string) {
+  const normalized = normalizeText(message).toLowerCase();
+
+  if (normalized.includes("country")) {
+    return "address_unserviceable" as const;
+  }
+
+  if (normalized.includes("delivery") || normalized.includes("shipping")) {
+    return "invalid_shipping_address" as const;
+  }
+
+  if (normalized.includes("billing")) {
+    return "invalid_billing_address" as const;
+  }
+
+  if (normalized.includes("payment")) {
+    return "invalid_payment_data" as const;
+  }
+
+  return "fail" as const;
+}
+
+function formatCardBrand(brand: string) {
+  return brand
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function mapProfileToContact(profile: CustomerProfile) {
+  return {
+    email: profile.email,
+    phone: profile.phone,
+  };
+}
+
+function mapAddressToDelivery(address: CustomerAddress): DeliveryDetails {
+  return {
+    firstName: address.firstName,
+    lastName: address.lastName,
+    address: address.addressLine1,
+    flatNumber: address.addressLine2,
+    city: address.city,
+    postcode: address.postcode,
+    country: address.country || defaultDelivery.country,
+  };
 }
 
 function PaymentElementForm({
-  orderId,
-  onError,
+  items,
+  tip,
+  contact,
+  delivery,
+  authAccessToken,
+  isAuthenticated,
+  savedPaymentMethods,
+  selectedSavedPaymentMethodId,
+  onSelectedSavedPaymentMethodChange,
+  savePaymentMethod,
+  onSavePaymentMethodChange,
 }: {
-  orderId: string;
-  onError: (error: CheckoutError | null) => void;
+  items: BasketStoredItem[];
+  tip: BasketTipInput;
+  contact: ContactDetails;
+  delivery: DeliveryDetails;
+  authAccessToken: string;
+  isAuthenticated: boolean;
+  savedPaymentMethods: SavedPaymentMethod[];
+  selectedSavedPaymentMethodId: string;
+  onSelectedSavedPaymentMethodChange: (paymentMethodId: string) => void;
+  savePaymentMethod: boolean;
+  onSavePaymentMethodChange: (value: boolean) => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState("");
   const [hasExpressMethods, setHasExpressMethods] = useState(false);
+  const [isPaymentElementReady, setIsPaymentElementReady] = useState(false);
+  const [hasPaymentMethodSelection, setHasPaymentMethodSelection] = useState(false);
+  const usingSavedPaymentMethod = Boolean(selectedSavedPaymentMethodId);
 
-  const confirmCurrentPayment = async () => {
-    if (!stripe || !elements) {
-      const errorMessage = "Payment form is still loading. Please wait.";
-      setLocalError(errorMessage);
-      onError({ message: errorMessage });
-      return { error: errorMessage };
-    }
+  useEffect(() => {
+    setIsPaymentElementReady(false);
+    setHasPaymentMethodSelection(false);
+  }, [usingSavedPaymentMethod]);
 
-    setLocalError("");
-    onError(null);
-
-    const result = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/checkout/success?orderId=${orderId}`,
-      },
-      redirect: "if_required",
-    });
-
-    if (result.error) {
-      const errorMessage = stripeErrorText(result.error);
-      setLocalError(errorMessage);
-      onError({ message: errorMessage });
-      return { error: errorMessage };
-    }
-
-    if (result.paymentIntent?.status === "succeeded" && result.paymentIntent.id) {
-      window.location.href = `/checkout/success?orderId=${orderId}&payment_intent=${result.paymentIntent.id}&payment_intent_client_secret=${result.paymentIntent.client_secret ?? ""}`;
-      return { success: true };
-    }
-
-    return { success: true };
+  const redirectToSuccess = (params: {
+    orderId: string;
+    paymentIntentId: string;
+    clientSecret?: string;
+  }) => {
+    window.location.href = buildRedirectUrl(params);
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const finalizePayment = async (params: {
+    confirmationTokenId?: string;
+    savedPaymentMethodId?: string;
+    savePaymentMethod?: boolean;
+  }) => {
+    const response = await fetch("/api/stripe/confirm-payment", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(authAccessToken ? { Authorization: `Bearer ${authAccessToken}` } : {}),
+      },
+      body: JSON.stringify({
+        confirmationTokenId: params.confirmationTokenId,
+        savedPaymentMethodId: params.savedPaymentMethodId,
+        savePaymentMethod: params.savePaymentMethod,
+        items,
+        tip,
+        returnUrlBase: window.location.origin,
+        contact,
+        delivery,
+      } satisfies ConfirmPaymentPayload),
+    });
+
+    if (!response.ok) {
+      const error = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(error.error || "Could not finalize payment.");
+    }
+
+    const result = (await response.json()) as ConfirmPaymentResponse;
+    if (!result.orderId || !result.paymentIntentId || !result.clientSecret || !result.status) {
+      throw new Error("Could not finalize payment.");
+    }
+
+    if (result.status === "requires_action") {
+      if (!stripe) {
+        throw new Error("Payment form is still loading. Please wait.");
+      }
+
+      const nextActionResult = await stripe.handleNextAction({
+        clientSecret: result.clientSecret,
+      });
+
+      if (nextActionResult.error) {
+        throw new Error(stripeErrorText(nextActionResult.error));
+      }
+
+      if (nextActionResult.paymentIntent?.id) {
+        redirectToSuccess({
+          orderId: result.orderId,
+          paymentIntentId: nextActionResult.paymentIntent.id,
+          clientSecret: result.clientSecret,
+        });
+      }
+
+      return;
+    }
+
+    if (
+      result.status === "succeeded" ||
+      result.status === "processing" ||
+      result.status === "requires_capture"
+    ) {
+      redirectToSuccess({
+        orderId: result.orderId,
+        paymentIntentId: result.paymentIntentId,
+        clientSecret: result.clientSecret,
+      });
+      return;
+    }
+
+    throw new Error("Payment could not be completed. Please try another payment method.");
+  };
+
+  const handleManualSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    const validationError = validateManualCheckoutDetails(contact, delivery);
+    if (validationError) {
+      setLocalError(validationError);
+      return;
+    }
+
+    if (usingSavedPaymentMethod) {
+      setIsSubmitting(true);
+      setLocalError("");
+
+      try {
+        await finalizePayment({
+          savedPaymentMethodId: selectedSavedPaymentMethodId,
+        });
+      } catch (error) {
+        setLocalError(stripeErrorText(error));
+      } finally {
+        setIsSubmitting(false);
+      }
+
+      return;
+    }
+
+    if (!stripe || !elements) {
+      setLocalError("Payment form is still loading. Please wait.");
+      return;
+    }
+
+    if (!isPaymentElementReady) {
+      setLocalError("Payment form is still loading. Please wait.");
+      return;
+    }
+
+    if (!hasPaymentMethodSelection) {
+      setLocalError("Choose a payment method before continuing.");
+      return;
+    }
+
     setIsSubmitting(true);
-    await confirmCurrentPayment();
-    setIsSubmitting(false);
+    setLocalError("");
+
+    try {
+      const submitResult = await elements.submit();
+      if (submitResult.error) {
+        throw new Error(stripeErrorText(submitResult.error));
+      }
+
+      const confirmationResult = await stripe.createConfirmationToken({
+        elements,
+        params: {
+          payment_method_data: {
+            billing_details: buildManualBillingDetails(contact, delivery),
+          },
+          shipping: buildManualShipping(delivery, contact.phone),
+        },
+      });
+
+      if (confirmationResult.error || !confirmationResult.confirmationToken?.id) {
+        throw new Error(stripeErrorText(confirmationResult.error));
+      }
+
+      await finalizePayment({
+        confirmationTokenId: confirmationResult.confirmationToken.id,
+        savePaymentMethod: isAuthenticated && savePaymentMethod,
+      });
+    } catch (error) {
+      setLocalError(stripeErrorText(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleExpressConfirm = async (event: StripeExpressCheckoutElementConfirmEvent) => {
+    if (!stripe || !elements) {
+      const message = "Payment form is still loading. Please wait.";
+      setLocalError(message);
+      event.paymentFailed({
+        reason: "fail",
+        message,
+      });
+      return;
+    }
+
+    if (event.shippingAddress && !isSupportedCountryCode(event.shippingAddress.address.country)) {
+      const message = "We only deliver to the United Kingdom, United States, and Canada.";
+      setLocalError(message);
+      event.paymentFailed({
+        reason: "address_unserviceable",
+        message,
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setLocalError("");
+
+    try {
+      const submitResult = await elements.submit();
+      if (submitResult.error) {
+        throw new Error(stripeErrorText(submitResult.error));
+      }
+
+      const confirmationResult = await stripe.createConfirmationToken({
+        elements,
+        params: {
+          payment_method_data: {
+            billing_details: buildExpressBillingDetails(event, contact, delivery),
+          },
+          shipping: buildExpressShipping(event, contact),
+        },
+      });
+
+      if (confirmationResult.error || !confirmationResult.confirmationToken?.id) {
+        throw new Error(stripeErrorText(confirmationResult.error));
+      }
+
+      await finalizePayment({
+        confirmationTokenId: confirmationResult.confirmationToken.id,
+        savePaymentMethod: isAuthenticated && savePaymentMethod,
+      });
+    } catch (error) {
+      const message = stripeErrorText(error);
+      setLocalError(message);
+      event.paymentFailed({
+        reason: getExpressFailureReason(message),
+        message,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <form className={styles.stripeForm} onSubmit={handleSubmit}>
+    <form className={styles.stripeForm} onSubmit={handleManualSubmit}>
+      {savedPaymentMethods.length > 0 ? (
+        <div className={styles.savedPaymentMethods}>
+          <p className={styles.savedPaymentHeading}>Saved payment methods</p>
+          <div className={styles.savedPaymentList}>
+            {savedPaymentMethods.map((paymentMethod) => (
+              <label key={paymentMethod.id} className={styles.savedPaymentOption}>
+                <div className={styles.paymentHeading}>
+                  <input
+                    type="radio"
+                    name="saved-payment-method"
+                    checked={selectedSavedPaymentMethodId === paymentMethod.id}
+                    onChange={() => onSelectedSavedPaymentMethodChange(paymentMethod.id)}
+                  />
+                  <span>
+                    {formatCardBrand(paymentMethod.brand)} ending in {paymentMethod.last4}
+                  </span>
+                </div>
+                <span className={styles.paymentDetail}>
+                  Expires {String(paymentMethod.expMonth).padStart(2, "0")}/{paymentMethod.expYear}
+                </span>
+              </label>
+            ))}
+            <label className={styles.savedPaymentOption}>
+              <div className={styles.paymentHeading}>
+                <input
+                  type="radio"
+                  name="saved-payment-method"
+                  checked={!usingSavedPaymentMethod}
+                  onChange={() => onSelectedSavedPaymentMethodChange("")}
+                />
+                <span>Use a new card</span>
+              </div>
+              <span className={styles.paymentDetail}>Pay once or save it for later</span>
+            </label>
+          </div>
+        </div>
+      ) : null}
+
       <div
         className={hasExpressMethods ? styles.expressCheckoutWrap : styles.expressCheckoutWrapHidden}
       >
         <p className={styles.expressCheckoutLabel}>Express checkout</p>
         <ExpressCheckoutElement
           options={{
+            allowedShippingCountries: SUPPORTED_COUNTRIES.map((country) => country.code),
+            billingAddressRequired: false,
             buttonHeight: 55,
             buttonTheme: {
               applePay: "black",
@@ -169,18 +631,21 @@ function PaymentElementForm({
               googlePay: "checkout",
               paypal: "buynow",
             },
+            emailRequired: true,
             layout: {
               maxColumns: 1,
               maxRows: 3,
             },
             paymentMethodOrder: ["apple_pay", "google_pay", "paypal"],
             paymentMethods: {
-              applePay: "auto",
-              googlePay: "auto",
+              applePay: "always",
+              googlePay: "always",
               link: "never",
               paypal: "auto",
               amazonPay: "never",
             },
+            phoneNumberRequired: false,
+            shippingAddressRequired: true,
           }}
           onReady={(event) => {
             const available = event.availablePaymentMethods;
@@ -188,33 +653,57 @@ function PaymentElementForm({
               Boolean(available?.applePay || available?.googlePay || available?.paypal),
             );
           }}
-          onConfirm={async (event) => {
-            setIsSubmitting(true);
-            const result = await confirmCurrentPayment();
-
-            if ("error" in result) {
-              event.paymentFailed({
-                reason: "fail",
-                message: result.error,
-              });
+          onShippingAddressChange={(event) => {
+            if (!isSupportedCountryCode(event.address.country)) {
+              event.reject();
+              return;
             }
 
-            setIsSubmitting(false);
+            event.resolve();
           }}
+          onConfirm={handleExpressConfirm}
         />
         <div className={styles.expressCheckoutDivider}>
-          <span>Or pay with card</span>
+          <span>{usingSavedPaymentMethod ? "Or pay with your saved card" : "Or pay with card"}</span>
         </div>
       </div>
 
-      <div className={styles.paymentElement}>
-        <PaymentElement />
-      </div>
+      {usingSavedPaymentMethod ? (
+        <div className={styles.savedPaymentSummary}>
+          <p className={styles.sectionNote}>
+            Your delivery details above will be used for this saved-card payment.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className={styles.paymentElement}>
+            <PaymentElement
+              onReady={() => setIsPaymentElementReady(true)}
+              onChange={(event) => setHasPaymentMethodSelection(Boolean(event.value.type))}
+            />
+          </div>
+
+          {isAuthenticated ? (
+            <label className={styles.checkboxRow}>
+              <input
+                type="checkbox"
+                checked={savePaymentMethod}
+                onChange={(event) => onSavePaymentMethodChange(event.target.checked)}
+              />
+              <span>Save this card to my account for faster checkout next time</span>
+            </label>
+          ) : null}
+        </>
+      )}
 
       {localError ? <p className={styles.errorText}>{localError}</p> : null}
 
-      <button type="submit" className={styles.payButton} disabled={isSubmitting}>
-        {isSubmitting ? "Processing..." : "Pay securely"}
+      <button
+        type="submit"
+        className={styles.payButton}
+        disabled={isSubmitting || (!usingSavedPaymentMethod && !isPaymentElementReady)}
+      >
+        {isSubmitting ? "Processing..." : usingSavedPaymentMethod ? "Pay with saved card" : "Pay securely"}
       </button>
     </form>
   );
@@ -224,18 +713,17 @@ export default function CheckoutClient() {
   const [items, setItems] = useState<BasketStoredItem[]>([]);
   const [quote, setQuote] = useState<BasketQuote | null>(null);
   const [quoteError, setQuoteError] = useState("");
-  const [paymentIntentClientSecret, setPaymentIntentClientSecret] = useState("");
-  const [paymentPublishableKey, setPaymentPublishableKey] = useState("");
-  const [orderId, setOrderId] = useState<string | null>(null);
   const [contact, setContact] = useState<ContactDetails>({ email: "", phone: "" });
   const [delivery, setDelivery] = useState<DeliveryDetails>(defaultDelivery);
   const [tipChoice, setTipChoice] = useState<"none" | "custom" | (typeof TIP_PRESET_OPTIONS)[number]>("none");
   const [customTip, setCustomTip] = useState("0.00");
-  const [isCreatingPayment, setIsCreatingPayment] = useState(false);
-  const [isPaymentStarted, setIsPaymentStarted] = useState(false);
   const [marketingOptIn, setMarketingOptIn] = useState(true);
-  const [paymentError, setPaymentError] = useState("");
-  const [stripePromise, setStripePromise] = useState<Promise<StripeSDK | null> | null>(null);
+  const [authAccessToken, setAuthAccessToken] = useState("");
+  const [savedPaymentMethods, setSavedPaymentMethods] = useState<SavedPaymentMethod[]>([]);
+  const [selectedSavedPaymentMethodId, setSelectedSavedPaymentMethodId] = useState("");
+  const [savePaymentMethod, setSavePaymentMethod] = useState(false);
+  const [accountLoadError, setAccountLoadError] = useState("");
+  const [isAccountLoading, setIsAccountLoading] = useState(false);
 
   const tipRequest = useMemo<BasketTipInput>(() => {
     if (tipChoice === "custom") {
@@ -255,21 +743,144 @@ export default function CheckoutClient() {
     };
   }, [customTip, tipChoice]);
 
-  const paymentFingerprint = useMemo(
-    () =>
-      JSON.stringify({
-        items,
-        tipRequest,
-        contact,
-        delivery,
-      }),
-    [contact, delivery, items, tipRequest],
-  );
+  const isAuthenticated = Boolean(authAccessToken);
+
+  const stripeOptions = useMemo<StripeElementsOptions | null>(() => {
+    if (!quote) {
+      return null;
+    }
+
+    return {
+      amount: quote.totalCents,
+      currency: quote.currency,
+      mode: "payment",
+      paymentMethodCreation: "manual",
+      setupFutureUsage: isAuthenticated && savePaymentMethod ? "off_session" : null,
+    };
+  }, [isAuthenticated, quote, savePaymentMethod]);
 
   const tipSelectionLabel =
     tipChoice === "custom" ? "Custom tip" : tipChoice === "none" ? "No tip" : `${tipChoice}% tip`;
   const customTipPreviewCents =
     tipChoice === "custom" ? quote?.tipCents ?? 0 : parseMoneyTextToCents(customTip);
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+
+    if (!supabase) {
+      return;
+    }
+
+    void supabase.auth.getSession().then(({ data }) => {
+      setAuthAccessToken(data.session?.access_token ?? "");
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthAccessToken(session?.access_token ?? "");
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!authAccessToken) {
+      setSavedPaymentMethods([]);
+      setSelectedSavedPaymentMethodId("");
+      setSavePaymentMethod(false);
+      setAccountLoadError("");
+      setIsAccountLoading(false);
+      return;
+    }
+
+    const abortController = new AbortController();
+
+    async function loadAccountData() {
+      setIsAccountLoading(true);
+      setAccountLoadError("");
+
+      try {
+        const headers = {
+          Authorization: `Bearer ${authAccessToken}`,
+        };
+
+        const response = await fetch("/api/account/checkout", {
+          headers,
+          cache: "no-store",
+          signal: abortController.signal,
+        });
+
+        const payload = (await response.json().catch(() => ({}))) as CheckoutAccountResponse;
+
+        if (!response.ok) {
+          throw new Error(payload.error || "We could not load your saved checkout details.");
+        }
+
+        const profile = payload.profile;
+        const addresses = Array.isArray(payload.addresses) ? payload.addresses : [];
+        const paymentMethods = Array.isArray(payload.paymentMethods) ? payload.paymentMethods : [];
+        const defaultAddress = addresses.find((address) => address.isDefault) ?? addresses[0];
+
+        if (profile) {
+          const nextContact = mapProfileToContact(profile);
+          setContact((current) => ({
+            email: current.email || nextContact.email,
+            phone: current.phone || nextContact.phone,
+          }));
+          setMarketingOptIn(profile.marketingOptIn);
+        }
+
+        if (defaultAddress) {
+          const nextDelivery = mapAddressToDelivery(defaultAddress);
+          setDelivery((current) => ({
+            firstName: current.firstName || nextDelivery.firstName,
+            lastName: current.lastName || nextDelivery.lastName,
+            address: current.address || nextDelivery.address,
+            flatNumber: current.flatNumber || nextDelivery.flatNumber,
+            city: current.city || nextDelivery.city,
+            postcode: current.postcode || nextDelivery.postcode,
+            country: current.country || nextDelivery.country,
+          }));
+          setContact((current) => ({
+            email: current.email,
+            phone: current.phone || defaultAddress.phone,
+          }));
+        }
+
+        setSavedPaymentMethods(paymentMethods);
+        setSelectedSavedPaymentMethodId((current) => {
+          if (current && paymentMethods.some((paymentMethod) => paymentMethod.id === current)) {
+            return current;
+          }
+
+          return paymentMethods[0]?.id ?? "";
+        });
+      } catch (error) {
+        if (abortController.signal.aborted) {
+          return;
+        }
+
+        setAccountLoadError(
+          error instanceof Error ? error.message : "We could not load your saved checkout details.",
+        );
+        setSavedPaymentMethods([]);
+        setSelectedSavedPaymentMethodId("");
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsAccountLoading(false);
+        }
+      }
+    }
+
+    void loadAccountData();
+
+    return () => {
+      abortController.abort();
+    };
+  }, [authAccessToken]);
 
   useEffect(() => {
     const refresh = () => setItems(getBasket());
@@ -334,17 +945,10 @@ export default function CheckoutClient() {
   }, [items, tipRequest]);
 
   useEffect(() => {
-    if (!isPaymentStarted && !paymentIntentClientSecret && !paymentPublishableKey && !orderId) {
-      return;
+    if (!savedPaymentMethods.some((paymentMethod) => paymentMethod.id === selectedSavedPaymentMethodId)) {
+      setSelectedSavedPaymentMethodId("");
     }
-
-    setPaymentIntentClientSecret("");
-    setPaymentPublishableKey("");
-    setOrderId(null);
-    setIsPaymentStarted(false);
-    setStripePromise(null);
-    setPaymentError("Checkout details changed. Continue to secure payment again.");
-  }, [paymentFingerprint]);
+  }, [savedPaymentMethods, selectedSavedPaymentMethodId]);
 
   const setPresetTip = (value: Exclude<typeof tipChoice, "custom">) => {
     setTipChoice(value);
@@ -356,73 +960,11 @@ export default function CheckoutClient() {
     setCustomTip((nextCents / 100).toFixed(2));
   };
 
-  const handleCreatePaymentIntent = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (items.length === 0) {
-      setPaymentError("Add products before checking out.");
-      return;
-    }
-
-    if (!quote || quoteError) {
-      setPaymentError(quoteError || "Basket totals are still loading.");
-      return;
-    }
-
-    if (!contact.email.trim()) {
-      setPaymentError("Enter a contact email address.");
-      return;
-    }
-
-    setIsCreatingPayment(true);
-    setIsPaymentStarted(false);
-    setPaymentError("");
-
-    const payload: CreatePaymentPayload = {
-      items,
-      contact,
-      delivery,
-      tip: tipRequest,
-    };
-
-    try {
-      const authHeaders = await getOptionalAuthHeaders();
-      const response = await fetch("/api/stripe/payment-intent", {
-        method: "POST",
-        body: JSON.stringify(payload),
-        headers: {
-          "Content-Type": "application/json",
-          ...authHeaders,
-        },
-      });
-
-      if (!response.ok) {
-        const error = (await response.json().catch(() => ({}))) as { error?: string };
-        throw new Error(error.error || "Could not initialize payment.");
-      }
-
-      const result = (await response.json()) as PaymentIntentResponse;
-      if (!result.clientSecret || !result.publishableKey || !result.orderId) {
-        throw new Error("Could not initialize payment.");
-      }
-
-      setPaymentError("");
-      setPaymentIntentClientSecret(result.clientSecret);
-      setPaymentPublishableKey(result.publishableKey);
-      setOrderId(result.orderId);
-      setIsPaymentStarted(true);
-      setStripePromise(loadStripe(result.publishableKey));
-    } catch (error) {
-      setPaymentError(stripeErrorText(error));
-    } finally {
-      setIsCreatingPayment(false);
-    }
-  };
-
   const lines = quote?.lines ?? [];
   const shippingCents = quote?.shippingCents ?? 0;
   const tipCents = quote?.tipCents ?? 0;
   const totalCents = quote?.totalCents ?? 0;
+  const stripeConfigError = stripePromise ? "" : "Stripe is not configured.";
 
   return (
     <section className={styles.checkout}>
@@ -472,9 +1014,9 @@ export default function CheckoutClient() {
                         setDelivery((prev) => ({ ...prev, country: event.target.value }))
                       }
                     >
-                      <option>United Kingdom</option>
-                      <option>United States</option>
-                      <option>Canada</option>
+                      {SUPPORTED_COUNTRIES.map((country) => (
+                        <option key={country.code}>{country.label}</option>
+                      ))}
                     </select>
                     <FiChevronDown />
                   </label>
@@ -655,32 +1197,32 @@ export default function CheckoutClient() {
                 </p>
                 <p className={styles.sectionNote}>All transactions are secure and encrypted.</p>
 
+                {isAuthenticated && isAccountLoading ? (
+                  <p className={styles.sectionNote}>Loading your saved checkout details...</p>
+                ) : null}
+                {isAuthenticated && accountLoadError ? <p className={styles.errorText}>{accountLoadError}</p> : null}
                 {quoteError ? <p className={styles.errorText}>{quoteError}</p> : null}
-
-                {isPaymentStarted && paymentIntentClientSecret && paymentPublishableKey && orderId ? (
-                  <Elements
-                    stripe={stripePromise}
-                    options={{
-                      clientSecret: paymentIntentClientSecret,
-                    }}
-                  >
+                {stripeConfigError ? <p className={styles.errorText}>{stripeConfigError}</p> : null}
+                {!quote && !quoteError ? (
+                  <p className={styles.sectionNote}>Loading payment methods...</p>
+                ) : null}
+                {quote && stripeOptions && stripePromise ? (
+                  <Elements stripe={stripePromise} options={stripeOptions}>
                     <PaymentElementForm
-                      orderId={orderId}
-                      onError={(error) => setPaymentError(error ? error.message : "")}
+                      items={items}
+                      tip={tipRequest}
+                      contact={contact}
+                      delivery={delivery}
+                      authAccessToken={authAccessToken}
+                      isAuthenticated={isAuthenticated}
+                      savedPaymentMethods={savedPaymentMethods}
+                      selectedSavedPaymentMethodId={selectedSavedPaymentMethodId}
+                      onSelectedSavedPaymentMethodChange={setSelectedSavedPaymentMethodId}
+                      savePaymentMethod={savePaymentMethod}
+                      onSavePaymentMethodChange={setSavePaymentMethod}
                     />
                   </Elements>
-                ) : (
-                  <form className={styles.section} onSubmit={handleCreatePaymentIntent}>
-                    {paymentError ? <p className={styles.errorText}>{paymentError}</p> : null}
-                    <button
-                      type="submit"
-                      className={styles.payButton}
-                      disabled={isCreatingPayment || isPaymentStarted || Boolean(quoteError)}
-                    >
-                      {isCreatingPayment ? "Preparing payment..." : "Continue to secure payment"}
-                    </button>
-                  </form>
-                )}
+                ) : null}
               </section>
 
               <div className={styles.paymentFooter}>

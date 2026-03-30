@@ -10,7 +10,7 @@ A custom Next.js storefront for Grown Cookies with product discovery, basket and
 
 - Brand-led homepage and featured product merchandising
 - Shop grid, product detail pages, search, and gift card support
-- Basket flow and Stripe checkout with payment-intent and webhook handling
+- Basket flow and deferred Stripe Elements checkout with server-side confirmation and webhook handling
 - Supabase-powered customer sign-in and account area
 - Admin editing flow for products and featured storefront content
 - Cloudflare-ready deployment path with D1 and R2 integrations

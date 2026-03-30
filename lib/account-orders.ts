@@ -1,5 +1,6 @@
 import { hasCloudflareD1Config, queryCloudflareD1 } from "@/lib/cloudflare-d1";
 import { ensureCustomerAccountSchema } from "@/lib/customer-profiles";
+import { expireStalePendingOrders } from "@/lib/stripe-checkout";
 
 export type AccountOrderSummary = {
   orderId: string;
@@ -47,6 +48,7 @@ export async function getAccountOrderSummariesForCustomer(params: {
   }
 
   await ensureCustomerAccountSchema();
+  await expireStalePendingOrders();
 
   const rows = await queryCloudflareD1<AccountOrderRow>(
     `SELECT
@@ -94,6 +96,7 @@ export async function getAccountOrderSummariesByEmail(email: string): Promise<Ac
   }
 
   await ensureCustomerAccountSchema();
+  await expireStalePendingOrders();
 
   const rows = await queryCloudflareD1<AccountOrderRow>(
     `SELECT

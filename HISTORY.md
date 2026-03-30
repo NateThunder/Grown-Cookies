@@ -1,5 +1,65 @@
 # Project History
 
+## 2026-03-30
+- [done] Extended stale-order cleanup to also purge legacy orders already marked expired from D1 during the shared timeout cleanup path.
+- files: lib/stripe-checkout.ts, HISTORY.md
+- status: completed
+
+## 2026-03-30
+- [done] Switched stale pending-order timeout handling from an expired status to full D1 deletion, including cleanup of linked order items and webhook event rows.
+- files: app/admin/orders/page.tsx, app/admin/page.module.css, app/account/page.module.css, lib/stripe-checkout.ts, HISTORY.md
+- status: completed
+
+## 2026-03-30
+- [done] Added global pending-order timeout handling with a 2-minute admin warning state, 5-minute auto-expiry, and paid-only delivery completion controls.
+- files: app/admin/orders/page.tsx, app/admin/page.module.css, app/account/page.module.css, lib/admin-orders.ts, lib/account-orders.ts, lib/stripe-checkout.ts, HISTORY.md
+- status: completed
+
+## 2026-03-30
+- [done] Added an admin Orders sidebar tab with a D1-backed orders table, delivery-status actions, and delivered-at tracking for seller fulfilment.
+- files: app/admin/actions.ts, app/admin/page.tsx, app/admin/orders/page.tsx, app/admin/delivery/page.tsx, app/admin/homepage/page.tsx, app/admin/page.module.css, lib/admin-orders.ts, lib/customer-profiles.ts, cloudflare/d1/schema.sql, cloudflare/d1/migrations/0004_order_delivery_tracking.sql, HISTORY.md
+- status: completed
+
+## 2026-03-30
+- [done] Reduced checkout payment latency by consolidating saved-checkout bootstrap requests and trimming redundant Stripe, Supabase, and D1 work from payment confirmation.
+- files: app/api/account/checkout/route.ts, app/api/account/payment-methods/route.ts, app/api/account/payment-methods/setup-intent/route.ts, app/api/stripe/confirm-payment/route.ts, components/checkout-client.tsx, lib/customer-profiles.ts, lib/stripe-checkout.ts, lib/stripe-customer-payment-methods.ts, HISTORY.md
+- status: completed
+
+## 2026-03-30
+- [done] Matched Stripe checkout confirmation-token setup future usage with the server-side PaymentIntent save-card setting to prevent off-session confirmation mismatches.
+- files: components/checkout-client.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-30
+- [done] Guarded Stripe checkout/account Payment Elements against premature submission and aligned deferred checkout tokenization with manual payment-method creation.
+- files: components/checkout-client.tsx, components/account-page-client.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-30
+- [done] Fixed the admin add-product modal so its scroll area uses the remaining dialog height and reaches the bottom of the form.
+- files: app/admin/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-30
+- [done] Removed the boxed empty-state container from the account Payments section when no saved payment methods exist.
+- files: components/account-page-client.tsx, app/account/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-30
+- [done] Switched the site favicon to the repository's `favicon.png` asset and removed the default app-router `.ico` override.
+- files: app/layout.tsx, app/favicon.ico, HISTORY.md
+- status: completed
+
+## 2026-03-30
+- [done] Added an account-page Stripe SetupIntent flow so customers can add payment methods directly from the Payments section.
+- files: lib/stripe-customer-payment-methods.ts, app/api/account/payment-methods/setup-intent/route.ts, components/account-page-client.tsx, app/account/page.module.css, HISTORY.md
+- status: completed
+
+## 2026-03-30
+- [done] Added signed-in fast checkout with Stripe customer-linked saved cards, checkout prefills, and account payment-method management.
+- files: cloudflare/d1/schema.sql, cloudflare/d1/migrations/0003_customer_profile_stripe_customer_id.sql, lib/customer-profiles.ts, lib/saved-payment-methods.ts, lib/stripe-customer-payment-methods.ts, app/api/account/payment-methods/route.ts, app/api/stripe/confirm-payment/route.ts, components/checkout-client.tsx, components/checkout-client.module.css, components/account-page-client.tsx, HISTORY.md
+- status: completed
+
 ## 2026-03-27
 - [done] Reduced storefront latency by batching and caching homepage store-setting reads and deferring basket drawer cart mounting until opened.
 - files: lib/store-settings.ts, app/page.tsx, app/admin/homepage/page.tsx, app/admin/actions.ts, components/basket-link.tsx, HISTORY.md
@@ -855,5 +915,15 @@ This file tracks work completed in the repository for easy machine-readable revi
 ## 2026-03-27
 - [done] Rewrote git history and force-pushed all branches to purge committed local runtime artifacts from the public repository.
 - files: HISTORY.md, .playwright-cli, .wrangler, .next-dev.out.log, .next-dev.err.log, Products.db
+- status: completed
+
+## 2026-03-30
+- [done] Replaced the manual Stripe payment gate with an always-open deferred Elements checkout and unified server-side payment confirmation.
+- files: components/checkout-client.tsx, app/api/stripe/confirm-payment/route.ts, app/api/stripe/payment-intent/route.ts, app/api/stripe/express-payment/route.ts, README.md, HISTORY.md
+- status: completed
+
+## 2026-03-30
+- [done] Reduced checkout submit latency by overlapping auth/token work and batching D1 order creation writes in the deferred Stripe confirmation flow.
+- files: app/api/stripe/confirm-payment/route.ts, lib/stripe-checkout.ts, HISTORY.md
 - status: completed
 

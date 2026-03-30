@@ -106,6 +106,9 @@ export default async function DeliveryAdminPage({ searchParams }: DeliveryAdminP
           <Link href="/admin/homepage" className={styles.navItem}>
             Home page
           </Link>
+          <Link href="/admin/orders" className={styles.navItem}>
+            Orders
+          </Link>
           <Link href="/admin/delivery" className={`${styles.navItem} ${styles.navItemActive}`.trim()}>
             Delivery costs
           </Link>

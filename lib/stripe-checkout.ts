@@ -1,5 +1,5 @@
 import { executeCloudflareD1, hasCloudflareD1Config, queryCloudflareD1 } from "@/lib/cloudflare-d1";
-import { attachOrderToCustomerProfile, ensureCustomerAccountSchema } from "@/lib/customer-profiles";
+import { ensureCustomerAccountSchema } from "@/lib/customer-profiles";
 import {
   CHECKOUT_CURRENCY,
   buildCheckoutQuote,
@@ -19,6 +19,9 @@ export const STRIPE_CHECKOUT_ORDER_STATUS = {
   paid: "paid",
   failed: "failed",
 } as const;
+
+export const PENDING_ORDER_WARNING_MINUTES = 2;
+export const PENDING_ORDER_EXPIRY_MINUTES = 5;
 
 export type StripeCheckoutOrderStatus = (typeof STRIPE_CHECKOUT_ORDER_STATUS)[keyof typeof STRIPE_CHECKOUT_ORDER_STATUS];
 
@@ -83,6 +86,66 @@ function sanitizeDelivery(input: StripeCheckoutDeliveryInput) {
   };
 }
 
+export async function expireStalePendingOrders() {
+  if (!hasCloudflareD1Config()) {
+    return 0;
+  }
+
+  await ensureCustomerAccountSchema();
+
+  const staleOrders = await queryCloudflareD1<{ id: number; public_id: string }>(
+    `SELECT id, public_id
+     FROM orders
+     WHERE status = ?
+        OR (status = ? AND datetime(created_at) <= datetime('now', ?))`,
+    [
+      "expired",
+      STRIPE_CHECKOUT_ORDER_STATUS.pending,
+      `-${PENDING_ORDER_EXPIRY_MINUTES} minutes`,
+    ],
+    { cache: "no-store" },
+  );
+
+  if (staleOrders.length === 0) {
+    return 0;
+  }
+
+  const orderIds = staleOrders.map((order) => order.id);
+  const orderPublicIds = staleOrders.map((order) => normalizeText(order.public_id)).filter(Boolean);
+  const orderPlaceholders = orderIds.map(() => "?").join(", ");
+
+  await executeCloudflareD1(
+    `DELETE FROM order_items
+     WHERE order_id IN (${orderPlaceholders})`,
+    orderIds,
+  );
+
+  if (orderPublicIds.length > 0) {
+    const publicIdPlaceholders = orderPublicIds.map(() => "?").join(", ");
+
+    await executeCloudflareD1(
+      `DELETE FROM order_webhook_events
+       WHERE order_public_id IN (${publicIdPlaceholders})`,
+      orderPublicIds,
+    );
+  }
+
+  const result = await executeCloudflareD1(
+    `DELETE FROM orders
+     WHERE id IN (${orderPlaceholders})`,
+    orderIds,
+  );
+
+  const changedRows =
+    typeof result.meta?.changes === "number"
+      ? result.meta.changes
+      : typeof result.meta?.changes === "string"
+        ? Number.parseInt(result.meta.changes, 10)
+        : 0;
+
+  return Number.isFinite(changedRows) ? changedRows : 0;
+}
+
 export async function createPendingStripeOrder(payload: StripeCheckoutPayload): Promise<StripeCheckoutOrderDraft> {
   if (!hasCloudflareD1Config()) {
     throw new Error("Cloudflare D1 is not configured.");
@@ -98,12 +161,14 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
   }
 
   const delivery = sanitizeDelivery(payload.delivery);
-  const quote = await buildCheckoutQuote({
+  const quotePromise = buildCheckoutQuote({
     items: payload.items,
     tip: payload.tip,
   });
+  const schemaPromise = ensureCustomerAccountSchema();
+  const quote = await quotePromise;
 
-  await ensureCustomerAccountSchema();
+  await schemaPromise;
 
   const orderPublicId = generateOrderPublicId();
   const itemsSnapshot = JSON.stringify({
@@ -120,7 +185,7 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
     delivery,
   });
 
-  await executeCloudflareD1(
+  const orderInsertResult = await executeCloudflareD1(
     `INSERT INTO orders (
        public_id,
        status,
@@ -138,9 +203,11 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
        city,
        postcode,
        country,
+       supabase_user_id,
+       customer_profile_id,
        items_json
      )
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       orderPublicId,
       STRIPE_CHECKOUT_ORDER_STATUS.pending,
@@ -158,28 +225,34 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
       delivery.city,
       delivery.postcode,
       delivery.country,
+      normalizeText(payload.customer?.supabaseUserId) || null,
+      payload.customer?.customerProfileId ?? null,
       itemsSnapshot,
     ],
   );
 
-  if (payload.customer?.supabaseUserId && payload.customer.customerProfileId) {
-    await attachOrderToCustomerProfile({
-      orderPublicId,
-      supabaseUserId: normalizeText(payload.customer.supabaseUserId),
-      customerProfileId: payload.customer.customerProfileId,
-    });
-  }
+  const insertedOrderId =
+    typeof orderInsertResult.meta?.last_row_id === "number"
+      ? orderInsertResult.meta.last_row_id
+      : typeof orderInsertResult.meta?.last_row_id === "string"
+        ? Number.parseInt(orderInsertResult.meta.last_row_id, 10)
+        : NaN;
 
-  const orderRows = await queryCloudflareD1<{ id: number }>(`SELECT id FROM orders WHERE public_id = ? LIMIT 1`, [
-    orderPublicId,
-  ]);
-  const orderId = orderRows[0]?.id;
+  let orderId = Number.isFinite(insertedOrderId) ? insertedOrderId : 0;
+
+  if (!orderId) {
+    const orderRows = await queryCloudflareD1<{ id: number }>(
+      `SELECT id FROM orders WHERE public_id = ? LIMIT 1`,
+      [orderPublicId],
+    );
+    orderId = orderRows[0]?.id ?? 0;
+  }
 
   if (!orderId) {
     throw new Error("The order could not be created.");
   }
 
-  for (const line of quote.lines) {
+  if (quote.lines.length > 0) {
     await executeCloudflareD1(
       `INSERT INTO order_items (
          order_id,
@@ -189,8 +262,15 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
          quantity,
          line_total_cents
        )
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [orderId, line.slug, line.name, line.unitPriceCents, line.quantity, line.lineTotalCents],
+       VALUES ${quote.lines.map(() => "(?, ?, ?, ?, ?, ?)").join(", ")}`,
+      quote.lines.flatMap((line) => [
+        orderId,
+        line.slug,
+        line.name,
+        line.unitPriceCents,
+        line.quantity,
+        line.lineTotalCents,
+      ]),
     );
   }
 
