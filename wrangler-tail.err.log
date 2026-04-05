@@ -1,0 +1,8 @@
+JsonFriendlyFatalError: "Tail disconnected, exiting."
+    at createFatalError (E:\Websites\grown-cookies\node_modules\wrangler\wrangler-dist\cli.js:787:12)
+    at Timeout._onTimeout (E:\Websites\grown-cookies\node_modules\wrangler\wrangler-dist\cli.js:285021:21)
+    at listOnTimeout (node:internal/timers:588:17)
+    at process.processTimers (node:internal/timers:523:7) {
+  telemetryMessage: '"Tail disconnected, exiting."',
+  code: 1
+}

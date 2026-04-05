@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS products (
   description TEXT NOT NULL,
   allergens TEXT NOT NULL DEFAULT '',
   is_gift_card INTEGER NOT NULL DEFAULT 0,
+  hidden INTEGER NOT NULL DEFAULT 0,
   featured INTEGER NOT NULL DEFAULT 0,
   sort_order INTEGER NOT NULL DEFAULT 0,
   related_slugs TEXT,

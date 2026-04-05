@@ -14,34 +14,62 @@ Recommended flow:
 
 1. Prefer user auth with `npx wrangler login` and avoid brittle API token permission edge cases.
 2. If you use `CLOUDFLARE_API_TOKEN`, ensure it has:
+   - `User > User Details > Read`
    - `User > Memberships > Read`
-   - `Account > Cloudflare Pages > Edit` (and Read if needed)
+   - `Account > Account Settings > Read`
+   - `Account > Workers Scripts > Edit`
+   - `Zone > Workers Routes > Edit`
+   - `Account > D1 > Edit` if you run migrations
 3. Verify account context matches your target project.
 
-## 2) Deploy to Cloudflare Pages
+## 2) Bootstrap Worker secrets
 
 From repo root:
 
 ```bash
-npm run cloudflare:deploy
+npx wrangler secret bulk .env.local
 ```
 
-This runs:
+This uploads the runtime values the worker expects from `.env.local`. Re-run it whenever Cloudflare-facing secrets change locally.
+
+## 3) Build and deploy to Cloudflare Workers
+
+From repo root:
 
 ```bash
 npm run cloudflare:build
-npx wrangler pages deploy .vercel/output/static --project-name grown-cookies --commit-dirty=true
+npm run cloudflare:deploy
 ```
 
-## 2a) Apply D1 migrations with Wrangler
+These scripts now resolve to:
 
-This repo now stores D1 migrations in `cloudflare/d1/migrations` and uses `wrangler.toml` for the database binding.
+```bash
+opennextjs-cloudflare build
+opennextjs-cloudflare deploy -- --keep-vars
+```
+
+Use `npm run cloudflare:deploy:domain` to deploy and attach the production domains in the same run:
+
+```bash
+npm run cloudflare:deploy:domain
+```
+
+This resolves to:
+
+```bash
+opennextjs-cloudflare deploy -- --keep-vars --domains growncookies.co.uk --domains www.growncookies.co.uk
+```
+
+Cloudflare custom domains cannot be created on a hostname with an existing CNAME record. If a domain attach fails during migration from Pages or another origin, remove the conflicting domain attachment or DNS record first, then rerun the domain deploy.
+
+## 3a) Apply D1 migrations with Wrangler
+
+This repo stores D1 migrations in `cloudflare/d1/migrations` and uses `wrangler.toml` for the database binding.
 
 Before applying migrations:
 
-1. Set the real D1 `database_id` in `wrangler.toml`.
-2. Confirm Wrangler auth with `npx wrangler whoami`.
-3. Run:
+1. Confirm Wrangler auth with `npx wrangler whoami`.
+2. Run:
 
 ```bash
 npm run cloudflare:d1:migrate
@@ -53,15 +81,16 @@ This resolves to:
 npx wrangler d1 migrations apply grown-cookies --remote
 ```
 
-## 3) What to do if deploy fails
+## 4) What to do if deploy fails
 
 - If you still see `Authentication error [code: 10000]`, re-check token scopes above.
 - Re-run:
 
 ```bash
 npx wrangler whoami
+npx wrangler secret bulk .env.local
 npm run cloudflare:build
-npx wrangler pages deploy .vercel/output/static --project-name grown-cookies --commit-dirty=true
+npm run cloudflare:deploy
 ```
 
 - If needed, switch to fresh user auth:
@@ -71,9 +100,11 @@ npx wrangler logout
 npx wrangler login
 ```
 
-## 4) Environment variables
+If the worker deploy succeeds but `npm run cloudflare:deploy:domain` fails, deploy without domains first, remove the conflicting custom-domain attachment or CNAME in Cloudflare, then rerun the domain deploy.
 
-Set required env values in your Cloudflare Pages project (not just `.env.local`) for runtime features:
+## 5) Environment variables
+
+Set required env values on the Cloudflare Worker for runtime features. The quickest local bootstrap is `npx wrangler secret bulk .env.local`, but you can also set them in the dashboard:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -83,15 +114,15 @@ Set required env values in your Cloudflare Pages project (not just `.env.local`)
 - `CLOUDFLARE_R2_BUCKET_NAME`
 - `CLOUDFLARE_R2_PUBLIC_BASE_URL`
 - `CLOUDFLARE_R2_JURISDICTION`
-- `CLOUDFLARE_R2_ACCESS_KEY_ID` (optional)
-- `CLOUDFLARE_R2_SECRET_ACCESS_KEY` (optional)
+- `CLOUDFLARE_R2_ACCESS_KEY_ID` (required for admin product image upload/delete)
+- `CLOUDFLARE_R2_SECRET_ACCESS_KEY` (required for admin product image upload/delete)
 - `STRIPE_SECRET_KEY`
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 
-## 5) Stripe webhook setup
+## 6) Stripe webhook setup
 
-After your Pages deployment is live, add a Stripe webhook endpoint that points to:
+After your worker deployment is live, add a Stripe webhook endpoint that points to:
 
 ```text
 https://<your-domain>/api/stripe/webhook

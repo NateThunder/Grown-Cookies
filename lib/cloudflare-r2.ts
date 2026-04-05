@@ -1,14 +1,4 @@
-import { createHash } from "node:crypto";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-
-type CloudflareTokenVerificationResponse = {
-  success: boolean;
-  errors?: Array<{ message?: string }>;
-  result?: {
-    id?: string;
-    status?: string;
-  };
-};
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
 type R2Credentials = {
   accessKeyId: string;
@@ -23,9 +13,7 @@ const MIME_EXTENSIONS: Record<string, string> = {
   "image/gif": ".gif",
 };
 
-let derivedCredentialsPromise: Promise<R2Credentials | null> | null = null;
-
-function getExplicitR2Credentials() {
+function getExplicitR2Credentials(): R2Credentials | null {
   const accessKeyId = process.env.CLOUDFLARE_R2_ACCESS_KEY_ID;
   const secretAccessKey = process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY;
 
@@ -34,63 +22,6 @@ function getExplicitR2Credentials() {
   }
 
   return { accessKeyId, secretAccessKey };
-}
-
-async function getDerivedR2Credentials() {
-  if (derivedCredentialsPromise) {
-    return derivedCredentialsPromise;
-  }
-
-  const apiToken = process.env.CLOUDFLARE_API_TOKEN;
-
-  if (!apiToken) {
-    return null;
-  }
-
-  derivedCredentialsPromise = (async () => {
-    const response = await fetch(
-      "https://api.cloudflare.com/client/v4/user/tokens/verify",
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${apiToken}`,
-        },
-        cache: "no-store",
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(
-        `Cloudflare token verification failed with ${response.status}.`,
-      );
-    }
-
-    const payload =
-      (await response.json()) as CloudflareTokenVerificationResponse;
-
-    if (!payload.success || !payload.result?.id) {
-      const message =
-        payload.errors?.map((error) => error.message).filter(Boolean).join(", ") ||
-        "Cloudflare token verification failed.";
-      throw new Error(message);
-    }
-
-    return {
-      accessKeyId: payload.result.id,
-      secretAccessKey: createHash("sha256").update(apiToken).digest("hex"),
-    };
-  })();
-
-  try {
-    return await derivedCredentialsPromise;
-  } catch (error) {
-    derivedCredentialsPromise = null;
-    throw error;
-  }
-}
-
-async function getR2Credentials() {
-  return getExplicitR2Credentials() ?? getDerivedR2Credentials();
 }
 
 function getR2Endpoint() {
@@ -116,16 +47,18 @@ export function hasCloudflareR2UploadConfig() {
   return Boolean(
     process.env.CLOUDFLARE_ACCOUNT_ID &&
       process.env.CLOUDFLARE_R2_BUCKET_NAME &&
-      (getExplicitR2Credentials() || process.env.CLOUDFLARE_API_TOKEN),
+      getExplicitR2Credentials(),
   );
 }
 
 async function getR2Client() {
-  const credentials = await getR2Credentials();
+  const credentials = getExplicitR2Credentials();
   const endpoint = getR2Endpoint();
 
   if (!credentials || !endpoint) {
-    throw new Error("Cloudflare R2 upload credentials are not configured.");
+    throw new Error(
+      "Cloudflare R2 upload credentials are not configured. Set CLOUDFLARE_R2_ACCESS_KEY_ID and CLOUDFLARE_R2_SECRET_ACCESS_KEY.",
+    );
   }
 
   return new S3Client({
@@ -186,4 +119,27 @@ export async function uploadProductImageToR2(slug: string, file: File) {
   );
 
   return { key };
+}
+
+export async function deleteProductImageFromR2(key: string) {
+  const bucketName = process.env.CLOUDFLARE_R2_BUCKET_NAME;
+
+  if (!bucketName) {
+    throw new Error("Cloudflare R2 bucket is not configured.");
+  }
+
+  const normalizedKey = key.trim();
+
+  if (!normalizedKey) {
+    return;
+  }
+
+  const client = await getR2Client();
+
+  await client.send(
+    new DeleteObjectCommand({
+      Bucket: bucketName,
+      Key: normalizedKey,
+    }),
+  );
 }

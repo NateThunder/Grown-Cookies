@@ -98,6 +98,10 @@
   color: #fff8f2;
 }
 
+.sidebarTopRow {
+  display: contents;
+}
+
 .brand {
   display: grid;
   gap: 0.35rem;
@@ -122,21 +126,15 @@
   text-transform: uppercase;
 }
 
-.navSection,
-.sidebarCard {
-  padding: 1.25rem;
-  border-radius: 1.5rem;
-  border: 1px solid rgba(255, 237, 222, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-}
-
 .sidebarNav {
   display: grid;
   gap: 0.75rem;
 }
 
-.navLabel,
-.sidebarEyebrow,
+.sidebarNavOpen {
+  display: grid;
+}
+
 .eyebrow,
 .tableEyebrow,
 .modalEyebrow {
@@ -146,17 +144,6 @@
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-}
-
-.navLabel,
-.sidebarEyebrow {
-  color: rgba(255, 240, 227, 0.65);
-}
-
-.navList {
-  display: grid;
-  gap: 0.55rem;
-  margin-top: 1rem;
 }
 
 .navItem,
@@ -179,53 +166,18 @@
   border-color: rgba(255, 221, 184, 0.28);
 }
 
-.navHint,
-.sidebarCopy,
-.featuredItem small {
-  margin: 0.8rem 0 0;
-  color: rgba(255, 240, 227, 0.74);
-  line-height: 1.6;
-}
-
 .sidebarNav .navItem,
 .sidebarNav .navItemActive {
   min-height: 3.9rem;
 }
 
-.sidebarCard h2 {
-  margin: 0.45rem 0 0;
-  font-family: var(--font-fraunces), Georgia, serif;
-  font-size: 1.55rem;
-  color: #fffaf5;
-}
-
-.featuredList {
-  display: grid;
-  gap: 0.85rem;
-  margin-top: 1rem;
-}
-
-.featuredItem {
-  display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr);
-  gap: 0.8rem;
-  align-items: center;
-}
-
-.featuredItem span {
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 999px;
-  background: rgba(255, 221, 184, 0.14);
-  color: #fff5eb;
-  font-weight: 700;
-}
-
-.featuredItem strong {
-  display: block;
-  color: #fffaf5;
+.mobileMenuButton {
+  display: none;
+  border: 1px solid rgba(255, 237, 222, 0.18);
+  border-radius: 1.35rem;
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff8f2;
+  cursor: pointer;
 }
 
 .content {
@@ -681,6 +633,16 @@
   color: #1f5f70;
 }
 
+.statusVisible {
+  background: rgba(45, 128, 85, 0.12);
+  color: #226748;
+}
+
+.statusHidden {
+  background: rgba(74, 63, 69, 0.12);
+  color: #6b5460;
+}
+
 .statusFailed {
   background: rgba(183, 62, 81, 0.12);
   color: #9d2941;
@@ -792,6 +754,49 @@
 .reorderButton:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.visibilityButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.5rem;
+  padding: 0.72rem 0.95rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-weight: 700;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.visibilityButton:focus-visible {
+  outline: none;
+}
+
+.hideButton {
+  border-color: rgba(183, 62, 81, 0.22);
+  background: rgba(183, 62, 81, 0.12);
+  color: #9d2941;
+}
+
+.hideButton:hover,
+.hideButton:focus-visible {
+  border-color: rgba(183, 62, 81, 0.34);
+  background: rgba(183, 62, 81, 0.18);
+}
+
+.showButton {
+  border-color: rgba(45, 128, 85, 0.22);
+  background: rgba(45, 128, 85, 0.12);
+  color: #226748;
+}
+
+.showButton:hover,
+.showButton:focus-visible {
+  border-color: rgba(45, 128, 85, 0.34);
+  background: rgba(45, 128, 85, 0.18);
 }
 
 .editButton {
@@ -937,6 +942,58 @@
 
   .sidebar {
     grid-template-columns: 1fr;
+    gap: 0.8rem;
+    min-height: auto;
+  }
+
+  .sidebarTopRow {
+    display: flex;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .brand {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .mobileMenuButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.55rem;
+    min-width: 3.55rem;
+    min-height: 100%;
+    padding: 0;
+    box-shadow: 0 18px 30px rgba(17, 6, 13, 0.16);
+    transition:
+      transform 160ms ease,
+      border-color 160ms ease,
+      background-color 160ms ease;
+  }
+
+  .mobileMenuButton:hover,
+  .mobileMenuButton:focus-visible {
+    outline: none;
+    transform: translateY(-1px);
+    border-color: rgba(255, 237, 222, 0.32);
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .mobileMenuButton svg {
+    width: 1.3rem;
+    height: 1.3rem;
+  }
+
+  .sidebarNav {
+    display: none;
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .sidebarNavOpen {
+    display: grid;
+    animation: adminNavReveal 180ms ease;
   }
 
   .metricRow {
@@ -971,6 +1028,18 @@
   .modalBody {
     flex: 1 1 auto;
     min-height: 0;
+  }
+}
+
+@keyframes adminNavReveal {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

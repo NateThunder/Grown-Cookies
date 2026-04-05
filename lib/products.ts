@@ -8,6 +8,7 @@ type ProductBase = {
   price: string;
   description: string;
   featured?: boolean;
+  hidden?: boolean;
   sortOrder?: number;
   createdAt?: string;
   relatedSlugs?: string[];
@@ -33,6 +34,7 @@ type ProductRow = {
   image_key: string | null;
   alt_text: string | null;
   is_gift_card: number;
+  hidden: number;
   featured_position: number | null;
   sort_order: number | null;
   created_at: string | null;
@@ -40,12 +42,33 @@ type ProductRow = {
 };
 
 let featuredSchemaEnsured = false;
+type ColumnInfo = {
+  name: string;
+};
 const PRODUCT_CACHE_TAG = "products";
 const PRODUCT_CACHE_REVALIDATE_SECONDS = 300;
 
 async function ensureFeaturedProductsSchema() {
   if (featuredSchemaEnsured || !hasCloudflareD1Config()) {
     return;
+  }
+
+  const columns = await queryCloudflareD1<ColumnInfo>(
+    "PRAGMA table_info(products)",
+    [],
+    { cache: "no-store" },
+  );
+
+  if (!columns.some((column) => column.name === "hidden")) {
+    try {
+      await executeCloudflareD1(
+        "ALTER TABLE products ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0",
+      );
+    } catch (error) {
+      if (!(error instanceof Error) || !/duplicate column name/i.test(error.message)) {
+        throw error;
+      }
+    }
   }
 
   await executeCloudflareD1(
@@ -203,6 +226,7 @@ function mapStaticProduct(record: StaticProductRecord): ShopProduct {
     price: record.price,
     description: record.description,
     featured: record.featured,
+    hidden: record.hidden,
     sortOrder: record.sortOrder,
     createdAt: record.createdAt,
     relatedSlugs: record.relatedSlugs,
@@ -219,6 +243,7 @@ function mapRowToProduct(row: ProductRow): ShopProduct {
     price: row.price,
     description: row.description,
     featured: row.featured_position !== null,
+    hidden: Boolean(row.hidden),
     sortOrder: row.featured_position ?? row.sort_order ?? 0,
     createdAt: row.created_at ?? undefined,
     relatedSlugs: normalizeRelatedSlugs(row.related_slugs),
@@ -255,6 +280,7 @@ async function fetchProductsFromD1() {
        p.price,
        p.description,
        p.is_gift_card,
+       p.hidden,
        fp.position AS featured_position,
        p.sort_order,
        p.created_at,
@@ -267,6 +293,7 @@ async function fetchProductsFromD1() {
      LEFT JOIN product_images pi
        ON pi.product_id = p.id
       AND pi.is_primary = 1
+     WHERE p.hidden = 0
      ORDER BY p.sort_order ASC, p.name ASC`,
   );
 
@@ -293,6 +320,7 @@ const getFeaturedProductsCached = unstable_cache(
          p.price,
          p.description,
          p.is_gift_card,
+         p.hidden,
          fp.position AS featured_position,
          p.sort_order,
          p.created_at,
@@ -305,6 +333,7 @@ const getFeaturedProductsCached = unstable_cache(
        LEFT JOIN product_images pi
          ON pi.product_id = p.id
         AND pi.is_primary = 1
+       WHERE p.hidden = 0
        ORDER BY fp.position ASC, p.name ASC
        LIMIT ?`,
       [count],

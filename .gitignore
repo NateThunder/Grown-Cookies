@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.open-next/
 /out/
 
 # production
@@ -33,6 +34,7 @@ yarn-error.log*
 # env files
 .env*
 .env.example
+.dev.vars*
 
 # vercel
 .vercel

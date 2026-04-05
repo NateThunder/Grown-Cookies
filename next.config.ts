@@ -1,4 +1,7 @@
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 import type { NextConfig } from "next";
+
+void initOpenNextCloudflareForDev();
 
 type RemotePattern = NonNullable<NonNullable<NextConfig["images"]>["remotePatterns"]>[number];
 

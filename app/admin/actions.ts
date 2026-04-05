@@ -4,13 +4,17 @@ import { cookies } from "next/headers";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
+import { buildAdminPath } from "./admin-ui";
 import {
   createAdminProduct,
+  deleteAdminProduct,
   moveFeaturedProductPosition,
+  setAdminProductHidden,
   updateAdminProduct,
 } from "@/lib/product-admin";
 import { markAdminOrderDelivered } from "@/lib/admin-orders";
 import {
+  getCookieOfMonthSectionSetting,
   updateBrandStorySectionSetting,
   updateCookieOfMonthProductSlug,
   updateCookieOfMonthSectionSetting,
@@ -104,35 +108,17 @@ function redirectToAdmin({
   error?: string;
   returnView?: string;
 }) {
-  const searchParams = new URLSearchParams();
-
-  if (returnView === "featured") {
-    searchParams.set("view", "featured");
-  }
-
-  if (productSlug) {
-    searchParams.set("product", productSlug);
-  }
-
-  if (createNew) {
-    searchParams.set("new", "1");
-  }
-
-  if (notice) {
-    searchParams.set("notice", notice);
-  }
-
-  if (warning) {
-    searchParams.set("warning", warning);
-  }
-
-  if (error) {
-    searchParams.set("error", error);
-  }
-
   const adminPath = getAdminReturnPath(returnPath);
-
-  redirect(`${adminPath}${searchParams.size ? `?${searchParams.toString()}` : ""}`);
+  redirect(
+    buildAdminPath(adminPath, {
+      view: returnView === "featured" ? "featured" : undefined,
+      productSlug,
+      createNew,
+      notice,
+      warning,
+      error,
+    }),
+  );
 }
 
 async function requireAdminSession() {
@@ -196,7 +182,7 @@ export async function adminLoginAction(formData: FormData) {
     return;
   }
 
-  const user = await getSupabaseUserFromAccessToken(result.accessToken);
+  const user = result.user ?? (await getSupabaseUserFromAccessToken(result.accessToken));
 
   if (!isAdminUser(user)) {
     const failedState = await recordAdminLoginFailure(email);
@@ -222,10 +208,12 @@ export async function adminLoginAction(formData: FormData) {
     maxAge: cookieConfig.maxAge,
   });
 
-  try {
-    await clearAdminLoginFailures(email);
-  } catch {
-    // Successful admin logins should not fail if throttle-state cleanup is unavailable.
+  if (throttleState.failureCount > 0) {
+    try {
+      await clearAdminLoginFailures(email);
+    } catch {
+      // Successful admin logins should not fail if throttle-state cleanup is unavailable.
+    }
   }
 
   redirectToAdmin({
@@ -437,9 +425,8 @@ export async function createProductAction(formData: FormData) {
       sortOrder: getNumberField(formData, "sortOrder"),
       imageFile: getImageFile(formData, "image"),
       isGiftCard: formData.get("isGiftCard") === "on",
+      hidden: formData.get("hidden") === "on",
     });
-
-    revalidateTag("products", "max");
 
     redirectToAdmin({
       productSlug: result.slug,
@@ -484,9 +471,8 @@ export async function updateProductAction(formData: FormData) {
       sortOrder: getNumberField(formData, "sortOrder"),
       imageFile: getImageFile(formData, "image"),
       isGiftCard: formData.get("isGiftCard") === "on",
+      hidden: formData.get("hidden") === "on",
     });
-
-    revalidateTag("products", "max");
 
     redirectToAdmin({
       productSlug: result.slug,
@@ -524,7 +510,6 @@ export async function moveFeaturedProductAction(formData: FormData) {
     }
 
     await moveFeaturedProductPosition(productSlug, direction);
-    revalidateTag("products", "max");
 
     redirectToAdmin({
       returnView: "featured",
@@ -540,6 +525,98 @@ export async function moveFeaturedProductAction(formData: FormData) {
         error instanceof Error
           ? error.message
           : "The featured product could not be moved.",
+    });
+  }
+}
+
+export async function deleteProductAction(formData: FormData) {
+  try {
+    const productId = Number.parseInt(getTextField(formData, "productId"), 10);
+
+    if (!Number.isFinite(productId)) {
+      throw new Error("The product record could not be found.");
+    }
+
+    const returnView = getTextField(formData, "returnView");
+    await requireAdminSession();
+
+    const productSlug = getTextField(formData, "productSlug").trim();
+    const cookieOfMonthSetting = await getCookieOfMonthSectionSetting();
+
+    const result = await deleteAdminProduct(productId);
+
+    if (productSlug && cookieOfMonthSetting.productSlug === productSlug) {
+      await updateCookieOfMonthProductSlug(undefined);
+      revalidateTag("store-settings-homepage", "max");
+      revalidatePath("/");
+      revalidatePath("/admin/homepage");
+    }
+
+    redirectToAdmin({
+      notice: "Product deleted.",
+      warning: result.imageWarning,
+      returnView,
+    });
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    const productSlug = getTextField(formData, "productSlug") || undefined;
+
+    redirectToAdmin({
+      productSlug,
+      error:
+        error instanceof Error
+          ? error.message
+          : "The product could not be deleted.",
+      returnView: getTextField(formData, "returnView"),
+    });
+  }
+}
+
+export async function toggleProductHiddenAction(formData: FormData) {
+  try {
+    const productId = Number.parseInt(getTextField(formData, "productId"), 10);
+
+    if (!Number.isFinite(productId)) {
+      throw new Error("The product record could not be found.");
+    }
+
+    const returnView = getTextField(formData, "returnView");
+    await requireAdminSession();
+
+    const productSlug = getTextField(formData, "productSlug").trim();
+    const hidden = getTextField(formData, "hidden") === "1";
+    const cookieOfMonthSetting = await getCookieOfMonthSectionSetting();
+
+    await setAdminProductHidden(productId, hidden);
+
+    if (hidden && productSlug && cookieOfMonthSetting.productSlug === productSlug) {
+      await updateCookieOfMonthProductSlug(undefined);
+      revalidateTag("store-settings-homepage", "max");
+      revalidatePath("/");
+      revalidatePath("/admin/homepage");
+    }
+
+    redirectToAdmin({
+      notice: hidden ? "Product hidden." : "Product shown.",
+      returnView,
+    });
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    const productSlug = getTextField(formData, "productSlug") || undefined;
+
+    redirectToAdmin({
+      productSlug,
+      error:
+        error instanceof Error
+          ? error.message
+          : "The product visibility could not be updated.",
+      returnView: getTextField(formData, "returnView"),
     });
   }
 }

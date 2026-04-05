@@ -18,6 +18,8 @@ const initialStatus: Status = {
   message: "",
 };
 
+const DEFAULT_SITE_URL = "https://growncookies.co.uk";
+
 function getCanonicalAccountRedirectUrl() {
   const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, "");
 
@@ -25,11 +27,7 @@ function getCanonicalAccountRedirectUrl() {
     return `${configuredSiteUrl}/account`;
   }
 
-  if (typeof window === "undefined") {
-    return undefined;
-  }
-
-  return `${window.location.origin}/account`;
+  return `${DEFAULT_SITE_URL}/account`;
 }
 
 export default function AccountSignupForm() {

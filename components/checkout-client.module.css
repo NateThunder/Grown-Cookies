@@ -544,9 +544,17 @@
 }
 
 .expressCheckoutWrap,
-.expressCheckoutWrapHidden {
+.expressCheckoutWrapHidden,
+.expressCheckoutProbe {
   display: grid;
   gap: 14px;
+}
+
+.expressCheckoutProbe {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .expressCheckoutWrapHidden {

@@ -1,5 +1,115 @@
 # Project History
 
+## 2026-04-05
+- [done] Created the `payment-gate` branch and prepared the current checkout/admin worktree for push with the `edit payment gate` commit.
+- files: HISTORY.md
+- status: completed
+
+## 2026-04-05
+- [done] Restored a hard client-side timeout for checkout payment confirmation so stalled Stripe confirmation requests no longer leave the pay button stuck on Processing indefinitely.
+- files: HISTORY.md, components/checkout-client.tsx
+- status: completed
+
+## 2026-04-05
+- [done] Disabled active live Stripe keys in the local env and replaced them with empty test-mode placeholders so local checkout testing does not run against production by accident.
+- files: HISTORY.md, .env.local
+- status: completed
+
+## 2026-04-05
+- [done] Fixed the Stripe confirmation-token save-card flow by removing top-level setup-future-usage flags and moving card future-use saving onto per-method PaymentIntent options.
+- files: HISTORY.md, app/api/stripe/confirm-payment/route.ts, components/checkout-client.tsx
+- status: completed
+
+## 2026-04-04
+- [done] Reduced checkout processing stalls by keeping unsaved signed-in card payments off the authenticated saved-card path and adding client-side timeouts for slow Stripe/payment confirmation steps.
+- files: HISTORY.md, app/api/stripe/confirm-payment/route.ts, components/checkout-client.tsx
+- status: completed
+
+## 2026-04-04
+- [done] Fixed Stripe express checkout shipping resolution so Google Pay receives the fixed shipping option and no longer stalls with a pending shipping timeout.
+- files: HISTORY.md, components/checkout-client.tsx
+- status: completed
+
+## 2026-04-04
+- [done] Reduced admin product save revalidation overhead and added explicit submit-pending states so create/save/delete no longer appear stuck while product requests are in flight.
+- files: HISTORY.md, app/admin/actions.ts, components/admin-delete-button.tsx, components/admin-product-form.module.css, components/admin-product-form.tsx, components/admin-product-submit.tsx, lib/product-admin.ts
+- status: completed
+
+## 2026-04-04
+- [done] Fixed the admin create-product insert so new products save successfully instead of failing on the missing sort-order SQL placeholder.
+- files: HISTORY.md, lib/product-admin.ts
+- status: completed
+
+## 2026-04-04
+- [done] Added placeholder R2 access key env entries locally so admin image upload credentials can be filled in for backend CRUD testing.
+- files: HISTORY.md, .env.local
+- status: completed
+
+## 2026-04-04
+- [done] Fixed admin product image upload configuration checks so CRUD image uploads require real Cloudflare R2 S3 credentials instead of incorrectly treating the general API token as valid storage auth.
+- files: HISTORY.md, lib/cloudflare-r2.ts, components/admin-image-input.tsx, .env.example, cloudflare-upload.md
+- status: completed
+
+## 2026-04-04
+- [done] Styled the admin product visibility action so Hide appears red and Show appears green.
+- files: HISTORY.md, app/admin/page.tsx, app/admin/page.module.css
+- status: completed
+
+## 2026-04-04
+- [done] Stopped the admin product hide/show action from reopening the product editor drawer after toggling visibility.
+- files: HISTORY.md, app/admin/actions.ts
+- status: completed
+
+## 2026-04-04
+- [done] Added admin product hide/show controls with a persisted hidden flag so hidden products stay editable in admin but are removed from storefront and homepage product queries.
+- files: HISTORY.md, app/admin/actions.ts, app/admin/page.tsx, app/admin/page.module.css, components/admin-product-form.tsx, lib/product-admin.ts, lib/products.ts, cloudflare/d1/schema.sql, cloudflare/d1/migrations/0006_product_hidden_flag.sql
+- status: completed
+
+## 2026-04-04
+- [done] Fixed customer auth redirect fallbacks so account sign-in/sign-up resolve to the canonical `growncookies.co.uk` origin instead of localhost when the public site URL is missing.
+- files: HISTORY.md, components/account-signup-form.tsx, .env.local, README.md
+- status: completed
+
+## 2026-04-04
+- [done] Added admin product deletion so products can be removed from the CRUD editor, clear homepage Cookie of the Month selection when needed, and clean up stored product images from R2.
+- files: HISTORY.md, app/admin/actions.ts, components/admin-product-form.tsx, components/admin-product-form.module.css, lib/cloudflare-r2.ts, lib/product-admin.ts
+- status: completed
+
+## 2026-04-04
+- [done] Fixed the OpenNext Cloudflare Windows Turbopack chunk inlining patch so server SSR chunks are bundled correctly, then rebuilt and redeployed the Worker custom domains to restore the live site.
+- files: HISTORY.md, node_modules/@opennextjs/cloudflare/dist/cli/build/patches/plugins/turbopack.js
+- status: completed
+
+## 2026-04-04
+- [done] Deployed the latest OpenNext worker build to Cloudflare, synced worker secrets, and investigated custom-domain attachment blockers on `growncookies.co.uk` and `www.growncookies.co.uk`.
+- files: HISTORY.md, node_modules/@opennextjs/aws/dist/build/copyTracedFiles.js, node_modules/wrangler/wrangler-dist/cli.js
+- status: in_progress
+
+## 2026-04-04
+- [done] Switched app-side Cloudflare D1 access to prefer the native Worker `DB` binding, initialized OpenNext Cloudflare dev context in Next config, and ignored generated `.open-next` output in linting.
+- files: .env.example, cloudflare-env.d.ts, eslint.config.mjs, lib/cloudflare-d1.ts, next.config.ts, HISTORY.md
+- status: completed
+
+## 2026-04-04
+- [done] Migrated Cloudflare deployment from deprecated Pages `next-on-pages` to the OpenNext Workers adapter, added Worker deploy/domain scripts, and documented secret/bootstrap and WSL build requirements.
+- files: .gitignore, README.md, cloudflare-upload.md, open-next.config.ts, package-lock.json, package.json, wrangler.toml, HISTORY.md
+- status: completed
+
+## 2026-03-30
+- [done] Refactored the admin routes into a shared shell/context layer, centralized admin nav/query helpers, and removed duplicated admin route chrome.
+- files: app/admin/actions.ts, app/admin/admin-page-context.ts, app/admin/admin-ui.ts, app/admin/delivery/page.tsx, app/admin/homepage/page.tsx, app/admin/orders/page.tsx, app/admin/page.module.css, app/admin/page.tsx, components/admin-product-form.tsx, components/admin-shell.tsx, components/admin-sidebar.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-30
+- [done] Replaced the mobile admin section pills with a right-aligned hamburger toggle and shared the admin sidebar across all admin routes.
+- files: app/admin/page.tsx, app/admin/homepage/page.tsx, app/admin/delivery/page.tsx, app/admin/orders/page.tsx, app/admin/page.module.css, components/admin-sidebar.tsx, HISTORY.md
+- status: completed
+
+## 2026-03-30
+- [done] Reduced admin sign-in latency by reusing Supabase login payload user data, skipping empty throttle cleanup, replacing the main admin page's full orders load with a lightweight order count query, and moving admin/schema reads to fast query-first paths.
+- files: app/admin/actions.ts, app/admin/page.tsx, lib/admin-login-throttle.ts, lib/admin-orders.ts, lib/product-admin.ts, lib/store-settings.ts, lib/supabase/admin-auth.ts, HISTORY.md
+- status: completed
+
 ## 2026-03-30
 - [done] Switched customer auth redirects to prefer a canonical public site URL instead of browser-origin localhost fallbacks.
 - files: components/account-signup-form.tsx, .env.example, README.md, HISTORY.md
@@ -962,3 +1072,17 @@ This file tracks work completed in the repository for easy machine-readable revi
 - files: app/api/stripe/confirm-payment/route.ts, lib/stripe-checkout.ts, HISTORY.md
 - status: completed
 
+## 2026-04-04
+- [done] Replaced the checkout confirmation hard timeout with a soft in-progress notice so slow Stripe confirmations keep running instead of surfacing a false failure after 25 seconds.
+- files: HISTORY.md, components/checkout-client.tsx
+- status: completed
+
+## 2026-04-05
+- [done] Reduced checkout confirmation latency by caching the D1 binding, parallelizing quote dependencies, and batching checkout-attempt writes instead of issuing multiple D1 calls per payment submit.
+- files: HISTORY.md, lib/cloudflare-d1.ts, lib/checkout-quote.ts, lib/checkout-attempt-throttle.ts
+- status: completed
+
+## 2026-04-05
+- [done] Refactored checkout payment confirmation with correlated client/server timing logs, safer Payment Element selection handling, and express wallet readiness state so stalls are diagnosable and express buttons can initialize without a display-none wrapper.
+- files: HISTORY.md, components/checkout-client.tsx, components/checkout-client.module.css, app/api/stripe/confirm-payment/route.ts
+- status: completed

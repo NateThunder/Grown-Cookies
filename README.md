@@ -39,6 +39,8 @@ npm run build
 npm run lint
 npm run cloudflare:build
 npm run cloudflare:deploy
+npm run cloudflare:deploy:domain
+npm run cloudflare:preview
 npm run cloudflare:d1:migrate
 ```
 
@@ -56,7 +58,7 @@ Do not commit `.env.local` or real credentials.
 
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` is expected to be public in the browser bundle for Supabase Auth. This app uses Supabase for authentication only; storefront and admin data access in this repo is handled through server-side routes and Cloudflare services, not direct browser table queries.
 
-Set `NEXT_PUBLIC_SITE_URL` to the canonical public origin used by customer auth redirects, for example `https://growncookies.netlify.app`. The Google OAuth flow and Supabase email confirmation links now prefer this value over `window.location.origin`, which prevents production auth from bouncing back to `localhost` when Supabase redirect settings fall back to the project site URL.
+Set `NEXT_PUBLIC_SITE_URL` to the canonical public origin used by customer auth redirects, for example `https://growncookies.co.uk`. The Google OAuth flow and Supabase email confirmation links now prefer this value over browser-origin fallbacks, which prevents production auth from bouncing back to `localhost` when Supabase redirect settings fall back to the project site URL.
 
 Supabase Row Level Security still needs to be verified in the Supabase project itself. This repository does not contain repo-managed Supabase policy files, so confirm in the Supabase dashboard or SQL editor that `anon` and non-admin authenticated users cannot read or mutate any admin-only data.
 
@@ -78,18 +80,28 @@ where email = 'orders@growncookies.co.uk';
 
 ## Deployment
 
-Cloudflare Pages deployment is wired through the project scripts:
+Cloudflare deployment now targets Workers via the OpenNext Cloudflare adapter:
 
 ```bash
 npm run cloudflare:deploy
 ```
 
-Before deploying, verify Wrangler auth and token scope requirements in [`cloudflare-upload.md`](cloudflare-upload.md). That guide is the source of truth for authentication, Pages deploy commands, environment variables, and Stripe webhook setup.
+To deploy the production worker and attach the live domains in one command, use:
+
+```bash
+npm run cloudflare:deploy:domain
+```
+
+Before the first worker deploy, upload runtime secrets from your local environment:
+
+```bash
+npx wrangler secret bulk .env.local
+```
+
+Before deploying, verify Wrangler auth and token scope requirements in [`cloudflare-upload.md`](cloudflare-upload.md). That guide is the source of truth for authentication, Workers deploy commands, custom-domain attachment, environment variables, and Stripe webhook setup.
 
 For D1 schema changes, this repo now includes `wrangler.toml` and migrations in `cloudflare/d1/migrations`. After authenticating with Cloudflare, apply the remote migration with:
 
 ```bash
 npm run cloudflare:d1:migrate
 ```
-
-Replace the placeholder `database_id` in `wrangler.toml` with your real D1 database ID before running migrations.

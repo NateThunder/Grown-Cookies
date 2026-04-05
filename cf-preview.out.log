@@ -1,0 +1,120 @@
+
+> grown-cookies@0.1.0 cloudflare:preview
+> npm run cloudflare:build && opennextjs-cloudflare preview
+
+
+> grown-cookies@0.1.0 cloudflare:build
+> opennextjs-cloudflare build
+
+
+┌─────────────────────────────┐
+│ OpenNext — Cloudflare build │
+└─────────────────────────────┘
+
+App directory: E:\Websites\grown-cookies
+Next.js version : 16.2.1
+@opennextjs/cloudflare version: 1.18.0
+@opennextjs/aws version: 3.9.16
+
+┌─────────────────────────────────┐
+│ OpenNext — Building Next.js app │
+└─────────────────────────────────┘
+
+
+> grown-cookies@0.1.0 build
+> next build
+
+▲ Next.js 16.2.1 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  · serverActions
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 3.9s
+  Running TypeScript ...
+  Finished TypeScript in 5.3s ...
+  Collecting page data using 15 workers ...
+  Generating static pages using 15 workers (0/30) ...
+  Generating static pages using 15 workers (7/30) 
+  Generating static pages using 15 workers (14/30) 
+  Generating static pages using 15 workers (22/30) 
+✓ Generating static pages using 15 workers (30/30) in 555ms
+  Finalizing page optimization ...
+
+Route (app)                                    Revalidate  Expire
+┌ ○ /                                                  5m      1y
+├ ○ /_not-found
+├ ○ /account                                           5m      1y
+├ ƒ /admin
+├ ƒ /admin/delivery
+├ ƒ /admin/homepage
+├ ƒ /admin/orders
+├ ƒ /api/account/addresses
+├ ƒ /api/account/checkout
+├ ƒ /api/account/orders
+├ ƒ /api/account/payment-methods
+├ ƒ /api/account/payment-methods/setup-intent
+├ ƒ /api/account/profile
+├ ƒ /api/basket/quote
+├ ƒ /api/stripe/confirm-payment
+├ ƒ /api/stripe/webhook
+├ ○ /cart                                              5m      1y
+├ ƒ /checkout
+├ ○ /checkout/cancel
+├ ƒ /checkout/success
+├ ○ /contact                                           5m      1y
+├ ○ /data-deletion                                     5m      1y
+├ ○ /faqs                                              5m      1y
+├ ○ /privacy                                           5m      1y
+├ ƒ /shop
+├ ● /shop/[slug]                                       5m      1y
+│ ├ /shop/dark-choc-maldon-salt                        5m      1y
+│ ├ /shop/double-chocolate-hazelnut                    5m      1y
+│ ├ /shop/gift-card                                    5m      1y
+│ └ [+5 more paths]
+└ ○ /terms
+
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+
+
+┌──────────────────────────────┐
+│ OpenNext — Generating bundle │
+└──────────────────────────────┘
+
+Bundling middleware function...
+Bundling static assets...
+Bundling cache assets...
+Building server function: default...
+Applying code patches: 3.500s
+# copyPackageTemplateFiles
+[35m⚙️ Bundling the OpenNext server...
+[0m
+[35mWorker saved in `.open-next\worker.js` 🚀
+[0m
+OpenNext build complete.
+
+┌───────────────────────────────┐
+│ OpenNext — Cloudflare preview │
+└───────────────────────────────┘
+
+Incremental cache does not need populating
+Tag cache does not need populating
+
+ ⛅️ wrangler 4.80.0
+───────────────────
+Your Worker has access to the following bindings:
+Binding                         Resource         Mode
+env.DB (grown-cookies)          D1 Database      local
+env.ASSETS                      Assets           local
+
+⎔ Starting local server...
+[wrangler:info] Ready on http://127.0.0.1:8787
+[wrangler:info] GET / 200 OK (614ms)
+⎔ Reloading local server...
+
+[32mIf you think this is a bug then please create an issue at https://github.com/cloudflare/workers-sdk/issues/new/choose[0m
+? Would you like to report this error to Cloudflare? Wrangler's output and the error details will be shared with the Wrangler team to help us diagnose and fix the issue.
+🤖 Using fallback value in non-interactive context: no
