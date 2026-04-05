@@ -1,8 +1,17 @@
+"$schema" = "./node_modules/wrangler/config-schema.json"
+
 name = "grown-cookies"
-compatibility_date = "2026-03-27"
+main = ".open-next/worker.js"
+account_id = "6576c9273dcfbd71e207877e61dff475"
+compatibility_date = "2026-04-04"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "grown-cookies"
-database_id = "replace-with-your-cloudflare-d1-database-id"
+database_id = "8fe24791-e39c-42ea-afd0-f4ec4a60b56c"
 migrations_dir = "cloudflare/d1/migrations"

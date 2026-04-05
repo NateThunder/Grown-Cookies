@@ -10,6 +10,7 @@ type SupabasePublicConfig = {
 
 type SupabasePasswordAuthSuccess = {
   accessToken: string;
+  user: User | null;
 };
 
 type SupabasePasswordAuthError = {
@@ -134,7 +135,10 @@ export async function signInToSupabaseWithPassword({
     };
   }
 
-  const payload = await response.json().catch(() => ({}));
+  const payload = (await response.json().catch(() => ({}))) as {
+    access_token?: unknown;
+    user?: unknown;
+  };
 
   if (!response.ok) {
     return {
@@ -142,7 +146,7 @@ export async function signInToSupabaseWithPassword({
     };
   }
 
-  if (!payload || typeof payload.access_token !== "string" || !payload.access_token) {
+  if (typeof payload.access_token !== "string" || !payload.access_token) {
     return {
       errorMessage: "Supabase did not return an access token.",
     };
@@ -150,6 +154,10 @@ export async function signInToSupabaseWithPassword({
 
   return {
     accessToken: payload.access_token,
+    user:
+      payload.user && typeof payload.user === "object"
+        ? (payload.user as User)
+        : null,
   };
 }
 

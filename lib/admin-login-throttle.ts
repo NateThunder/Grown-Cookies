@@ -273,6 +273,10 @@ async function getD1ScopeEvaluation(identifier: IdentifierScope) {
   });
 }
 
+function isMissingThrottleSchemaError(error: unknown) {
+  return error instanceof Error && /no such table/i.test(error.message);
+}
+
 function getFallbackKey(identifier: IdentifierScope) {
   return `${identifier.scope}:${identifier.identifierHash}`;
 }
@@ -306,10 +310,19 @@ export async function getAdminLoginThrottleState(email: string): Promise<AdminLo
 
   if (hasCloudflareD1Config()) {
     try {
-      await ensureAdminLoginThrottleSchema();
       const states = await Promise.all(identifiers.map((identifier) => getD1ScopeEvaluation(identifier)));
       return summarizeScopeEvaluations(states);
-    } catch {
+    } catch (error) {
+      if (isMissingThrottleSchemaError(error)) {
+        try {
+          await ensureAdminLoginThrottleSchema();
+          const states = await Promise.all(identifiers.map((identifier) => getD1ScopeEvaluation(identifier)));
+          return summarizeScopeEvaluations(states);
+        } catch {
+          // Fall back to local process memory so admin access is not fully blocked by D1 availability.
+        }
+      }
+
       // Fall back to local process memory so admin access is not fully blocked by D1 availability.
     }
   }

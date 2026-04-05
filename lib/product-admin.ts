@@ -1,6 +1,6 @@
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { executeCloudflareD1, hasCloudflareD1Config, queryCloudflareD1 } from "./cloudflare-d1";
-import { uploadProductImageToR2 } from "./cloudflare-r2";
+import { deleteProductImageFromR2, uploadProductImageToR2 } from "./cloudflare-r2";
 import { buildProductImageUrl } from "./product-image-url";
 
 type AdminProductRow = {
@@ -11,6 +11,8 @@ type AdminProductRow = {
   description: string;
   allergens: string | null;
   is_gift_card: number;
+  hidden: number;
+  featured: number | null;
   sort_order: number | null;
   featured_position: number | null;
   created_at: string;
@@ -42,6 +44,7 @@ export type AdminProduct = {
   imageUrl?: string;
   imageAlt: string;
   isGiftCard: boolean;
+  hidden: boolean;
 };
 
 export type AdminProductInput = {
@@ -55,6 +58,7 @@ export type AdminProductInput = {
   sortOrder: number;
   imageFile?: File | null;
   isGiftCard?: boolean;
+  hidden?: boolean;
 };
 
 const ADMIN_PRODUCT_SELECT = `SELECT
@@ -65,6 +69,8 @@ const ADMIN_PRODUCT_SELECT = `SELECT
   p.description,
   p.allergens,
   p.is_gift_card,
+  p.hidden,
+  p.featured,
   p.sort_order,
   fp.position AS featured_position,
   p.created_at,
@@ -107,6 +113,18 @@ async function ensureAdminSchema() {
         try {
           await executeCloudflareD1(
             "ALTER TABLE products ADD COLUMN allergens TEXT NOT NULL DEFAULT ''",
+          );
+        } catch (error) {
+          if (!(error instanceof Error) || !/duplicate column name/i.test(error.message)) {
+            throw error;
+          }
+        }
+      }
+
+      if (!columns.some((column) => column.name === "hidden")) {
+        try {
+          await executeCloudflareD1(
+            "ALTER TABLE products ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0",
           );
         } catch (error) {
           if (!(error instanceof Error) || !/duplicate column name/i.test(error.message)) {
@@ -241,7 +259,7 @@ function mapRowToAdminProduct(row: AdminProductRow): AdminProduct {
     priceValue: parsePriceToValue(row.price),
     description: normalizedCopy.description,
     allergens: normalizedCopy.allergens,
-    featured: row.featured_position !== null,
+    featured: Boolean(row.featured),
     featuredPosition: row.featured_position ?? undefined,
     sortOrder: row.sort_order ?? 0,
     createdAt: row.created_at,
@@ -251,6 +269,7 @@ function mapRowToAdminProduct(row: AdminProductRow): AdminProduct {
     imageUrl: buildProductImageUrl(row.image_key),
     imageAlt: row.alt_text ?? `${row.name} product image`,
     isGiftCard: Boolean(row.is_gift_card),
+    hidden: Boolean(row.hidden),
   };
 }
 
@@ -262,6 +281,15 @@ function sortProducts(products: AdminProduct[]) {
 
     return left.name.localeCompare(right.name);
   });
+}
+
+async function queryAdminProductsRows() {
+  return queryCloudflareD1<AdminProductRow>(
+    `${ADMIN_PRODUCT_SELECT}
+     ORDER BY p.sort_order ASC, p.name ASC`,
+    [],
+    { cache: "no-store" },
+  );
 }
 
 async function getAdminProductById(productId: number) {
@@ -350,25 +378,24 @@ async function upsertPrimaryImage({
   return upload.key;
 }
 
-function revalidateProductRoutes(slug: string) {
+function revalidateProductData() {
   revalidateTag("products", "max");
-  revalidatePath("/");
-  revalidatePath("/shop");
-  revalidatePath(`/shop/${slug}`);
-  revalidatePath("/admin");
 }
 
 export async function getAdminProducts() {
-  await ensureAdminSchema();
+  try {
+    const products = sortProducts((await queryAdminProductsRows()).map(mapRowToAdminProduct));
 
-  const rows = await queryCloudflareD1<AdminProductRow>(
-    `${ADMIN_PRODUCT_SELECT}
-     ORDER BY p.sort_order ASC, p.name ASC`,
-    [],
-    { cache: "no-store" },
-  );
+    if (products.some((product) => product.featured && !product.featuredPosition)) {
+      await ensureAdminSchema();
+      return sortProducts((await queryAdminProductsRows()).map(mapRowToAdminProduct));
+    }
 
-  return sortProducts(rows.map(mapRowToAdminProduct));
+    return products;
+  } catch {
+    await ensureAdminSchema();
+    return sortProducts((await queryAdminProductsRows()).map(mapRowToAdminProduct));
+  }
 }
 
 export async function getNextProductSortOrder() {
@@ -465,9 +492,7 @@ export async function moveFeaturedProductPosition(
     [target.position, slug],
   );
 
-  revalidateTag("products", "max");
-  revalidatePath("/");
-  revalidatePath("/admin");
+  revalidateProductData();
 }
 
 export async function createAdminProduct(input: AdminProductInput) {
@@ -481,18 +506,19 @@ export async function createAdminProduct(input: AdminProductInput) {
   const slug = await generateUniqueSlug(name);
 
   await executeCloudflareD1(
-    `INSERT INTO products (
-       slug,
-       name,
-       price,
-       description,
+      `INSERT INTO products (
+        slug,
+        name,
+        price,
+        description,
        allergens,
        is_gift_card,
-       featured,
-       sort_order,
-       created_at,
-       updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+       hidden,
+        featured,
+        sort_order,
+        created_at,
+        updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
     [
       slug,
       name,
@@ -500,6 +526,7 @@ export async function createAdminProduct(input: AdminProductInput) {
       description,
       allergens,
       input.isGiftCard ? 1 : 0,
+      input.hidden ? 1 : 0,
       input.featured ? 1 : 0,
       sortOrder,
     ],
@@ -538,7 +565,7 @@ export async function createAdminProduct(input: AdminProductInput) {
     }
   }
 
-  revalidateProductRoutes(slug);
+  revalidateProductData();
 
   return {
     slug,
@@ -572,6 +599,7 @@ export async function updateAdminProduct(input: AdminProductInput) {
          description = ?,
          allergens = ?,
          is_gift_card = ?,
+         hidden = ?,
          featured = ?,
          sort_order = ?,
          updated_at = CURRENT_TIMESTAMP
@@ -582,6 +610,7 @@ export async function updateAdminProduct(input: AdminProductInput) {
       description,
       allergens,
       input.isGiftCard ? 1 : 0,
+      input.hidden ? 1 : 0,
       input.featured ? 1 : 0,
       sortOrder,
       existingProduct.id,
@@ -616,10 +645,65 @@ export async function updateAdminProduct(input: AdminProductInput) {
       error instanceof Error ? error.message : "The product image could not be uploaded.";
   }
 
-  revalidateProductRoutes(existingProduct.slug);
+  revalidateProductData();
 
   return {
     slug: existingProduct.slug,
     imageWarning,
+  };
+}
+
+export async function deleteAdminProduct(productId: number) {
+  await ensureAdminSchema();
+
+  const existingProduct = await getAdminProductById(productId);
+
+  if (!existingProduct) {
+    throw new Error("The product record could not be found.");
+  }
+
+  await executeCloudflareD1("DELETE FROM products WHERE id = ?", [existingProduct.id]);
+
+  let imageWarning: string | undefined;
+
+  if (existingProduct.imageKey) {
+    try {
+      await deleteProductImageFromR2(existingProduct.imageKey);
+    } catch (error) {
+      imageWarning =
+        error instanceof Error ? error.message : "The product image could not be deleted from storage.";
+    }
+  }
+
+  revalidateProductData();
+
+  return {
+    slug: existingProduct.slug,
+    imageWarning,
+  };
+}
+
+export async function setAdminProductHidden(productId: number, hidden: boolean) {
+  await ensureAdminSchema();
+
+  const existingProduct = await getAdminProductById(productId);
+
+  if (!existingProduct) {
+    throw new Error("The product record could not be found.");
+  }
+
+  await executeCloudflareD1(
+    `UPDATE products
+     SET hidden = ?,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [hidden ? 1 : 0, existingProduct.id],
+  );
+
+  revalidateProductData();
+
+  return {
+    slug: existingProduct.slug,
+    hidden,
   };
 }

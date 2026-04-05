@@ -43,6 +43,60 @@ function normalizeText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function getCheckoutAttemptId(request: Request) {
+  return normalizeText(request.headers.get("x-checkout-attempt-id")) || `server_${Date.now()}`;
+}
+
+function logCheckoutServerEvent(
+  attemptId: string,
+  step: string,
+  message: string,
+  details?: Record<string, unknown>,
+  level: "info" | "error" = "info",
+) {
+  const prefix = `[checkout:${attemptId}] ${step} ${message}`;
+  const logger = level === "error" ? console.error : console.info;
+
+  if (details) {
+    logger(prefix, details);
+    return;
+  }
+
+  logger(prefix);
+}
+
+async function withCheckoutServerTiming<T>(
+  attemptId: string,
+  step: string,
+  action: () => Promise<T>,
+  details?: Record<string, unknown>,
+): Promise<T> {
+  const startedAt = Date.now();
+  logCheckoutServerEvent(attemptId, step, "started", details);
+
+  try {
+    const result = await action();
+    logCheckoutServerEvent(attemptId, step, "completed", {
+      ...(details ?? {}),
+      durationMs: Date.now() - startedAt,
+    });
+    return result;
+  } catch (error) {
+    logCheckoutServerEvent(
+      attemptId,
+      step,
+      "failed",
+      {
+        ...(details ?? {}),
+        durationMs: Date.now() - startedAt,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      "error",
+    );
+    throw error;
+  }
+}
+
 function parseItems(raw: unknown) {
   return parseQuoteItems(raw);
 }
@@ -195,7 +249,12 @@ function getDeliveryFromSources(
 }
 
 export async function POST(request: Request) {
+  const requestStartedAt = Date.now();
+  const attemptId = getCheckoutAttemptId(request);
+
   try {
+    logCheckoutServerEvent(attemptId, "confirm-payment.request", "received");
+
     const body = (await request.json()) as {
       items?: unknown;
       tip?: unknown;
@@ -217,34 +276,73 @@ export async function POST(request: Request) {
     const returnUrlBase = getRequestOrigin(request);
     const savePaymentMethod = body.savePaymentMethod === true;
     const stripe = getStripeClient();
+    const requiresAuthenticatedCustomer = Boolean(savePaymentMethod || savedPaymentMethodId);
     const fallbackContact = parseFallbackContact(body.contact);
     const fallbackDelivery = parseFallbackDelivery(body.delivery);
-    const authenticatedUserPromise = getAuthenticatedSupabaseUser(request);
+    const authenticatedUserPromise = requiresAuthenticatedCustomer
+      ? getAuthenticatedSupabaseUser(request)
+      : Promise.resolve(null);
     const confirmationTokenPromise = confirmationTokenId
       ? stripe.confirmationTokens.retrieve(confirmationTokenId)
       : Promise.resolve(null);
-    const authenticatedUser = await authenticatedUserPromise;
+
+    const confirmationToken = await withCheckoutServerTiming(
+      attemptId,
+      "stripe.confirmationTokens.retrieve",
+      () => confirmationTokenPromise,
+      {
+        hasConfirmationToken: Boolean(confirmationTokenId),
+      },
+    );
+    const contact = getContactFromSources(confirmationToken, fallbackContact);
+    const delivery = getDeliveryFromSources(confirmationToken, fallbackDelivery);
+
+    await withCheckoutServerTiming(
+      attemptId,
+      "consumeCheckoutAttempt",
+      () =>
+        consumeCheckoutAttempt({
+          request,
+          email: contact.email,
+          delivery,
+          items,
+        }),
+      {
+        email: contact.email,
+        itemCount: items.length,
+      },
+    );
+
+    const authenticatedUser = await withCheckoutServerTiming(
+      attemptId,
+      "getAuthenticatedSupabaseUser",
+      () => authenticatedUserPromise,
+      {
+        requiresAuthenticatedCustomer,
+      },
+    );
 
     if (savedPaymentMethodId && !authenticatedUser) {
       throw new Error("Sign in again to use a saved payment method.");
     }
 
-    const confirmationToken = await confirmationTokenPromise;
-    const contact = getContactFromSources(confirmationToken, fallbackContact);
-    const delivery = getDeliveryFromSources(confirmationToken, fallbackDelivery);
-
-    await consumeCheckoutAttempt({
-      request,
-      email: contact.email,
-      delivery,
-      items,
-    });
+    if (savePaymentMethod && !authenticatedUser) {
+      throw new Error("Sign in again to save this card.");
+    }
 
     const customerProfile = authenticatedUser
-      ? await ensureCustomerProfileForUser(authenticatedUser, {
-          linkOrdersByEmail: false,
-          syncMissingProfileFields: false,
-        })
+      ? await withCheckoutServerTiming(
+          attemptId,
+          "ensureCustomerProfileForUser",
+          () =>
+            ensureCustomerProfileForUser(authenticatedUser, {
+              linkOrdersByEmail: false,
+              syncMissingProfileFields: false,
+            }),
+          {
+            userId: authenticatedUser.id,
+          },
+        )
       : null;
     const shouldUseSavedPaymentMethod = Boolean(customerProfile && savedPaymentMethodId);
 
@@ -254,47 +352,97 @@ export async function POST(request: Request) {
 
     const stripeCustomerPromise =
       customerProfile && (savePaymentMethod || shouldUseSavedPaymentMethod)
-        ? ensureStripeCustomerForProfile(customerProfile)
+        ? withCheckoutServerTiming(
+            attemptId,
+            "ensureStripeCustomerForProfile",
+            () => ensureStripeCustomerForProfile(customerProfile),
+            {
+              customerProfileId: customerProfile.id,
+            },
+          )
         : Promise.resolve("");
-    const draftPromise = createPendingStripeOrder({
-      items,
-      contact,
-      delivery,
-      tip,
-      customer: customerProfile
-        ? {
-            supabaseUserId: customerProfile.supabaseUserId,
-            customerProfileId: customerProfile.id,
-          }
-        : undefined,
-    });
+    const draftPromise = withCheckoutServerTiming(
+      attemptId,
+      "createPendingStripeOrder",
+      () =>
+        createPendingStripeOrder({
+          items,
+          contact,
+          delivery,
+          tip,
+          customer: customerProfile
+            ? {
+                supabaseUserId: customerProfile.supabaseUserId,
+                customerProfileId: customerProfile.id,
+              }
+            : undefined,
+        }),
+      {
+        email: contact.email,
+        itemCount: items.length,
+      },
+    );
     const [stripeCustomerId, draft] = await Promise.all([stripeCustomerPromise, draftPromise]);
 
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: draft.totalCents,
-      automatic_payment_methods: {
-        enabled: shouldUseSavedPaymentMethod ? false : true,
-      },
-      confirm: true,
-      confirmation_token: shouldUseSavedPaymentMethod ? undefined : confirmationTokenId,
-      customer: stripeCustomerId || undefined,
-      currency: STRIPE_CHECKOUT_COSTS.currency,
-      description: `Order ${draft.orderPublicId}`,
-      metadata: {
+    const paymentIntent = await withCheckoutServerTiming(
+      attemptId,
+      "stripe.paymentIntents.create",
+      () =>
+        stripe.paymentIntents.create({
+          amount: draft.totalCents,
+          automatic_payment_methods: {
+            enabled: shouldUseSavedPaymentMethod ? false : true,
+          },
+          confirm: true,
+          confirmation_token: shouldUseSavedPaymentMethod ? undefined : confirmationTokenId,
+          customer: stripeCustomerId || undefined,
+          currency: STRIPE_CHECKOUT_COSTS.currency,
+          description: `Order ${draft.orderPublicId}`,
+          metadata: {
+            orderId: draft.orderPublicId,
+            source: "grown-cookies",
+          },
+          // ConfirmationToken integrations require per-method future-use settings.
+          payment_method_options:
+            savePaymentMethod && stripeCustomerId && !shouldUseSavedPaymentMethod
+              ? {
+                  card: {
+                    setup_future_usage: "off_session",
+                  },
+                }
+              : undefined,
+          payment_method: shouldUseSavedPaymentMethod ? savedPaymentMethodId : undefined,
+          payment_method_types: shouldUseSavedPaymentMethod ? ["card"] : undefined,
+          return_url: `${returnUrlBase}/checkout/success?orderId=${draft.orderPublicId}`,
+        }),
+      {
+        amount: draft.totalCents,
         orderId: draft.orderPublicId,
-        source: "grown-cookies",
+        savePaymentMethod,
+        usingSavedPaymentMethod: shouldUseSavedPaymentMethod,
       },
-      payment_method: shouldUseSavedPaymentMethod ? savedPaymentMethodId : undefined,
-      payment_method_types: shouldUseSavedPaymentMethod ? ["card"] : undefined,
-      return_url: `${returnUrlBase}/checkout/success?orderId=${draft.orderPublicId}`,
-      setup_future_usage: savePaymentMethod && stripeCustomerId ? "off_session" : undefined,
-    });
+    );
 
     if (!paymentIntent.client_secret || !paymentIntent.id) {
       return NextResponse.json({ error: "Could not finalize payment." }, { status: 500 });
     }
 
-    await setOrderPaymentIntentId(draft.orderPublicId, paymentIntent.id);
+    await withCheckoutServerTiming(
+      attemptId,
+      "setOrderPaymentIntentId",
+      () => setOrderPaymentIntentId(draft.orderPublicId, paymentIntent.id),
+      {
+        orderId: draft.orderPublicId,
+        paymentIntentId: paymentIntent.id,
+      },
+    );
+
+    logCheckoutServerEvent(attemptId, "confirm-payment.request", "completed", {
+      durationMs: Date.now() - requestStartedAt,
+      orderId: draft.orderPublicId,
+      paymentIntentId: paymentIntent.id,
+      status: paymentIntent.status,
+    });
 
     return NextResponse.json({
       orderId: draft.orderPublicId,
@@ -303,6 +451,17 @@ export async function POST(request: Request) {
       status: paymentIntent.status,
     });
   } catch (error) {
+    logCheckoutServerEvent(
+      attemptId,
+      "confirm-payment.request",
+      "failed",
+      {
+        durationMs: Date.now() - requestStartedAt,
+        error: error instanceof Error ? error.message : "Could not finalize payment.",
+      },
+      "error",
+    );
+
     if (error instanceof Error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }

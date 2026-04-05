@@ -83,37 +83,62 @@ async function ensureStoreSettingsSchema() {
 }
 
 async function getStoreSetting(key: string) {
-  await ensureStoreSettingsSchema();
+  try {
+    const rows = await queryCloudflareD1<StoreSettingRow>(
+      `SELECT value, updated_at
+       FROM store_settings
+       WHERE key = ?
+       LIMIT 1`,
+      [key],
+      { cache: "no-store" },
+    );
 
-  const rows = await queryCloudflareD1<StoreSettingRow>(
-    `SELECT value, updated_at
-     FROM store_settings
-     WHERE key = ?
-     LIMIT 1`,
-    [key],
-    { cache: "no-store" },
-  );
+    return rows[0] ?? null;
+  } catch {
+    await ensureStoreSettingsSchema();
 
-  return rows[0] ?? null;
+    const rows = await queryCloudflareD1<StoreSettingRow>(
+      `SELECT value, updated_at
+       FROM store_settings
+       WHERE key = ?
+       LIMIT 1`,
+      [key],
+      { cache: "no-store" },
+    );
+
+    return rows[0] ?? null;
+  }
 }
 
 async function getStoreSettings(keys: string[]): Promise<Map<string, StoreSettingValueRow>> {
-  await ensureStoreSettingsSchema();
-
   if (keys.length === 0) {
     return new Map<string, StoreSettingValueRow>();
   }
 
   const placeholders = keys.map(() => "?").join(", ");
-  const rows = await queryCloudflareD1<StoreSettingValueRow>(
-    `SELECT key, value, updated_at
-     FROM store_settings
-     WHERE key IN (${placeholders})`,
-    keys,
-    { cache: "no-store" },
-  );
+  try {
+    const rows = await queryCloudflareD1<StoreSettingValueRow>(
+      `SELECT key, value, updated_at
+       FROM store_settings
+       WHERE key IN (${placeholders})`,
+      keys,
+      { cache: "no-store" },
+    );
 
-  return new Map<string, StoreSettingValueRow>(rows.map((row) => [row.key, row]));
+    return new Map<string, StoreSettingValueRow>(rows.map((row) => [row.key, row]));
+  } catch {
+    await ensureStoreSettingsSchema();
+
+    const rows = await queryCloudflareD1<StoreSettingValueRow>(
+      `SELECT key, value, updated_at
+       FROM store_settings
+       WHERE key IN (${placeholders})`,
+      keys,
+      { cache: "no-store" },
+    );
+
+    return new Map<string, StoreSettingValueRow>(rows.map((row) => [row.key, row]));
+  }
 }
 
 type DeliveryCostSetting = {

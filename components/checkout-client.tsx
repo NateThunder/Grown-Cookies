@@ -88,6 +88,10 @@ const defaultDelivery = {
 
 const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() ?? "";
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
+const STRIPE_PREPARE_TIMEOUT_MS = 20_000;
+const PAYMENT_CONFIRM_SLOW_NOTICE_MS = 25_000;
+const PAYMENT_CONFIRM_ABORT_MS = 60_000;
+type CheckoutFlow = "manual_card" | "express" | "saved_card";
 
 function stripeErrorText(error: unknown): string {
   if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
@@ -103,6 +107,83 @@ function stripeErrorText(error: unknown): string {
 
 function normalizeText(value: string) {
   return value.trim();
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => {
+      reject(new Error(message));
+    }, timeoutMs);
+
+    promise
+      .then((value) => {
+        window.clearTimeout(timeoutId);
+        resolve(value);
+      })
+      .catch((error) => {
+        window.clearTimeout(timeoutId);
+        reject(error);
+      });
+  });
+}
+
+function createCheckoutAttemptId() {
+  const randomUuid = globalThis.crypto?.randomUUID?.();
+  if (randomUuid) {
+    return randomUuid;
+  }
+
+  return `checkout_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function logCheckoutClientEvent(
+  attemptId: string,
+  step: string,
+  message: string,
+  details?: Record<string, unknown>,
+  level: "info" | "error" = "info",
+) {
+  const prefix = `[checkout:${attemptId}] ${step} ${message}`;
+  const logger = level === "error" ? console.error : console.info;
+
+  if (details) {
+    logger(prefix, details);
+    return;
+  }
+
+  logger(prefix);
+}
+
+async function withCheckoutClientTiming<T>(
+  attemptId: string,
+  step: string,
+  action: () => Promise<T>,
+  details?: Record<string, unknown>,
+): Promise<T> {
+  const startedAt = performance.now();
+  logCheckoutClientEvent(attemptId, step, "started", details);
+
+  try {
+    const result = await action();
+    logCheckoutClientEvent(attemptId, step, "completed", {
+      ...(details ?? {}),
+      durationMs: Math.round(performance.now() - startedAt),
+    });
+    return result;
+  } catch (error) {
+    logCheckoutClientEvent(
+      attemptId,
+      step,
+      "failed",
+      {
+        ...(details ?? {}),
+        durationMs: Math.round(performance.now() - startedAt),
+        error: stripeErrorText(error),
+      },
+      "error",
+    );
+    throw error;
+  }
 }
 
 function getCountryCodeFromLabel(label: string) {
@@ -268,6 +349,37 @@ function buildExpressShipping(
   };
 }
 
+function buildExpressLineItems(quote: BasketQuote) {
+  const lineItems = quote.lines.map((line) => ({
+    name: line.quantity > 1 ? `${line.name} x${line.quantity}` : line.name,
+    amount: line.lineTotalCents,
+  }));
+
+  if (quote.tipCents > 0) {
+    lineItems.push({
+      name: "Tip",
+      amount: quote.tipCents,
+    });
+  }
+
+  lineItems.push({
+    name: "Standard shipping",
+    amount: quote.shippingCents,
+  });
+
+  return lineItems;
+}
+
+function buildExpressShippingRates(shippingCents: number) {
+  return [
+    {
+      id: "standard-shipping",
+      amount: shippingCents,
+      displayName: "Standard shipping",
+    },
+  ];
+}
+
 function getExpressFailureReason(message: string) {
   const normalized = normalizeText(message).toLowerCase();
 
@@ -333,6 +445,7 @@ function PaymentElementForm({
   onSelectedSavedPaymentMethodChange,
   savePaymentMethod,
   onSavePaymentMethodChange,
+  quote,
 }: {
   items: BasketStoredItem[];
   tip: BasketTipInput;
@@ -345,20 +458,35 @@ function PaymentElementForm({
   onSelectedSavedPaymentMethodChange: (paymentMethodId: string) => void;
   savePaymentMethod: boolean;
   onSavePaymentMethodChange: (value: boolean) => void;
+  quote: BasketQuote;
 }) {
   const stripe = useStripe();
   const elements = useElements();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState("");
+  const [paymentProgressMessage, setPaymentProgressMessage] = useState("");
   const [hasExpressMethods, setHasExpressMethods] = useState(false);
+  const [hasResolvedExpressMethods, setHasResolvedExpressMethods] = useState(false);
   const [isPaymentElementReady, setIsPaymentElementReady] = useState(false);
   const [hasPaymentMethodSelection, setHasPaymentMethodSelection] = useState(false);
   const usingSavedPaymentMethod = Boolean(selectedSavedPaymentMethodId);
+  const expressLineItems = useMemo(() => buildExpressLineItems(quote), [quote]);
+  const expressShippingRates = useMemo(
+    () => buildExpressShippingRates(quote.shippingCents),
+    [quote.shippingCents],
+  );
 
   useEffect(() => {
     setIsPaymentElementReady(false);
     setHasPaymentMethodSelection(false);
+    setPaymentProgressMessage("");
   }, [usingSavedPaymentMethod]);
+
+  const expressCheckoutClassName = !hasResolvedExpressMethods
+    ? styles.expressCheckoutProbe
+    : hasExpressMethods
+      ? styles.expressCheckoutWrap
+      : styles.expressCheckoutWrapHidden;
 
   const redirectToSuccess = (params: {
     orderId: string;
@@ -369,55 +497,134 @@ function PaymentElementForm({
   };
 
   const finalizePayment = async (params: {
+    attemptId: string;
     confirmationTokenId?: string;
+    flow: CheckoutFlow;
     savedPaymentMethodId?: string;
     savePaymentMethod?: boolean;
   }) => {
-    const response = await fetch("/api/stripe/confirm-payment", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(authAccessToken ? { Authorization: `Bearer ${authAccessToken}` } : {}),
-      },
-      body: JSON.stringify({
-        confirmationTokenId: params.confirmationTokenId,
-        savedPaymentMethodId: params.savedPaymentMethodId,
-        savePaymentMethod: params.savePaymentMethod,
-        items,
-        tip,
-        contact,
-        delivery,
-      } satisfies ConfirmPaymentPayload),
-    });
+    const shouldSendAuthToken = Boolean(
+      authAccessToken && (params.savePaymentMethod || params.savedPaymentMethodId),
+    );
+    let response: Response;
+    const abortController = new AbortController();
+    const slowNoticeTimeoutId = window.setTimeout(() => {
+      setPaymentProgressMessage(
+        "Payment confirmation is taking longer than usual. Please keep this page open while we finish confirming it.",
+      );
+    }, PAYMENT_CONFIRM_SLOW_NOTICE_MS);
+    const requestTimeoutId = window.setTimeout(() => {
+      abortController.abort();
+    }, PAYMENT_CONFIRM_ABORT_MS);
 
-    if (!response.ok) {
-      const error = (await response.json().catch(() => ({}))) as { error?: string };
-      throw new Error(error.error || "Could not finalize payment.");
+    try {
+      response = await withCheckoutClientTiming(
+        params.attemptId,
+        "confirm-payment.request",
+        () =>
+          fetch("/api/stripe/confirm-payment", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Checkout-Attempt-Id": params.attemptId,
+              ...(shouldSendAuthToken ? { Authorization: `Bearer ${authAccessToken}` } : {}),
+            },
+            body: JSON.stringify({
+              confirmationTokenId: params.confirmationTokenId,
+              savedPaymentMethodId: params.savedPaymentMethodId,
+              savePaymentMethod: params.savePaymentMethod,
+              items,
+              tip,
+              contact,
+              delivery,
+            } satisfies ConfirmPaymentPayload),
+            signal: abortController.signal,
+          }),
+        {
+          flow: params.flow,
+          itemCount: items.length,
+          savePaymentMethod: Boolean(params.savePaymentMethod),
+          usingSavedPaymentMethod: Boolean(params.savedPaymentMethodId),
+        },
+      );
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        throw new Error(
+          "Payment confirmation did not return within one minute. If your bank or wallet is still asking for approval, finish that first, then wait a moment before trying again.",
+          { cause: error },
+        );
+      }
+
+      throw error;
+    } finally {
+      window.clearTimeout(slowNoticeTimeoutId);
+      window.clearTimeout(requestTimeoutId);
+      setPaymentProgressMessage("");
     }
 
-    const result = (await response.json()) as ConfirmPaymentResponse;
+    const result = await withCheckoutClientTiming(
+      params.attemptId,
+      "confirm-payment.response",
+      async () => {
+        const payload = (await response.json().catch(() => ({}))) as ConfirmPaymentResponse & {
+          error?: string;
+        };
+        return payload;
+      },
+      {
+        flow: params.flow,
+        ok: response.ok,
+        status: response.status,
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(result.error || "Could not finalize payment.");
+    }
+
     if (!result.orderId || !result.paymentIntentId || !result.clientSecret || !result.status) {
       throw new Error("Could not finalize payment.");
     }
 
-    if (result.status === "requires_action") {
+    const orderId = result.orderId;
+    const paymentIntentId = result.paymentIntentId;
+    const clientSecret = result.clientSecret;
+    const status = result.status;
+
+    if (status === "requires_action") {
       if (!stripe) {
         throw new Error("Payment form is still loading. Please wait.");
       }
 
-      const nextActionResult = await stripe.handleNextAction({
-        clientSecret: result.clientSecret,
-      });
+      const nextActionResult = await withCheckoutClientTiming(
+        params.attemptId,
+        "stripe.handleNextAction",
+        () =>
+          stripe.handleNextAction({
+            clientSecret,
+          }),
+        {
+          flow: params.flow,
+          orderId,
+          paymentIntentId,
+        },
+      );
 
       if (nextActionResult.error) {
         throw new Error(stripeErrorText(nextActionResult.error));
       }
 
       if (nextActionResult.paymentIntent?.id) {
-        redirectToSuccess({
-          orderId: result.orderId,
+        logCheckoutClientEvent(params.attemptId, "checkout.redirect", "redirecting after next action", {
+          flow: params.flow,
+          orderId,
           paymentIntentId: nextActionResult.paymentIntent.id,
-          clientSecret: result.clientSecret,
+          status,
+        });
+        redirectToSuccess({
+          orderId,
+          paymentIntentId: nextActionResult.paymentIntent.id,
+          clientSecret,
         });
       }
 
@@ -425,14 +632,20 @@ function PaymentElementForm({
     }
 
     if (
-      result.status === "succeeded" ||
-      result.status === "processing" ||
-      result.status === "requires_capture"
+      status === "succeeded" ||
+      status === "processing" ||
+      status === "requires_capture"
     ) {
+      logCheckoutClientEvent(params.attemptId, "checkout.redirect", "redirecting after confirmation", {
+        flow: params.flow,
+        orderId,
+        paymentIntentId,
+        status,
+      });
       redirectToSuccess({
-        orderId: result.orderId,
-        paymentIntentId: result.paymentIntentId,
-        clientSecret: result.clientSecret,
+        orderId,
+        paymentIntentId,
+        clientSecret,
       });
       return;
     }
@@ -450,11 +663,14 @@ function PaymentElementForm({
     }
 
     if (usingSavedPaymentMethod) {
+      const attemptId = createCheckoutAttemptId();
       setIsSubmitting(true);
       setLocalError("");
 
       try {
         await finalizePayment({
+          attemptId,
+          flow: "saved_card",
           savedPaymentMethodId: selectedSavedPaymentMethodId,
         });
       } catch (error) {
@@ -483,29 +699,58 @@ function PaymentElementForm({
 
     setIsSubmitting(true);
     setLocalError("");
+    setPaymentProgressMessage("");
+    const attemptId = createCheckoutAttemptId();
 
     try {
-      const submitResult = await elements.submit();
+      const submitResult = await withCheckoutClientTiming(
+        attemptId,
+        "elements.submit",
+        () =>
+          withTimeout(
+            elements.submit(),
+            STRIPE_PREPARE_TIMEOUT_MS,
+            "Stripe is taking too long to validate the payment form. Please try again.",
+          ),
+        {
+          flow: "manual_card",
+        },
+      );
       if (submitResult.error) {
         throw new Error(stripeErrorText(submitResult.error));
       }
 
-      const confirmationResult = await stripe.createConfirmationToken({
-        elements,
-        params: {
-          payment_method_data: {
-            billing_details: buildManualBillingDetails(contact, delivery),
-          },
-          shipping: buildManualShipping(delivery, contact.phone),
+      const confirmationResult = await withCheckoutClientTiming(
+        attemptId,
+        "stripe.createConfirmationToken",
+        () =>
+          withTimeout(
+            stripe.createConfirmationToken({
+              elements,
+              params: {
+                payment_method_data: {
+                  billing_details: buildManualBillingDetails(contact, delivery),
+                },
+                shipping: buildManualShipping(delivery, contact.phone),
+              },
+            }),
+            STRIPE_PREPARE_TIMEOUT_MS,
+            "Stripe is taking too long to prepare this payment. Please try again.",
+          ),
+        {
+          flow: "manual_card",
+          itemCount: items.length,
         },
-      });
+      );
 
       if (confirmationResult.error || !confirmationResult.confirmationToken?.id) {
         throw new Error(stripeErrorText(confirmationResult.error));
       }
 
       await finalizePayment({
+        attemptId,
         confirmationTokenId: confirmationResult.confirmationToken.id,
+        flow: "manual_card",
         savePaymentMethod: isAuthenticated && savePaymentMethod,
       });
     } catch (error) {
@@ -538,29 +783,58 @@ function PaymentElementForm({
 
     setIsSubmitting(true);
     setLocalError("");
+    setPaymentProgressMessage("");
+    const attemptId = createCheckoutAttemptId();
 
     try {
-      const submitResult = await elements.submit();
+      const submitResult = await withCheckoutClientTiming(
+        attemptId,
+        "elements.submit",
+        () =>
+          withTimeout(
+            elements.submit(),
+            STRIPE_PREPARE_TIMEOUT_MS,
+            "Stripe is taking too long to validate the payment form. Please try again.",
+          ),
+        {
+          flow: "express",
+        },
+      );
       if (submitResult.error) {
         throw new Error(stripeErrorText(submitResult.error));
       }
 
-      const confirmationResult = await stripe.createConfirmationToken({
-        elements,
-        params: {
-          payment_method_data: {
-            billing_details: buildExpressBillingDetails(event, contact, delivery),
-          },
-          shipping: buildExpressShipping(event, contact),
+      const confirmationResult = await withCheckoutClientTiming(
+        attemptId,
+        "stripe.createConfirmationToken",
+        () =>
+          withTimeout(
+            stripe.createConfirmationToken({
+              elements,
+              params: {
+                payment_method_data: {
+                  billing_details: buildExpressBillingDetails(event, contact, delivery),
+                },
+                shipping: buildExpressShipping(event, contact),
+              },
+            }),
+            STRIPE_PREPARE_TIMEOUT_MS,
+            "Stripe is taking too long to prepare this payment. Please try again.",
+          ),
+        {
+          flow: "express",
+          itemCount: items.length,
         },
-      });
+      );
 
       if (confirmationResult.error || !confirmationResult.confirmationToken?.id) {
         throw new Error(stripeErrorText(confirmationResult.error));
       }
 
       await finalizePayment({
+        attemptId,
         confirmationTokenId: confirmationResult.confirmationToken.id,
+        flow: "express",
         savePaymentMethod: isAuthenticated && savePaymentMethod,
       });
     } catch (error) {
@@ -616,9 +890,7 @@ function PaymentElementForm({
         </div>
       ) : null}
 
-      <div
-        className={hasExpressMethods ? styles.expressCheckoutWrap : styles.expressCheckoutWrapHidden}
-      >
+      <div className={expressCheckoutClassName}>
         <p className={styles.expressCheckoutLabel}>Express checkout</p>
         <ExpressCheckoutElement
           options={{
@@ -649,9 +921,18 @@ function PaymentElementForm({
             },
             phoneNumberRequired: false,
             shippingAddressRequired: true,
+            lineItems: expressLineItems,
+            shippingRates: expressShippingRates,
+          }}
+          onClick={(event) => {
+            event.resolve({
+              lineItems: expressLineItems,
+              shippingRates: expressShippingRates,
+            });
           }}
           onReady={(event) => {
             const available = event.availablePaymentMethods;
+            setHasResolvedExpressMethods(true);
             setHasExpressMethods(
               Boolean(available?.applePay || available?.googlePay || available?.paypal),
             );
@@ -662,7 +943,16 @@ function PaymentElementForm({
               return;
             }
 
-            event.resolve();
+            event.resolve({
+              lineItems: expressLineItems,
+              shippingRates: expressShippingRates,
+            });
+          }}
+          onShippingRateChange={(event) => {
+            event.resolve({
+              lineItems: expressLineItems,
+              shippingRates: expressShippingRates,
+            });
           }}
           onConfirm={handleExpressConfirm}
         />
@@ -682,7 +972,7 @@ function PaymentElementForm({
           <div className={styles.paymentElement}>
             <PaymentElement
               onReady={() => setIsPaymentElementReady(true)}
-              onChange={(event) => setHasPaymentMethodSelection(Boolean(event.value.type))}
+              onChange={(event) => setHasPaymentMethodSelection(Boolean(event.value?.type))}
             />
           </div>
 
@@ -700,6 +990,7 @@ function PaymentElementForm({
       )}
 
       {localError ? <p className={styles.errorText}>{localError}</p> : null}
+      {paymentProgressMessage ? <p className={styles.sectionNote}>{paymentProgressMessage}</p> : null}
 
       <button
         type="submit"
@@ -760,9 +1051,8 @@ export default function CheckoutClient() {
       currency: quote.currency,
       mode: "payment",
       paymentMethodCreation: "manual",
-      setupFutureUsage: isAuthenticated && savePaymentMethod ? "off_session" : null,
     };
-  }, [isAuthenticated, quote, savePaymentMethod]);
+  }, [quote]);
 
   const tipSelectionLabel =
     tipChoice === "custom" ? "Custom tip" : tipChoice === "none" ? "No tip" : `${tipChoice}% tip`;
@@ -1309,6 +1599,7 @@ export default function CheckoutClient() {
                       onSelectedSavedPaymentMethodChange={setSelectedSavedPaymentMethodId}
                       savePaymentMethod={savePaymentMethod}
                       onSavePaymentMethodChange={setSavePaymentMethod}
+                      quote={quote}
                     />
                   </Elements>
                 ) : null}

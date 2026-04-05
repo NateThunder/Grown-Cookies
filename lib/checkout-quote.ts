@@ -120,7 +120,7 @@ export async function buildCheckoutQuote({
     throw new Error("Your basket is empty.");
   }
 
-  const products = await getAllProducts();
+  const [products, shippingCents] = await Promise.all([getAllProducts(), getDeliveryCostCents()]);
   const productMap = new Map(products.map((product) => [product.slug, product]));
   const lines: BasketQuoteLine[] = [];
 
@@ -155,7 +155,6 @@ export async function buildCheckoutQuote({
   }
 
   const subtotalCents = lines.reduce((sum, line) => sum + line.lineTotalCents, 0);
-  const shippingCents = await getDeliveryCostCents();
   const tipCents = getTipCents(subtotalCents, tip);
 
   return {

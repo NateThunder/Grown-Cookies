@@ -4,6 +4,7 @@ import { executeCloudflareD1, hasCloudflareD1Config, queryCloudflareD1 } from "@
 import type { StripeCheckoutDeliveryInput } from "@/lib/stripe-checkout";
 
 const RETENTION_HOURS = 48;
+const CLEANUP_INTERVAL_MS = 15 * 60_000;
 
 const THROTTLE_CONFIG = {
   ip: {
@@ -64,6 +65,7 @@ type CheckoutAttemptThrottleInput = {
 
 let schemaReadyPromise: Promise<void> | null = null;
 const fallbackAttempts = new Map<string, number[]>();
+let lastCleanupCompletedAt = 0;
 
 function normalizeText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -319,6 +321,18 @@ async function ensureCheckoutAttemptThrottleSchema() {
   await schemaReadyPromise;
 }
 
+async function cleanupExpiredCheckoutAttempts(now = Date.now()) {
+  if (now - lastCleanupCompletedAt < CLEANUP_INTERVAL_MS) {
+    return;
+  }
+
+  await executeCloudflareD1(
+    "DELETE FROM checkout_payment_attempts WHERE datetime(attempted_at) < datetime('now', ?)",
+    [`-${RETENTION_HOURS} hours`],
+  );
+  lastCleanupCompletedAt = now;
+}
+
 async function getD1ScopeEvaluation(identifier: IdentifierScope) {
   const rows = await queryCloudflareD1<AttemptSummaryRow>(
     `SELECT
@@ -404,18 +418,12 @@ async function recordCheckoutAttempt(input: CheckoutAttemptThrottleInput) {
   if (hasCloudflareD1Config()) {
     try {
       await ensureCheckoutAttemptThrottleSchema();
-
-      for (const identifier of identifiers) {
-        await executeCloudflareD1(
-          "INSERT INTO checkout_payment_attempts (scope, identifier_hash) VALUES (?, ?)",
-          [identifier.scope, identifier.identifierHash],
-        );
-      }
-
       await executeCloudflareD1(
-        "DELETE FROM checkout_payment_attempts WHERE datetime(attempted_at) < datetime('now', ?)",
-        [`-${RETENTION_HOURS} hours`],
+        `INSERT INTO checkout_payment_attempts (scope, identifier_hash)
+         VALUES ${identifiers.map(() => "(?, ?)").join(", ")}`,
+        identifiers.flatMap((identifier) => [identifier.scope, identifier.identifierHash]),
       );
+      await cleanupExpiredCheckoutAttempts();
 
       return;
     } catch {

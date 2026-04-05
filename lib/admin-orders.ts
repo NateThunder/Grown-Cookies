@@ -139,6 +139,24 @@ export async function getAdminOrders(limit = 100): Promise<AdminOrderSummary[]> 
   });
 }
 
+export async function getAdminOrderCount() {
+  if (!hasCloudflareD1Config()) {
+    return 0;
+  }
+
+  try {
+    const rows = await queryCloudflareD1<{ total: number | string }>(
+      "SELECT COUNT(1) AS total FROM orders",
+      [],
+      { cache: "no-store" },
+    );
+    const total = Number(rows[0]?.total ?? 0);
+    return Number.isFinite(total) ? total : 0;
+  } catch {
+    return 0;
+  }
+}
+
 export async function markAdminOrderDelivered(orderPublicId: string) {
   const normalizedOrderId = normalizeText(orderPublicId);
 

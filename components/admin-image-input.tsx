@@ -79,8 +79,8 @@ export default function AdminImageInput({
 
       <p className={styles.helperText}>
         {disabled
-          ? "Add Cloudflare R2 upload credentials to enable image uploads."
-          : "Uploading a file replaces the product’s current primary image in Cloudflare R2."}
+          ? "Add CLOUDFLARE_R2_ACCESS_KEY_ID and CLOUDFLARE_R2_SECRET_ACCESS_KEY to enable image uploads."
+          : "Uploading a file replaces the product's current primary image in Cloudflare R2."}
       </p>
 
       {selectedFileName ? (
