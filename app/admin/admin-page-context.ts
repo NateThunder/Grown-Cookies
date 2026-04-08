@@ -3,9 +3,8 @@ import type { User } from "@supabase/supabase-js";
 import { hasCloudflareD1Config } from "@/lib/cloudflare-d1";
 import {
   ADMIN_AUTH_COOKIE,
-  getSupabaseUserFromAccessToken,
+  getAdminUserFromAccessToken,
   hasSupabasePublicConfig,
-  isAdminUser,
 } from "@/lib/supabase/admin-auth";
 import { getAdminFlashState, type AdminFlashState, type SearchParamValue } from "./admin-ui";
 
@@ -25,12 +24,12 @@ export async function getAdminPageContext(
 
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(ADMIN_AUTH_COOKIE)?.value;
-  const adminSessionUser = accessToken ? await getSupabaseUserFromAccessToken(accessToken) : null;
+  const adminSessionUser = await getAdminUserFromAccessToken(accessToken);
 
   return {
     params,
     flash,
-    adminUser: isAdminUser(adminSessionUser) ? adminSessionUser : null,
+    adminUser: adminSessionUser,
     supabaseConfigured: hasSupabasePublicConfig(),
     d1Configured: hasCloudflareD1Config(),
   };
