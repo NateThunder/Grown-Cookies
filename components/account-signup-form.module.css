@@ -3,6 +3,23 @@
   gap: 20px;
 }
 
+.recoveryIntro {
+  display: grid;
+  gap: 10px;
+}
+
+.recoveryIntro h3 {
+  margin: 0;
+  color: #240f26;
+  font-family: var(--font-heading--family);
+  font-size: 1.6rem;
+}
+
+.recoveryIntro p:last-child {
+  margin: 0;
+  color: #5c495f;
+}
+
 .modeSwitch {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -40,6 +57,25 @@
   gap: 18px;
 }
 
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #7a687c;
+  font-family: var(--font-body--family);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(118, 26, 108, 0.16);
+}
+
 .identityGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -75,8 +111,65 @@
   outline-offset: 2px;
 }
 
-.submit,
-.googleButton {
+.passwordField {
+  position: relative;
+}
+
+.passwordField input {
+  padding-right: 56px;
+}
+
+.passwordToggle {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #6b566f;
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.passwordToggle:hover,
+.passwordToggle:focus-visible {
+  background: rgba(118, 26, 108, 0.08);
+  color: #240f26;
+  outline: none;
+}
+
+.passwordToggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+.textAction {
+  justify-self: start;
+  border: 0;
+  background: transparent;
+  color: #761A6C;
+  cursor: pointer;
+  font-family: var(--font-body--family);
+  font-size: 0.92rem;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.textAction:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.submit {
   border: 0;
   color: #ffffff;
   cursor: pointer;
@@ -96,54 +189,69 @@
   padding: 15px 22px;
 }
 
-.googleButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  border-radius: 12px;
-  background: #ffffff;
-  border: 1px solid rgba(118, 26, 108, 0.18);
-  box-shadow: 0 10px 22px rgba(118, 26, 108, 0.08);
-  font-family: var(--font-body--family);
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: none;
-  color: #1d1021;
-  padding: 18px 24px;
-}
-
-.googleIconBadge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #ffffff 0%, #f7ecff 100%);
-  flex: 0 0 auto;
-}
-
-.googleIconBadge svg {
-  width: 20px;
-  height: 20px;
-  color: #db4437;
-}
-
 .submit:hover,
-.submit:focus-visible,
-.googleButton:hover,
-.googleButton:focus-visible {
+.submit:focus-visible {
   transform: translateY(-1px);
 }
 
-.submit:disabled,
-.googleButton:disabled {
+.submit:disabled {
   opacity: 0.7;
   cursor: wait;
   transform: none;
   box-shadow: none;
+}
+
+.oauthButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  border: 1px solid rgba(118, 26, 108, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #240f26;
+  cursor: pointer;
+  font-family: var(--font-header--family);
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  padding: 15px 22px;
+  text-transform: uppercase;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease,
+    border-color 160ms ease;
+}
+
+.oauthButton:hover,
+.oauthButton:focus-visible {
+  border-color: rgba(118, 26, 108, 0.34);
+  box-shadow: 0 10px 24px rgba(118, 26, 108, 0.08);
+}
+
+.oauthButton:disabled {
+  opacity: 0.7;
+  cursor: wait;
+  transform: none;
+  box-shadow: none;
+}
+
+.oauthIconBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(118, 26, 108, 0.08);
+  color: #761A6C;
+  flex-shrink: 0;
+}
+
+.oauthIconBadge svg {
+  width: 14px;
+  height: 14px;
 }
 
 .status {
@@ -197,10 +305,5 @@
 @media (max-width: 640px) {
   .identityGrid {
     grid-template-columns: 1fr;
-  }
-
-  .googleButton {
-    padding: 16px 20px;
-    font-size: 0.95rem;
   }
 }

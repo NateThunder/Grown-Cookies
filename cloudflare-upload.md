@@ -119,6 +119,34 @@ Set required env values on the Cloudflare Worker for runtime features. The quick
 - `STRIPE_SECRET_KEY`
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `STRIPE_WEBHOOK_SECRET`
+- `RESEND_API_KEY` (required for order notification emails)
+- `ORDER_NOTIFICATION_FROM` (required for order notification emails; use a verified sender)
+- `ORDER_NOTIFICATION_TO` (optional; defaults to `orders@growncookies.co.uk`)
+- `ZOHO_CLIENT_ID` (required for Zoho Mail contact-form delivery)
+- `ZOHO_CLIENT_SECRET` (required for Zoho Mail contact-form delivery)
+- `ZOHO_REFRESH_TOKEN` (required for Zoho Mail contact-form delivery)
+- `ZOHO_ACCOUNT_ID` (required for Zoho Mail contact-form delivery)
+- `CONTACT_FORM_FROM` (optional; defaults to `CONTACT_FORM_TO` or `orders@growncookies.co.uk`)
+- `CONTACT_FORM_TO` (optional; defaults to `orders@growncookies.co.uk`)
+
+## 5a) Zoho Mail for contact form
+
+The contact form now sends mail through the Zoho Mail API instead of the Cloudflare `send_email` binding.
+
+Before relying on it in production, make sure you have:
+
+1. A Zoho Mail OAuth client with `ZOHO_CLIENT_ID` and `ZOHO_CLIENT_SECRET`.
+2. A valid `ZOHO_REFRESH_TOKEN` for the sending mailbox.
+3. The Zoho mailbox account id in `ZOHO_ACCOUNT_ID`.
+4. `CONTACT_FORM_FROM` set to a mailbox or alias Zoho is allowed to send from, if you do not want to use the default.
+
+The route uses the same `CONTACT_FORM_TO` recipient override as before. If Zoho is unavailable, the app falls back to Resend when that is configured.
+
+`next dev` can exercise the real send path as long as the Zoho or Resend secrets are present locally.
+
+```bash
+npm run dev
+```
 
 ## 6) Stripe webhook setup
 
@@ -133,10 +161,11 @@ Subscribe the endpoint to these events:
 - `payment_intent.succeeded`
 - `payment_intent.payment_failed`
 
-Then copy the webhook signing secret from Stripe into the Pages environment as:
+Then copy the webhook signing secret from Stripe into the Cloudflare Worker environment as:
 
 ```text
 STRIPE_WEBHOOK_SECRET
 ```
 
 Use test-mode Stripe keys for preview/test environments and live-mode keys only for production.
+

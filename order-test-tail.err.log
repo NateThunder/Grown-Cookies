@@ -1,0 +1,7 @@
+This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). The promise rejected with the reason:
+APIError: A request to the Cloudflare API (/accounts/6576c9273dcfbd71e207877e61dff475/workers/scripts/grown-cookies/tails/a5f9391b6aa2402fb46a7714cf579dfc) failed.
+    at throwFetchError (E:\Websites\grown-cookies\node_modules\wrangler\wrangler-dist\cli.js:128390:18)
+    at fetchResult (E:\Websites\grown-cookies\node_modules\wrangler\wrangler-dist\cli.js:128286:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async deleteTail (E:\Websites\grown-cookies\node_modules\wrangler\wrangler-dist\cli.js:240018:5)
+    at async _WebSocket.exit (E:\Websites\grown-cookies\node_modules\wrangler\wrangler-dist\cli.js:285009:11)

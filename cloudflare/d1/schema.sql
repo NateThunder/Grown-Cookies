@@ -44,6 +44,8 @@ CREATE TABLE IF NOT EXISTS orders (
   supabase_user_id TEXT,
   customer_profile_id INTEGER,
   stripe_payment_intent_id TEXT,
+  paid_notification_sent_at TEXT,
+  paid_customer_email_sent_at TEXT,
   items_json TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP

@@ -1,4 +1,3 @@
-import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { parseQuoteItems, parseQuoteTip } from "@/lib/checkout-quote";
 import { getAuthenticatedSupabaseUser } from "@/lib/account-auth";
@@ -24,14 +23,13 @@ const SUPPORTED_COUNTRIES = {
   CA: "Canada",
 } as const;
 
-type FallbackContact = {
+type CheckoutContactPayload = {
   email: string;
   phone: string;
 };
 
-type FallbackDelivery = {
-  firstName: string;
-  lastName: string;
+type CheckoutDeliveryPayload = {
+  fullName: string;
   address: string;
   flatNumber: string;
   city: string;
@@ -41,6 +39,19 @@ type FallbackDelivery = {
 
 function normalizeText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function splitFullName(fullName: string) {
+  const normalized = normalizeText(fullName);
+  if (!normalized) {
+    return { firstName: "", lastName: "" };
+  }
+
+  const parts = normalized.split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] ?? "",
+    lastName: parts.slice(1).join(" ") || parts[0] || "",
+  };
 }
 
 function getCheckoutAttemptId(request: Request) {
@@ -109,7 +120,7 @@ function getRequestOrigin(request: Request) {
   }
 }
 
-function parseFallbackContact(raw: unknown): FallbackContact {
+function parseCheckoutContact(raw: unknown): CheckoutContactPayload {
   if (!raw || typeof raw !== "object") {
     return { email: "", phone: "" };
   }
@@ -120,14 +131,18 @@ function parseFallbackContact(raw: unknown): FallbackContact {
   };
 }
 
-function parseFallbackDelivery(raw: unknown): FallbackDelivery {
+function parseCheckoutDelivery(raw: unknown): CheckoutDeliveryPayload {
   if (!raw || typeof raw !== "object") {
     return null;
   }
 
   const delivery = {
-    firstName: normalizeText((raw as { firstName?: unknown }).firstName),
-    lastName: normalizeText((raw as { lastName?: unknown }).lastName),
+    fullName:
+      normalizeText((raw as { fullName?: unknown }).fullName) ||
+      buildFullName(
+        normalizeText((raw as { firstName?: unknown }).firstName),
+        normalizeText((raw as { lastName?: unknown }).lastName),
+      ),
     address: normalizeText((raw as { address?: unknown }).address),
     flatNumber: normalizeText((raw as { flatNumber?: unknown }).flatNumber),
     city: normalizeText((raw as { city?: unknown }).city),
@@ -152,6 +167,10 @@ function normalizeSupportedCountry(raw: string) {
   return match ?? "";
 }
 
+function buildFullName(firstName: string, lastName: string) {
+  return [normalizeText(firstName), normalizeText(lastName)].filter(Boolean).join(" ");
+}
+
 function requireSupportedCountry(raw: string) {
   const country = normalizeSupportedCountry(raw);
   if (!country) {
@@ -161,82 +180,42 @@ function requireSupportedCountry(raw: string) {
   return country;
 }
 
-function splitName(fullName: string, fallbackDelivery: FallbackDelivery) {
-  const normalizedFullName = normalizeText(fullName);
-  if (normalizedFullName) {
-    const parts = normalizedFullName.split(/\s+/).filter(Boolean);
-    const firstName = parts[0] ?? "";
-    const lastName = parts.slice(1).join(" ") || firstName;
-    return { firstName, lastName };
-  }
-
-  return {
-    firstName: normalizeText(fallbackDelivery?.firstName),
-    lastName: normalizeText(fallbackDelivery?.lastName),
-  };
-}
-
-function getContactFromConfirmationToken(
-  token: Stripe.ConfirmationToken,
-  fallbackContact: FallbackContact,
-): StripeCheckoutContactInput {
-  const billingDetails = token.payment_method_preview?.billing_details;
-  const email = normalizeText(billingDetails?.email) || normalizeText(fallbackContact.email);
-
-  if (!email) {
-    throw new Error("Email is required.");
-  }
-
-  return {
-    email,
-    phone:
-      normalizeText(token.shipping?.phone) ||
-      normalizeText(billingDetails?.phone) ||
-      normalizeText(fallbackContact.phone),
-  };
-}
-
 function getContactFromSources(
-  token: Stripe.ConfirmationToken | null,
-  fallbackContact: FallbackContact,
+  paymentContact: CheckoutContactPayload,
+  fallbackContact: CheckoutContactPayload,
 ): StripeCheckoutContactInput {
-  if (token) {
-    return getContactFromConfirmationToken(token, fallbackContact);
-  }
-
-  const email = normalizeText(fallbackContact.email);
+  const email = normalizeText(paymentContact.email) || normalizeText(fallbackContact.email);
   if (!email) {
     throw new Error("Email is required.");
   }
 
   return {
     email,
-    phone: normalizeText(fallbackContact.phone),
+    phone: normalizeText(paymentContact.phone) || normalizeText(fallbackContact.phone),
   };
 }
 
 function getDeliveryFromSources(
-  token: Stripe.ConfirmationToken | null,
-  fallbackDelivery: FallbackDelivery,
+  paymentDelivery: CheckoutDeliveryPayload,
+  fallbackDelivery: CheckoutDeliveryPayload,
 ): StripeCheckoutDeliveryInput {
-  const shipping = token?.shipping;
-  const address = shipping?.address;
-  const { firstName, lastName } = splitName(normalizeText(shipping?.name), fallbackDelivery);
+  const rawCountry =
+    normalizeText(paymentDelivery?.country) || normalizeText(fallbackDelivery?.country);
+  const rawFullName = normalizeText(paymentDelivery?.fullName) || normalizeText(fallbackDelivery?.fullName);
+  const { firstName, lastName } = splitFullName(rawFullName);
   const delivery = {
     firstName,
     lastName,
-    address: normalizeText(address?.line1) || normalizeText(fallbackDelivery?.address),
-    flatNumber: normalizeText(address?.line2) || normalizeText(fallbackDelivery?.flatNumber),
-    city: normalizeText(address?.city) || normalizeText(fallbackDelivery?.city),
-    postcode: normalizeText(address?.postal_code) || normalizeText(fallbackDelivery?.postcode),
-    country: requireSupportedCountry(
-      normalizeText(address?.country) || normalizeText(fallbackDelivery?.country),
-    ),
+    address: normalizeText(paymentDelivery?.address) || normalizeText(fallbackDelivery?.address),
+    flatNumber:
+      normalizeText(paymentDelivery?.flatNumber) || normalizeText(fallbackDelivery?.flatNumber),
+    city: normalizeText(paymentDelivery?.city) || normalizeText(fallbackDelivery?.city),
+    postcode: normalizeText(paymentDelivery?.postcode) || normalizeText(fallbackDelivery?.postcode),
+    country: rawCountry ? requireSupportedCountry(rawCountry) : "",
   };
 
   if (
-    !delivery.firstName ||
-    !delivery.lastName ||
+    !rawFullName ||
     !delivery.address ||
     !delivery.city ||
     !delivery.postcode ||
@@ -261,6 +240,8 @@ export async function POST(request: Request) {
       confirmationTokenId?: unknown;
       contact?: unknown;
       delivery?: unknown;
+      paymentContact?: unknown;
+      paymentDelivery?: unknown;
       savePaymentMethod?: unknown;
       savedPaymentMethodId?: unknown;
     };
@@ -276,26 +257,20 @@ export async function POST(request: Request) {
     const returnUrlBase = getRequestOrigin(request);
     const savePaymentMethod = body.savePaymentMethod === true;
     const stripe = getStripeClient();
-    const requiresAuthenticatedCustomer = Boolean(savePaymentMethod || savedPaymentMethodId);
-    const fallbackContact = parseFallbackContact(body.contact);
-    const fallbackDelivery = parseFallbackDelivery(body.delivery);
-    const authenticatedUserPromise = requiresAuthenticatedCustomer
-      ? getAuthenticatedSupabaseUser(request)
-      : Promise.resolve(null);
-    const confirmationTokenPromise = confirmationTokenId
-      ? stripe.confirmationTokens.retrieve(confirmationTokenId)
-      : Promise.resolve(null);
+    const fallbackContact = parseCheckoutContact(body.contact);
+    const fallbackDelivery = parseCheckoutDelivery(body.delivery);
+    const paymentContact = parseCheckoutContact(body.paymentContact);
+    const paymentDelivery = parseCheckoutDelivery(body.paymentDelivery);
+    const authenticatedUserPromise = getAuthenticatedSupabaseUser(request);
+    const contact = getContactFromSources(paymentContact, fallbackContact);
+    const delivery = getDeliveryFromSources(paymentDelivery, fallbackDelivery);
 
-    const confirmationToken = await withCheckoutServerTiming(
-      attemptId,
-      "stripe.confirmationTokens.retrieve",
-      () => confirmationTokenPromise,
-      {
-        hasConfirmationToken: Boolean(confirmationTokenId),
-      },
-    );
-    const contact = getContactFromSources(confirmationToken, fallbackContact);
-    const delivery = getDeliveryFromSources(confirmationToken, fallbackDelivery);
+    logCheckoutServerEvent(attemptId, "confirm-payment.details", "resolved", {
+      hasConfirmationToken: Boolean(confirmationTokenId),
+      hasPaymentContact: Boolean(paymentContact.email || paymentContact.phone),
+      hasPaymentDelivery: Boolean(paymentDelivery),
+      usingSavedPaymentMethod: Boolean(savedPaymentMethodId),
+    });
 
     await withCheckoutServerTiming(
       attemptId,
@@ -318,7 +293,7 @@ export async function POST(request: Request) {
       "getAuthenticatedSupabaseUser",
       () => authenticatedUserPromise,
       {
-        requiresAuthenticatedCustomer,
+        requiresAuthenticatedCustomer: Boolean(savePaymentMethod || savedPaymentMethodId),
       },
     );
 

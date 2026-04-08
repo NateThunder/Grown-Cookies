@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PrivacyCookiePreferences from "@/components/privacy-cookie-preferences";
 import SiteHeader from "@/components/site-header";
 import styles from "../legal.module.css";
 
@@ -44,6 +45,17 @@ export default function PrivacyPage() {
               store, such as payment, hosting, authentication, analytics, and
               delivery platforms. We do not sell your personal information.
             </p>
+          </div>
+
+          <div className={styles.section}>
+            <h2>Cookies and analytics</h2>
+            <p>
+              Essential storage is used to keep your basket, account, and
+              checkout working. Optional Google Analytics only loads if you
+              allow analytics cookies, and you can change that choice here at
+              any time.
+            </p>
+            <PrivacyCookiePreferences />
           </div>
 
           <div className={styles.section}>

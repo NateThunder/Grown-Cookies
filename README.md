@@ -52,13 +52,15 @@ Create `.env.local` with the services this app depends on:
 - Admin security: `ADMIN_LOGIN_THROTTLE_SECRET`
 - Checkout security: `CHECKOUT_THROTTLE_SECRET`
 - Stripe: `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`
+- Order email notifications: `RESEND_API_KEY`, `ORDER_NOTIFICATION_FROM`, optional `ORDER_NOTIFICATION_TO`
+- Contact/order enquiry form: `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN`, `ZOHO_ACCOUNT_ID`, optional `CONTACT_FORM_FROM`, optional `CONTACT_FORM_TO`
 - Cloudflare: account/D1/R2 values used by the admin, catalog, and deploy flows
 
 Do not commit `.env.local` or real credentials.
 
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` is expected to be public in the browser bundle for Supabase Auth. This app uses Supabase for authentication only; storefront and admin data access in this repo is handled through server-side routes and Cloudflare services, not direct browser table queries.
 
-Set `NEXT_PUBLIC_SITE_URL` to the canonical public origin used by customer auth redirects, for example `https://growncookies.co.uk`. The Google OAuth flow and Supabase email confirmation links now prefer this value over browser-origin fallbacks, which prevents production auth from bouncing back to `localhost` when Supabase redirect settings fall back to the project site URL.
+Set `NEXT_PUBLIC_SITE_URL` to the canonical public origin used by customer auth redirects, for example `https://growncookies.co.uk`. The social OAuth flows and Supabase email confirmation links now prefer this value over browser-origin fallbacks, which prevents production auth from bouncing back to `localhost` when Supabase redirect settings fall back to the project site URL.
 
 Supabase Row Level Security still needs to be verified in the Supabase project itself. This repository does not contain repo-managed Supabase policy files, so confirm in the Supabase dashboard or SQL editor that `anon` and non-admin authenticated users cannot read or mutate any admin-only data.
 
@@ -100,8 +102,15 @@ npx wrangler secret bulk .env.local
 
 Before deploying, verify Wrangler auth and token scope requirements in [`cloudflare-upload.md`](cloudflare-upload.md). That guide is the source of truth for authentication, Workers deploy commands, custom-domain attachment, environment variables, and Stripe webhook setup.
 
+Production order notifications are sent after `payment_intent.succeeded` through the Stripe webhook. Configure a verified sender in Resend with `ORDER_NOTIFICATION_FROM`, set `RESEND_API_KEY`, and optionally override the recipient with `ORDER_NOTIFICATION_TO`. If `ORDER_NOTIFICATION_TO` is unset, notifications default to `orders@growncookies.co.uk`.
+
+The `/contact` page now submits server-side and sends through the Zoho Mail API when the Zoho contact-form secrets are set. Configure `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN`, and `ZOHO_ACCOUNT_ID`, then set `CONTACT_FORM_FROM` if you want a specific Zoho mailbox or alias as the sender. `CONTACT_FORM_TO` remains optional and defaults to `orders@growncookies.co.uk`. If Zoho is unavailable, the route falls back to the existing Resend setup when that is configured.
+
+Local `next dev` can send real contact-form email when either the Zoho Mail API secrets or the Resend fallback secrets are configured.
+
 For D1 schema changes, this repo now includes `wrangler.toml` and migrations in `cloudflare/d1/migrations`. After authenticating with Cloudflare, apply the remote migration with:
 
 ```bash
 npm run cloudflare:d1:migrate
 ```
+

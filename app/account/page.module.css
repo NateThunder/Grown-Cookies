@@ -5,64 +5,71 @@
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
-  gap: 40px;
+  gap: 24px;
   align-items: start;
-  padding: 72px 48px 96px;
+  padding: 32px 16px 56px;
+}
+
+.authHero {
+  justify-items: center;
+}
+
+.authHero .panel {
+  width: min(100%, 36rem);
 }
 
 .copy {
-  padding-top: 24px;
+  padding-top: 0;
 }
 
 .eyebrow,
 .panelEyebrow {
-  margin: 0 0 14px;
+  margin: 0 0 12px;
   color: #761A6C;
   font-family: var(--font-header--family);
-  font-size: 0.85rem;
-  letter-spacing: 0.18em;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
 .copy h1 {
   margin: 0;
-  max-width: 12ch;
+  max-width: none;
   color: #240f26;
   font-family: var(--font-heading--family);
-  font-size: clamp(2.6rem, 5vw, 5.4rem);
+  font-size: clamp(2.1rem, 11vw, 3.8rem);
   line-height: 0.98;
 }
 
 .description {
   max-width: 38rem;
-  margin: 24px 0 0;
+  margin: 18px 0 0;
   color: #4f3c51;
-  font-size: 1.05rem;
-  line-height: 1.7;
+  font-size: 1rem;
+  line-height: 1.65;
 }
 
 .perks {
   display: grid;
-  gap: 14px;
-  padding: 28px 0 0;
+  gap: 12px;
+  padding: 24px 0 0;
   margin: 0;
   list-style: none;
 }
 
 .perks li {
   position: relative;
-  padding-left: 26px;
+  padding-left: 24px;
   color: #321d37;
-  font-size: 1rem;
-  line-height: 1.6;
+  font-size: 0.96rem;
+  line-height: 1.55;
 }
 
 .perks li::before {
   content: "";
   position: absolute;
   left: 0;
-  top: 0.6em;
+  top: 0.58em;
   width: 10px;
   height: 10px;
   border-radius: 999px;
@@ -72,32 +79,32 @@
 
 .panel {
   border: 1px solid rgba(118, 26, 108, 0.12);
-  border-radius: 28px;
-  background: rgba(255, 255, 255, 0.8);
-  box-shadow: 0 28px 60px rgba(118, 26, 108, 0.1);
-  padding: 32px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 20px 44px rgba(118, 26, 108, 0.1);
+  padding: 22px 18px;
   backdrop-filter: blur(10px);
 }
 
 .panelHeader {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .panelHeader h2 {
   margin: 0;
   color: #240f26;
   font-family: var(--font-heading--family);
-  font-size: clamp(1.7rem, 2vw, 2.4rem);
+  font-size: clamp(1.5rem, 7vw, 2.1rem);
 }
 
 .panelHeader p:last-child {
-  margin: 12px 0 0;
+  margin: 10px 0 0;
   color: #5c495f;
-  line-height: 1.65;
+  line-height: 1.6;
 }
 
 .accountLoading {
-  padding: 72px 48px 96px;
+  padding: 32px 16px 56px;
 }
 
 .loadingCard,
@@ -107,45 +114,41 @@
 .orderCard,
 .emptyOrders {
   border: 1px solid rgba(118, 26, 108, 0.12);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.8);
-  box-shadow: 0 22px 50px rgba(118, 26, 108, 0.08);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 18px 42px rgba(118, 26, 108, 0.08);
 }
 
 .loadingCard {
-  padding: 28px;
+  padding: 22px 18px;
 }
 
 .dashboard {
-  --account-sidebar-width: 280px;
-  --account-dashboard-gap: 28px;
-  --account-sidebar-top: 270px;
+  --account-sidebar-width: 296px;
+  --account-dashboard-gap: 24px;
+  --account-anchor-offset: 136px;
   display: grid;
-  grid-template-columns: var(--account-sidebar-width) minmax(0, 1fr);
-  gap: var(--account-dashboard-gap);
+  gap: 18px;
   align-items: start;
-  padding: 56px 48px 24px;
+  padding: 24px 16px 28px;
 }
 
 .sidebar {
-  position: fixed;
-  top: var(--account-sidebar-top);
-  width: min(var(--account-sidebar-width), calc(100vw - 96px));
   display: grid;
-  gap: 18px;
+  gap: 14px;
 }
 
 .sidebarCard {
-  padding: 24px;
+  padding: 20px 18px;
 }
 
 .sidebarEyebrow,
 .sectionEyebrow {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   color: #761A6C;
   font-family: var(--font-header--family);
-  font-size: 0.8rem;
-  letter-spacing: 0.18em;
+  font-size: 0.74rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
@@ -155,19 +158,39 @@
   margin: 0;
   color: #240f26;
   font-family: var(--font-heading--family);
-  font-size: clamp(1.5rem, 2vw, 2rem);
+  font-size: clamp(1.4rem, 6vw, 2rem);
+  line-height: 1.02;
+}
+
+.sidebarCard h1,
+.sidebarCard p,
+.loadingCard p,
+.sectionHeader h2,
+.sectionHeader p,
+.addressMeta,
+.paymentEmptyState p,
+.ordersStatus,
+.orderItemName,
+.orderItemMeta,
+.orderItemTotal,
+.orderDelivery p,
+.orderCard h3,
+.emptyOrders p,
+.infoCard p,
+.preferenceCard p {
+  overflow-wrap: anywhere;
 }
 
 .sidebarCard p:last-child,
 .loadingCard p:last-child,
 .sectionHeader p:last-child {
-  margin: 12px 0 0;
+  margin: 10px 0 0;
   color: #5c495f;
-  line-height: 1.65;
+  line-height: 1.6;
 }
 
 .sidebarNav {
-  display: grid;
+  display: none;
   gap: 8px;
   padding: 12px;
 }
@@ -177,11 +200,12 @@
   border-radius: 14px;
   color: #331d37;
   font-family: var(--font-header--family);
-  font-size: 0.84rem;
-  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+  letter-spacing: 0.07em;
   text-decoration: none;
   text-transform: uppercase;
   padding: 12px 14px;
+  text-align: center;
 }
 
 .sidebarLink:hover,
@@ -194,27 +218,48 @@
 
 .dashboardContent {
   display: grid;
-  gap: 20px;
-  grid-column: 2;
+  gap: 16px;
+  min-width: 0;
 }
 
 .mobileSectionNav {
-  display: none;
+  position: sticky;
+  top: 88px;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(118, 26, 108, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 248, 251, 0.92);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 14px 34px rgba(118, 26, 108, 0.08);
+}
+
+.mobileSectionLink {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(118, 26, 108, 0.14);
+  background: rgba(255, 255, 255, 0.86);
+  line-height: 1.2;
 }
 
 .dashboardSection {
-  scroll-margin-top: 120px;
-  padding: 28px;
+  scroll-margin-top: calc(var(--account-anchor-offset) + 12px);
+  padding: 22px 18px;
 }
 
 .sectionHeader {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .settingsGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: 1fr;
+  gap: 14px;
 }
 
 .settingField {
@@ -231,6 +276,7 @@
 
 .settingField input {
   width: 100%;
+  min-width: 0;
   border: 1px solid rgba(118, 26, 108, 0.18);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.95);
@@ -252,9 +298,10 @@
 
 .checkboxField {
   display: flex;
+  flex-direction: column;
   align-items: start;
   gap: 12px;
-  margin-top: 20px;
+  margin-top: 18px;
   color: #4d3b52;
   line-height: 1.6;
 }
@@ -262,17 +309,18 @@
 .checkboxField input {
   width: 18px;
   height: 18px;
-  margin-top: 3px;
+  margin-top: 2px;
   accent-color: #761A6C;
 }
 
 .placeholderRow,
 .actionRow {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   justify-content: space-between;
-  gap: 16px;
-  margin-top: 20px;
+  gap: 12px;
+  margin-top: 18px;
 }
 
 .placeholderRow p {
@@ -283,9 +331,10 @@
 
 .primaryButton,
 .secondaryButton {
+  width: 100%;
   border-radius: 999px;
   font-family: var(--font-header--family);
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 14px 18px;
@@ -312,14 +361,14 @@
 
 .securityGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: 1fr;
+  gap: 14px;
 }
 
 .infoCard {
   border-radius: 18px;
   background: rgba(247, 239, 248, 0.72);
-  padding: 20px;
+  padding: 18px;
 }
 
 .infoCard h3,
@@ -329,7 +378,7 @@
   margin: 0;
   color: #240f26;
   font-family: var(--font-heading--family);
-  font-size: 1.2rem;
+  font-size: 1.12rem;
 }
 
 .infoCard p,
@@ -340,7 +389,7 @@
 .orderDelivery p {
   margin: 10px 0 0;
   color: #5c495f;
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
 .preferenceList {
@@ -350,18 +399,20 @@
 
 .preferenceCard {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: start;
   justify-content: space-between;
-  gap: 18px;
+  gap: 14px;
   border: 1px solid rgba(118, 26, 108, 0.12);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.96);
-  padding: 20px;
+  padding: 18px;
 }
 
 .preferenceCard input {
   width: 20px;
   height: 20px;
+  margin-left: auto;
   accent-color: #761A6C;
 }
 
@@ -371,7 +422,7 @@
 
 .sectionStatus,
 .inlineNotice {
-  margin: 18px 0 0;
+  margin: 16px 0 0;
   color: #5c495f;
   line-height: 1.6;
 }
@@ -388,31 +439,32 @@
 
 .paymentSetupCard {
   display: grid;
-  gap: 18px;
+  gap: 16px;
   margin-top: 18px;
   border: 1px solid rgba(118, 26, 108, 0.12);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.96);
-  padding: 20px;
+  padding: 18px;
 }
 
 .paymentElementWrap {
   border: 1px solid rgba(118, 26, 108, 0.14);
   border-radius: 16px;
   background: rgba(247, 239, 248, 0.5);
-  padding: 16px;
+  padding: 14px;
 }
 
 .addressCard {
   border: 1px solid rgba(118, 26, 108, 0.12);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.96);
-  padding: 20px;
+  padding: 18px;
 }
 
 .addressCardTop,
 .addressActions {
   display: flex;
+  flex-direction: column;
   align-items: start;
   justify-content: space-between;
   gap: 12px;
@@ -425,12 +477,12 @@
 }
 
 .addressActions {
-  margin-top: 18px;
-  justify-content: start;
+  margin-top: 16px;
+  width: 100%;
 }
 
 .emptyOrders {
-  padding: 24px;
+  padding: 22px 18px;
 }
 
 .paymentEmptyState {
@@ -441,7 +493,7 @@
   margin: 0;
   color: #240f26;
   font-family: var(--font-heading--family);
-  font-size: 1.2rem;
+  font-size: 1.12rem;
 }
 
 .paymentEmptyState p {
@@ -456,7 +508,7 @@
 }
 
 .orderCard {
-  padding: 24px;
+  padding: 22px 18px;
 }
 
 .orderItems {
@@ -467,18 +519,18 @@
 
 .orderItem {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  gap: 14px;
-  align-items: center;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
 }
 
 .orderItemImageFrame {
   position: relative;
-  width: 72px;
-  height: 72px;
+  width: 64px;
+  height: 64px;
   overflow: hidden;
   border: 1px solid rgba(118, 26, 108, 0.12);
-  border-radius: 18px;
+  border-radius: 16px;
   background: rgba(247, 239, 248, 0.72);
 }
 
@@ -493,14 +545,16 @@
   height: 100%;
   color: #761A6C;
   font-family: var(--font-heading--family);
-  font-size: 1.25rem;
+  font-size: 1.1rem;
 }
 
 .orderItemBody {
   display: flex;
+  flex-direction: column;
   align-items: start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .orderItemName,
@@ -517,7 +571,7 @@
 
 .orderItemMeta,
 .orderItemTotal {
-  margin-top: 6px;
+  margin-top: 4px;
   color: #5c495f;
   line-height: 1.5;
 }
@@ -525,9 +579,10 @@
 .orderTopRow,
 .orderMetaGrid {
   display: flex;
+  flex-direction: column;
   align-items: start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
 }
 
 .orderMetaGrid {
@@ -538,7 +593,7 @@
   margin: 0;
   color: #761A6C;
   font-family: var(--font-header--family);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -550,9 +605,10 @@
   border-radius: 999px;
   padding: 9px 12px;
   font-family: var(--font-header--family);
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  max-width: 100%;
 }
 
 .statusPending {
@@ -576,114 +632,165 @@
   border-top: 1px solid rgba(118, 26, 108, 0.1);
 }
 
-@media (max-width: 900px) {
-  .hero {
-    grid-template-columns: 1fr;
-    padding: 48px 24px 72px;
-  }
-
-  .copy {
-    padding-top: 0;
-  }
-
-  .copy h1 {
-    max-width: none;
-  }
-
-  .accountLoading,
-  .dashboard {
-    padding: 48px 24px 24px;
-  }
-
-  .dashboard {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-
-  .sidebar {
-    position: static;
-    width: auto;
-  }
-
-  .sidebarNav {
-    display: none;
-  }
-
+@media (max-width: 359px) {
   .mobileSectionNav {
-    display: flex;
-    gap: 10px;
-    overflow-x: auto;
-    padding-bottom: 6px;
-  }
-
-  .mobileSectionLink {
-    white-space: nowrap;
-    border: 1px solid rgba(118, 26, 108, 0.14);
-    background: rgba(255, 255, 255, 0.86);
-  }
-
-  .securityGrid,
-  .settingsGrid {
     grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 640px) {
+@media (min-width: 640px) {
   .hero {
-    gap: 28px;
-    padding: 36px 16px 56px;
+    padding: 44px 24px 68px;
   }
 
-  .panel {
-    padding: 24px 18px;
-    border-radius: 22px;
-  }
-
-  .accountLoading,
-  .dashboard {
-    padding: 36px 16px 20px;
-  }
-
+  .panel,
   .loadingCard,
-  .sidebarCard,
-  .sidebarNav,
   .dashboardSection,
-  .orderCard,
-  .emptyOrders {
-    border-radius: 20px;
-  }
-
-  .dashboardSection,
-  .loadingCard,
   .orderCard,
   .emptyOrders,
   .sidebarCard {
-    padding: 22px 18px;
+    padding: 24px;
   }
 
-  .placeholderRow,
+  .mobileSectionNav {
+    top: 96px;
+  }
+
+  .settingsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .actionRow,
-  .orderTopRow,
-  .orderMetaGrid,
-  .orderItemBody,
-  .preferenceCard,
-  .addressCardTop,
-  .addressActions,
-  .checkboxField {
-    flex-direction: column;
-    align-items: start;
+  .addressActions {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
   }
 
   .primaryButton,
   .secondaryButton {
-    width: 100%;
+    width: auto;
+    min-width: 168px;
   }
 
-  .orderItem {
-    grid-template-columns: 1fr;
+  .securityGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .preferenceCard {
+    flex-direction: row;
+    align-items: center;
   }
 
   .preferenceCard input {
-    align-self: end;
+    margin-left: 0;
+  }
+
+  .addressCardTop {
+    flex-direction: row;
+  }
+
+  .orderItem {
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .orderItemImageFrame {
+    width: 72px;
+    height: 72px;
+    border-radius: 18px;
+  }
+}
+
+@media (min-width: 900px) {
+  .hero {
+    grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+    gap: 36px;
+    padding: 56px 32px 84px;
+  }
+
+  .copy {
+    padding-top: 20px;
+  }
+
+  .copy h1 {
+    max-width: 12ch;
+    font-size: clamp(2.8rem, 5vw, 5rem);
+  }
+
+  .panel {
+    padding: 30px;
+    border-radius: 26px;
+  }
+
+  .accountLoading {
+    padding: 56px 32px 84px;
+  }
+
+  .dashboard {
+    --account-anchor-offset: 118px;
+    grid-template-columns: minmax(240px, var(--account-sidebar-width)) minmax(0, 1fr);
+    gap: var(--account-dashboard-gap);
+    padding: 40px 32px 28px;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 112px;
+    align-self: start;
+  }
+
+  .sidebarNav {
+    display: grid;
+  }
+
+  .mobileSectionNav {
+    display: none;
+  }
+
+  .dashboardContent {
+    gap: 20px;
+  }
+
+  .dashboardSection {
+    padding: 28px;
+  }
+
+  .sectionHeader {
+    margin-bottom: 24px;
+  }
+
+  .placeholderRow,
+  .actionRow {
+    justify-content: space-between;
+  }
+
+  .securityGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .orderTopRow,
+  .orderMetaGrid {
+    flex-direction: row;
+    gap: 16px;
+  }
+
+  .orderItemBody {
+    flex-direction: row;
+    align-items: start;
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .hero {
+    padding: 72px 48px 96px;
+    gap: 40px;
+  }
+
+  .accountLoading,
+  .dashboard {
+    padding-left: 48px;
+    padding-right: 48px;
   }
 }

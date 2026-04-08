@@ -37,8 +37,7 @@ type ContactDetails = {
 };
 
 type DeliveryDetails = {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   address: string;
   flatNumber: string;
   city: string;
@@ -54,6 +53,8 @@ type ConfirmPaymentPayload = {
   tip: BasketTipInput;
   contact?: ContactDetails;
   delivery?: DeliveryDetails;
+  paymentContact?: ContactDetails;
+  paymentDelivery?: DeliveryDetails;
 };
 
 type ConfirmPaymentResponse = {
@@ -70,6 +71,15 @@ type CheckoutAccountResponse = {
   error?: string;
 };
 
+type AddressSuggestion = {
+  label: string;
+  secondaryLabel: string;
+  addressLine1: string;
+  city: string;
+  postcode: string;
+  country: string;
+};
+
 const SUPPORTED_COUNTRIES = [
   { code: "GB", label: "United Kingdom" },
   { code: "US", label: "United States" },
@@ -77,8 +87,7 @@ const SUPPORTED_COUNTRIES = [
 ] as const;
 
 const defaultDelivery = {
-  firstName: "",
-  lastName: "",
+  fullName: "",
   address: "",
   flatNumber: "",
   city: "",
@@ -192,6 +201,23 @@ function getCountryCodeFromLabel(label: string) {
   return match?.code ?? null;
 }
 
+function getCountryLabel(raw: string) {
+  const normalized = normalizeText(raw);
+  if (!normalized) {
+    return "";
+  }
+
+  const codeMatch = SUPPORTED_COUNTRIES.find((country) => country.code === normalized.toUpperCase());
+  if (codeMatch) {
+    return codeMatch.label;
+  }
+
+  const labelMatch = SUPPORTED_COUNTRIES.find(
+    (country) => country.label.toLowerCase() === normalized.toLowerCase(),
+  );
+  return labelMatch?.label ?? "";
+}
+
 function isSupportedCountryCode(code: string) {
   const normalized = normalizeText(code).toUpperCase();
   return SUPPORTED_COUNTRIES.some((country) => country.code === normalized);
@@ -199,6 +225,59 @@ function isSupportedCountryCode(code: string) {
 
 function buildFullName(firstName: string, lastName: string) {
   return [normalizeText(firstName), normalizeText(lastName)].filter(Boolean).join(" ");
+}
+
+function buildCheckoutContactPayload(contact: ContactDetails): ContactDetails {
+  return {
+    email: normalizeText(contact.email),
+    phone: normalizeText(contact.phone),
+  };
+}
+
+function buildCheckoutDeliveryPayload(delivery: DeliveryDetails): DeliveryDetails {
+  return {
+    fullName: normalizeText(delivery.fullName),
+    address: normalizeText(delivery.address),
+    flatNumber: normalizeText(delivery.flatNumber),
+    city: normalizeText(delivery.city),
+    postcode: normalizeText(delivery.postcode),
+    country: getCountryLabel(delivery.country) || normalizeText(delivery.country),
+  };
+}
+
+function buildExpressContactPayload(
+  event: StripeExpressCheckoutElementConfirmEvent,
+  fallbackContact: ContactDetails,
+): ContactDetails {
+  return {
+    email: normalizeText(event.billingDetails?.email ?? "") || normalizeText(fallbackContact.email),
+    phone: normalizeText(event.billingDetails?.phone ?? "") || normalizeText(fallbackContact.phone),
+  };
+}
+
+function buildExpressDeliveryPayload(
+  event: StripeExpressCheckoutElementConfirmEvent,
+  fallbackDelivery: DeliveryDetails,
+): DeliveryDetails | undefined {
+  if (!event.shippingAddress) {
+    return undefined;
+  }
+
+  return {
+    fullName: normalizeText(event.shippingAddress.name) || normalizeText(fallbackDelivery.fullName),
+    address: normalizeText(event.shippingAddress.address.line1) || normalizeText(fallbackDelivery.address),
+    flatNumber:
+      normalizeText(event.shippingAddress.address.line2 ?? "") ||
+      normalizeText(fallbackDelivery.flatNumber),
+    city: normalizeText(event.shippingAddress.address.city) || normalizeText(fallbackDelivery.city),
+    postcode:
+      normalizeText(event.shippingAddress.address.postal_code) ||
+      normalizeText(fallbackDelivery.postcode),
+    country:
+      getCountryLabel(event.shippingAddress.address.country) ||
+      getCountryLabel(fallbackDelivery.country) ||
+      normalizeText(fallbackDelivery.country),
+  };
 }
 
 function buildRedirectUrl(params: {
@@ -224,8 +303,7 @@ function validateManualCheckoutDetails(contact: ContactDetails, delivery: Delive
   }
 
   const requiredDeliveryValues = [
-    delivery.firstName,
-    delivery.lastName,
+    delivery.fullName,
     delivery.address,
     delivery.city,
     delivery.postcode,
@@ -268,7 +346,7 @@ function buildManualShipping(delivery: DeliveryDetails, phone: string) {
   }
 
   return {
-    name: buildFullName(delivery.firstName, delivery.lastName),
+    name: normalizeText(delivery.fullName),
     phone: normalizeText(phone) || undefined,
     address: buildAddress({
       line1: delivery.address,
@@ -283,7 +361,7 @@ function buildManualShipping(delivery: DeliveryDetails, phone: string) {
 function buildManualBillingDetails(contact: ContactDetails, delivery: DeliveryDetails) {
   const shipping = buildManualShipping(delivery, contact.phone);
   const billingDetails = {
-    name: buildFullName(delivery.firstName, delivery.lastName) || undefined,
+    name: normalizeText(delivery.fullName) || undefined,
     email: normalizeText(contact.email) || undefined,
     phone: normalizeText(contact.phone) || undefined,
     address: shipping?.address,
@@ -312,7 +390,7 @@ function buildExpressBillingDetails(
       })
     : undefined;
 
-  const fallbackName = buildFullName(delivery.firstName, delivery.lastName);
+  const fallbackName = normalizeText(delivery.fullName);
   const billingDetails = {
     name: normalizeText(event.billingDetails?.name ?? "") || event.shippingAddress?.name || fallbackName || undefined,
     email: normalizeText(event.billingDetails?.email ?? "") || normalizeText(contact.email) || undefined,
@@ -423,8 +501,7 @@ function mapProfileToContact(profile: CustomerProfile) {
 
 function mapAddressToDelivery(address: CustomerAddress): DeliveryDetails {
   return {
-    firstName: address.firstName,
-    lastName: address.lastName,
+    fullName: buildFullName(address.firstName, address.lastName),
     address: address.addressLine1,
     flatNumber: address.addressLine2,
     city: address.city,
@@ -502,6 +579,8 @@ function PaymentElementForm({
     flow: CheckoutFlow;
     savedPaymentMethodId?: string;
     savePaymentMethod?: boolean;
+    paymentContact?: ContactDetails;
+    paymentDelivery?: DeliveryDetails;
   }) => {
     const shouldSendAuthToken = Boolean(
       authAccessToken && (params.savePaymentMethod || params.savedPaymentMethodId),
@@ -537,6 +616,8 @@ function PaymentElementForm({
               tip,
               contact,
               delivery,
+              paymentContact: params.paymentContact,
+              paymentDelivery: params.paymentDelivery,
             } satisfies ConfirmPaymentPayload),
             signal: abortController.signal,
           }),
@@ -751,6 +832,8 @@ function PaymentElementForm({
         attemptId,
         confirmationTokenId: confirmationResult.confirmationToken.id,
         flow: "manual_card",
+        paymentContact: buildCheckoutContactPayload(contact),
+        paymentDelivery: buildCheckoutDeliveryPayload(delivery),
         savePaymentMethod: isAuthenticated && savePaymentMethod,
       });
     } catch (error) {
@@ -835,6 +918,8 @@ function PaymentElementForm({
         attemptId,
         confirmationTokenId: confirmationResult.confirmationToken.id,
         flow: "express",
+        paymentContact: buildExpressContactPayload(event, contact),
+        paymentDelivery: buildExpressDeliveryPayload(event, delivery),
         savePaymentMethod: isAuthenticated && savePaymentMethod,
       });
     } catch (error) {
@@ -1019,6 +1104,10 @@ export default function CheckoutClient() {
   const [selectedSavedPaymentMethodId, setSelectedSavedPaymentMethodId] = useState("");
   const [savePaymentMethod, setSavePaymentMethod] = useState(false);
   const [accountLoadError, setAccountLoadError] = useState("");
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
+  const [addressSearchLoading, setAddressSearchLoading] = useState(false);
+  const [addressSearchError, setAddressSearchError] = useState("");
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [isAccountLoading, setIsAccountLoading] = useState(false);
 
   const tipRequest = useMemo<BasketTipInput>(() => {
@@ -1063,6 +1152,8 @@ export default function CheckoutClient() {
     selectedSavedAddressId === null
       ? null
       : savedAddresses.find((address) => address.id === selectedSavedAddressId) ?? null;
+  const addressSearchQuery = normalizeText(delivery.address);
+  const normalizedPostcode = normalizeText(delivery.postcode);
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -1268,9 +1359,81 @@ export default function CheckoutClient() {
     }
   }, [savedAddresses, selectedSavedAddressId]);
 
+  useEffect(() => {
+    if (selectedSavedAddressId || addressSearchQuery.length >= 3 || normalizedPostcode.length >= 3) {
+      return;
+    }
+
+    setAddressSuggestions([]);
+    setShowAddressSuggestions(false);
+    setAddressSearchLoading(false);
+    setAddressSearchError("");
+  }, [addressSearchQuery, normalizedPostcode, selectedSavedAddressId]);
+
+  const performAddressSearch = async () => {
+    if (selectedSavedAddressId) {
+      return;
+    }
+
+    if (!normalizedPostcode) {
+      setAddressSuggestions([]);
+      setShowAddressSuggestions(false);
+      setAddressSearchError("Enter a postcode to search for an address.");
+      return;
+    }
+
+    setAddressSearchLoading(true);
+    setAddressSearchError("");
+
+    try {
+      const query = addressSearchQuery ? `${normalizedPostcode} ${addressSearchQuery}` : normalizedPostcode;
+      const params = new URLSearchParams({
+        q: query,
+        country: delivery.country,
+        postcode: normalizedPostcode,
+      });
+      const response = await fetch(`/api/address-search?${params.toString()}`, {
+        cache: "no-store",
+      });
+      const payload = (await response.json()) as { suggestions?: AddressSuggestion[] };
+      const suggestions = Array.isArray(payload.suggestions) ? payload.suggestions : [];
+      setAddressSuggestions(suggestions);
+      setShowAddressSuggestions(suggestions.length > 0);
+
+      if (!response.ok) {
+        setAddressSearchError("Address search is unavailable right now.");
+        return;
+      }
+
+      if (suggestions.length === 0) {
+        setAddressSearchError("No matching addresses found.");
+      }
+    } catch {
+      setAddressSuggestions([]);
+      setShowAddressSuggestions(false);
+      setAddressSearchError("Address search is unavailable right now.");
+    } finally {
+      setAddressSearchLoading(false);
+    }
+  };
+
   const updateDelivery = <K extends keyof DeliveryDetails>(key: K, value: DeliveryDetails[K]) => {
     setSelectedSavedAddressId(null);
     setDelivery((current) => ({ ...current, [key]: value }));
+  };
+
+  const applyAddressSuggestion = (suggestion: AddressSuggestion) => {
+    setSelectedSavedAddressId(null);
+    setDelivery((current) => ({
+      ...current,
+      address: suggestion.addressLine1,
+      city: suggestion.city,
+      postcode: suggestion.postcode,
+      country: suggestion.country || current.country,
+    }));
+    setAddressSuggestions([]);
+    setShowAddressSuggestions(false);
+    setAddressSearchError("");
   };
 
   const updateContactPhone = (value: string) => {
@@ -1312,9 +1475,10 @@ export default function CheckoutClient() {
                 <h2>Contact</h2>
                 <div className={styles.fieldStack}>
                   <label className={styles.field}>
-                    <span>Email or mobile phone number</span>
+                    <span>Email address</span>
                     <input
-                      type="text"
+                      type="email"
+                      autoComplete="email"
                       value={contact.email}
                       onChange={(event) => setContact((prev) => ({ ...prev, email: event.target.value }))}
                     />
@@ -1413,39 +1577,61 @@ export default function CheckoutClient() {
                       </label>
 
                       <div className={styles.twoUp}>
-                        <label className={styles.field}>
-                          <span>First name</span>
+                        <label className={`${styles.field} ${styles.fullWidthField}`}>
+                          <span>Full name</span>
                           <input
                             type="text"
-                            value={delivery.firstName}
-                            onChange={(event) => updateDelivery("firstName", event.target.value)}
-                          />
-                        </label>
-                        <label className={styles.field}>
-                          <span>Last name</span>
-                          <input
-                            type="text"
-                            value={delivery.lastName}
-                            onChange={(event) => updateDelivery("lastName", event.target.value)}
+                            value={delivery.fullName}
+                            autoComplete="name"
+                            onChange={(event) => updateDelivery("fullName", event.target.value)}
                           />
                         </label>
                       </div>
 
-                      <label className={`${styles.field} ${styles.iconField}`}>
+                      <label className={styles.field}>
                         <span>Address</span>
                         <input
                           type="text"
                           value={delivery.address}
+                          autoComplete="address-line1"
                           onChange={(event) => updateDelivery("address", event.target.value)}
+                          onFocus={() => {
+                            if (addressSuggestions.length > 0) {
+                              setShowAddressSuggestions(true);
+                            }
+                          }}
+                          onBlur={() => {
+                            window.setTimeout(() => setShowAddressSuggestions(false), 150);
+                          }}
                         />
-                        <FiSearch />
+                        {showAddressSuggestions && addressSuggestions.length > 0 ? (
+                          <div className={styles.addressSuggestions} role="listbox" aria-label="Address suggestions">
+                            {addressSuggestions.map((suggestion) => (
+                              <button
+                                key={`${suggestion.addressLine1}-${suggestion.postcode}`}
+                                type="button"
+                                className={styles.addressSuggestion}
+                                onMouseDown={(event) => event.preventDefault()}
+                                onClick={() => applyAddressSuggestion(suggestion)}
+                              >
+                                <span>{suggestion.label}</span>
+                                <small>{suggestion.secondaryLabel}</small>
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
                       </label>
+                      {addressSearchLoading ? (
+                        <p className={styles.fieldHint}>Searching for addresses…</p>
+                      ) : null}
+                      {addressSearchError ? <p className={styles.errorText}>{addressSearchError}</p> : null}
 
                       <label className={styles.field}>
                         <span>Flat number (optional)</span>
                         <input
                           type="text"
                           value={delivery.flatNumber}
+                          autoComplete="address-line2"
                           onChange={(event) => updateDelivery("flatNumber", event.target.value)}
                         />
                       </label>
@@ -1456,16 +1642,36 @@ export default function CheckoutClient() {
                           <input
                             type="text"
                             value={delivery.city}
+                            autoComplete="address-level2"
                             onChange={(event) => updateDelivery("city", event.target.value)}
                           />
                         </label>
-                        <label className={styles.field}>
+                        <label className={`${styles.field} ${styles.iconField}`}>
                           <span>Postcode</span>
                           <input
                             type="text"
                             value={delivery.postcode}
+                            autoComplete="postal-code"
                             onChange={(event) => updateDelivery("postcode", event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                void performAddressSearch();
+                              }
+                            }}
                           />
+                          <button
+                            type="button"
+                            className={styles.searchButton}
+                            aria-label="Search postcode for address suggestions"
+                            disabled={addressSearchLoading || Boolean(selectedSavedAddressId)}
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => {
+                              void performAddressSearch();
+                            }}
+                          >
+                            <FiSearch />
+                          </button>
                         </label>
                       </div>
 

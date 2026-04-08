@@ -495,6 +495,71 @@ export async function moveFeaturedProductPosition(
   revalidateProductData();
 }
 
+export async function moveProductSortOrder(
+  productId: number,
+  direction: "up" | "down",
+) {
+  await ensureAdminSchema();
+
+  const currentRows = await queryCloudflareD1<{ id: number; sort_order: number | null; name: string }>(
+    `SELECT id, sort_order, name
+     FROM products
+     WHERE id = ?
+     LIMIT 1`,
+    [productId],
+    { cache: "no-store" },
+  );
+  const current = currentRows[0];
+
+  if (!current) {
+    throw new Error("The product record could not be found.");
+  }
+
+  const currentSortOrder = current.sort_order ?? 0;
+
+  const targetRows = await queryCloudflareD1<{ id: number; sort_order: number | null }>(
+    direction === "up"
+      ? `SELECT id, sort_order
+         FROM products
+         WHERE sort_order < ?
+            OR (sort_order = ? AND id < ?)
+         ORDER BY sort_order DESC, id DESC
+         LIMIT 1`
+      : `SELECT id, sort_order
+         FROM products
+         WHERE sort_order > ?
+            OR (sort_order = ? AND id > ?)
+         ORDER BY sort_order ASC, id ASC
+         LIMIT 1`,
+    [currentSortOrder, currentSortOrder, productId],
+    { cache: "no-store" },
+  );
+
+  const target = targetRows[0];
+
+  if (!target) {
+    return;
+  }
+
+  const targetSortOrder = target.sort_order ?? 0;
+  const temporarySortOrder = -1;
+
+  await executeCloudflareD1(
+    "UPDATE products SET sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+    [temporarySortOrder, productId],
+  );
+  await executeCloudflareD1(
+    "UPDATE products SET sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+    [currentSortOrder, target.id],
+  );
+  await executeCloudflareD1(
+    "UPDATE products SET sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+    [targetSortOrder, productId],
+  );
+
+  revalidateProductData();
+}
+
 export async function createAdminProduct(input: AdminProductInput) {
   await ensureAdminSchema();
 

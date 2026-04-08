@@ -84,7 +84,12 @@ export default async function ProductPage({
             }}
           />
 
-          <p className={styles.description}>{product.description}</p>
+          <div className={styles.descriptionBlock}>
+            <p className={styles.description}>{product.description}</p>
+            {product.allergens ? (
+              <p className={styles.allergens}>Allergens: {product.allergens}</p>
+            ) : null}
+          </div>
         </div>
       </section>
 

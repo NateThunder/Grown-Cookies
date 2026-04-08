@@ -1,6 +1,10 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import {
+  ensurePaidOrderEmails,
+  isOrderNotificationEmailConfigured,
+} from "@/lib/order-notifications";
+import {
   STRIPE_CHECKOUT_ORDER_STATUS,
   registerWebhookEvent,
   updateOrderStatusByIdentifiers,
@@ -70,6 +74,21 @@ export async function POST(request: Request) {
         paymentIntentId: paymentIntent.id,
         status,
       });
+
+      if (event.type === "payment_intent.succeeded") {
+        const orderPublicId = paymentIntent.metadata?.orderId ?? "";
+
+        if (orderPublicId && isOrderNotificationEmailConfigured()) {
+          try {
+            await ensurePaidOrderEmails(orderPublicId);
+          } catch (error) {
+            console.error("[orders.email] Failed to send paid order email.", {
+              orderPublicId,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+      }
     }
 
     return NextResponse.json({ received: true });

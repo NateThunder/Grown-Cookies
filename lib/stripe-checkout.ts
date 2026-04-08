@@ -18,6 +18,7 @@ export const STRIPE_CHECKOUT_ORDER_STATUS = {
   pending: "pending",
   paid: "paid",
   failed: "failed",
+  expired: "expired",
 } as const;
 
 export const PENDING_ORDER_WARNING_MINUTES = 2;
@@ -99,7 +100,7 @@ export async function expireStalePendingOrders() {
      WHERE status = ?
         OR (status = ? AND datetime(created_at) <= datetime('now', ?))`,
     [
-      "expired",
+      STRIPE_CHECKOUT_ORDER_STATUS.expired,
       STRIPE_CHECKOUT_ORDER_STATUS.pending,
       `-${PENDING_ORDER_EXPIRY_MINUTES} minutes`,
     ],
@@ -110,30 +111,27 @@ export async function expireStalePendingOrders() {
     return 0;
   }
 
-  const orderIds = staleOrders.map((order) => order.id);
-  const orderPublicIds = staleOrders.map((order) => normalizeText(order.public_id)).filter(Boolean);
-  const orderPlaceholders = orderIds.map(() => "?").join(", ");
+  const orderIds = staleOrders
+    .map((order) => order.id)
+    .filter((id) => Number.isFinite(id) && id > 0);
 
-  await executeCloudflareD1(
-    `DELETE FROM order_items
-     WHERE order_id IN (${orderPlaceholders})`,
-    orderIds,
-  );
-
-  if (orderPublicIds.length > 0) {
-    const publicIdPlaceholders = orderPublicIds.map(() => "?").join(", ");
-
-    await executeCloudflareD1(
-      `DELETE FROM order_webhook_events
-       WHERE order_public_id IN (${publicIdPlaceholders})`,
-      orderPublicIds,
-    );
+  if (orderIds.length === 0) {
+    return 0;
   }
 
+  const orderPlaceholders = orderIds.map(() => "?").join(", ");
+
   const result = await executeCloudflareD1(
-    `DELETE FROM orders
-     WHERE id IN (${orderPlaceholders})`,
-    orderIds,
+    `UPDATE orders
+     SET status = ?,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE status = ?
+       AND id IN (${orderPlaceholders})`,
+    [
+      STRIPE_CHECKOUT_ORDER_STATUS.expired,
+      STRIPE_CHECKOUT_ORDER_STATUS.pending,
+      ...orderIds,
+    ],
   );
 
   const changedRows =

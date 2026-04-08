@@ -12,12 +12,6 @@ import type { SavedPaymentMethod } from "@/lib/saved-payment-methods";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import styles from "@/app/account/page.module.css";
 
-const perks = [
-  "Save your details for faster checkout next time.",
-  "Track upcoming orders and seasonal drops in one place.",
-  "Get early access to limited-edition cookie launches.",
-];
-
 const dashboardNavItems = [
   { href: "#profile", label: "Profile" },
   { href: "#security", label: "Security" },
@@ -799,34 +793,16 @@ export default function AccountPageClient() {
 
   if (!session || !user) {
     return (
-      <section className={styles.hero}>
-        <div className={styles.copy}>
-          <p className={styles.eyebrow}>Customer accounts</p>
-          <h1>Create your Grown Cookies account</h1>
-          <p className={styles.description}>
-            Register once to make reordering simpler and give customers a clear
-            home for future order history, exclusives, and updates.
-          </p>
+      <section className={`${styles.hero} ${styles.authHero}`}>
+          <div className={styles.panel}>
+            <div className={styles.panelHeader}>
+              <p className={styles.panelEyebrow}>Account access</p>
+              <h2>Register or sign in</h2>
+              <p>Register or sign in with Supabase to access your Grown Cookies account.</p>
+            </div>
 
-          <ul className={styles.perks}>
-            {perks.map((perk) => (
-              <li key={perk}>{perk}</li>
-            ))}
-          </ul>
-        </div>
-
-        <div className={styles.panel}>
-          <div className={styles.panelHeader}>
-            <p className={styles.panelEyebrow}>Account access</p>
-            <h2>Register or sign in</h2>
-            <p>
-              This uses Supabase Auth. Customers can create an account, return
-              to sign in with email and password, or continue with Google.
-            </p>
+            <AccountSignupForm />
           </div>
-
-          <AccountSignupForm />
-        </div>
       </section>
     );
   }
@@ -1243,7 +1219,6 @@ export default function AccountPageClient() {
           <div className={styles.sectionHeader}>
             <p className={styles.sectionEyebrow}>Orders</p>
             <h2>Order history</h2>
-            <p>Your checkout records are linked to this account by Supabase user ID with email backfill for older orders.</p>
           </div>
 
           {isOrdersLoading ? <p className={styles.ordersStatus}>Loading your order history...</p> : null}
