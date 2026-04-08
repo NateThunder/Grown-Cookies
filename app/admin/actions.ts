@@ -20,22 +20,14 @@ import {
   updateCookieOfMonthProductSlug,
   updateCookieOfMonthSectionSetting,
   updateDeliveryCostCents,
+  updateSiteLockEnabled,
   updateShopIntroSectionSetting,
 } from "@/lib/store-settings";
-import {
-  clearAdminLoginFailures,
-  getAdminLoginBlockedMessage,
-  getAdminLoginThrottleState,
-  getAdminLoginWarningMessage,
-  recordAdminLoginFailure,
-} from "@/lib/admin-login-throttle";
+import { authenticateAdminCredentials } from "@/lib/admin-signin";
 import {
   ADMIN_AUTH_COOKIE,
-  getAdminAccessDeniedMessage,
   getAdminAuthCookieOptions,
-  getSupabaseUserFromAccessToken,
-  isAdminUser,
-  signInToSupabaseWithPassword,
+  getAdminUserFromAccessToken,
 } from "@/lib/supabase/admin-auth";
 
 function getTextField(formData: FormData, key: string) {
@@ -130,15 +122,11 @@ async function requireAdminSession() {
     throw new Error("Please sign in to continue.");
   }
 
-  const user = await getSupabaseUserFromAccessToken(accessToken);
+  const user = await getAdminUserFromAccessToken(accessToken);
 
   if (!user) {
-    throw new Error("Your admin session expired. Sign in again.");
-  }
-
-  if (!isAdminUser(user)) {
     cookieStore.delete(ADMIN_AUTH_COOKIE);
-    throw new Error(getAdminAccessDeniedMessage());
+    throw new Error("Your admin session expired. Sign in again.");
   }
 }
 
@@ -146,54 +134,16 @@ export async function adminLoginAction(formData: FormData) {
   const email = getTextField(formData, "email").trim();
   const password = getTextField(formData, "password");
   const returnPath = getTextField(formData, "returnPath");
-
-  if (!email || !password) {
-    redirectToAdmin({
-      returnPath,
-      error: "Enter both email and password.",
-    });
-    return;
-  }
-
-  const throttleState = await getAdminLoginThrottleState(email);
-
-  if (throttleState.blocked) {
-    redirectToAdmin({
-      returnPath,
-      error: getAdminLoginBlockedMessage(throttleState),
-    });
-    return;
-  }
-
-  const result = await signInToSupabaseWithPassword({
+  const result = await authenticateAdminCredentials({
     email,
     password,
   });
 
-  if ("errorMessage" in result) {
-    const failedState = await recordAdminLoginFailure(email);
-
+  if (!result.ok) {
     redirectToAdmin({
       returnPath,
-      error: failedState.blocked
-        ? getAdminLoginBlockedMessage(failedState)
-        : result.errorMessage,
-      warning: getAdminLoginWarningMessage(failedState) ?? undefined,
-    });
-    return;
-  }
-
-  const user = result.user ?? (await getSupabaseUserFromAccessToken(result.accessToken));
-
-  if (!isAdminUser(user)) {
-    const failedState = await recordAdminLoginFailure(email);
-
-    redirectToAdmin({
-      returnPath,
-      error: failedState.blocked
-        ? getAdminLoginBlockedMessage(failedState)
-        : getAdminAccessDeniedMessage(),
-      warning: getAdminLoginWarningMessage(failedState) ?? undefined,
+      error: result.error,
+      warning: result.warning,
     });
     return;
   }
@@ -208,14 +158,6 @@ export async function adminLoginAction(formData: FormData) {
     path: "/",
     maxAge: cookieConfig.maxAge,
   });
-
-  if (throttleState.failureCount > 0) {
-    try {
-      await clearAdminLoginFailures(email);
-    } catch {
-      // Successful admin logins should not fail if throttle-state cleanup is unavailable.
-    }
-  }
 
   redirectToAdmin({
     returnPath,
@@ -406,6 +348,37 @@ export async function updateBrandStoryContentAction(formData: FormData) {
     redirectToAdmin({
       returnPath: getTextField(formData, "returnPath"),
       error: error instanceof Error ? error.message : "The brand story section could not be saved.",
+      returnView: getTextField(formData, "returnView"),
+    });
+  }
+}
+
+export async function updateSiteLockAction(formData: FormData) {
+  try {
+    const returnView = getTextField(formData, "returnView");
+    const returnPath = getTextField(formData, "returnPath");
+    await requireAdminSession();
+
+    const enabled = getTextField(formData, "siteLockEnabled") === "1";
+
+    await updateSiteLockEnabled(enabled);
+    revalidateTag("store-settings-site-lock", "max");
+    revalidatePath("/", "layout");
+    revalidatePath("/admin/homepage");
+
+    redirectToAdmin({
+      returnPath,
+      notice: enabled ? "Site lock enabled." : "Site lock disabled.",
+      returnView,
+    });
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    redirectToAdmin({
+      returnPath: getTextField(formData, "returnPath"),
+      error: error instanceof Error ? error.message : "The site lock could not be updated.",
       returnView: getTextField(formData, "returnView"),
     });
   }

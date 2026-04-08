@@ -181,6 +181,16 @@ export async function getSupabaseUserFromAccessToken(accessToken: string): Promi
   }
 }
 
+export async function getAdminUserFromAccessToken(accessToken?: string | null) {
+  if (!accessToken) {
+    return null;
+  }
+
+  const user = await getSupabaseUserFromAccessToken(accessToken);
+
+  return isAdminUser(user) ? user : null;
+}
+
 export function getAdminAccessDeniedMessage() {
   return "Access denied.";
 }
