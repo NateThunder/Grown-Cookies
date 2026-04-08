@@ -26,6 +26,7 @@ import {
 } from "@/lib/store-settings";
 import {
   moveFeaturedProductAction,
+  moveProductSortOrderAction,
   toggleProductHiddenAction,
   updateCookieOfMonthProductAction,
 } from "./actions";
@@ -178,6 +179,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 <table className={styles.table}>
                   <thead>
                     <tr>
+                      <th scope="col">Image</th>
                       <th scope="col">Product</th>
                       <th scope="col">Price</th>
                       <th scope="col">Featured</th>
@@ -193,32 +195,31 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   <tbody>
                     {visibleProducts.map((product, index) => {
                       const isActive = !createNew && selectedProduct?.slug === product.slug;
-                      const isFirstFeatured = showingFeaturedOnly && index === 0;
-                      const isLastFeatured = showingFeaturedOnly && index === visibleProducts.length - 1;
+                      const isFirstVisible = index === 0;
+                      const isLastVisible = index === visibleProducts.length - 1;
 
                       return (
                         <tr key={product.slug} className={isActive ? styles.activeRow : undefined}>
                           <td>
-                            <div className={styles.productCell}>
-                              <div className={styles.productThumb}>
-                                {product.imageUrl ? (
-                                  <Image
-                                    src={product.imageUrl}
-                                    alt={product.imageAlt}
-                                    fill
-                                    sizes="4rem"
-                                    className={styles.productThumbImage}
-                                  />
-                                ) : (
-                                  <div className={styles.productThumbPlaceholder}>
-                                    <FiImage />
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className={styles.productInfo}>
-                                <strong>{product.name}</strong>
-                              </div>
+                            <div className={styles.productThumb}>
+                              {product.imageUrl ? (
+                                <Image
+                                  src={product.imageUrl}
+                                  alt={product.imageAlt}
+                                  fill
+                                  sizes="4rem"
+                                  className={styles.productThumbImage}
+                                />
+                              ) : (
+                                <div className={styles.productThumbPlaceholder}>
+                                  <FiImage />
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            <div className={styles.productNameCell}>
+                              <strong>{product.name}</strong>
                             </div>
                           </td>
                           <td className={styles.priceCell}>{product.price}</td>
@@ -304,7 +305,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                                     <button
                                       type="submit"
                                       className={styles.reorderButton}
-                                      disabled={isFirstFeatured}
+                                      disabled={isFirstVisible}
                                       aria-label={`Move ${product.name} up`}
                                     >
                                       <FiChevronUp />
@@ -316,7 +317,36 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                                     <button
                                       type="submit"
                                       className={styles.reorderButton}
-                                      disabled={isLastFeatured}
+                                      disabled={isLastVisible}
+                                      aria-label={`Move ${product.name} down`}
+                                    >
+                                      <FiChevronDown />
+                                    </button>
+                                  </form>
+                                </div>
+                              ) : null}
+
+                              {!showingFeaturedOnly ? (
+                                <div className={styles.reorderControls}>
+                                  <form action={moveProductSortOrderAction}>
+                                    <input type="hidden" name="productId" value={product.id} />
+                                    <input type="hidden" name="direction" value="up" />
+                                    <button
+                                      type="submit"
+                                      className={styles.reorderButton}
+                                      disabled={isFirstVisible}
+                                      aria-label={`Move ${product.name} up`}
+                                    >
+                                      <FiChevronUp />
+                                    </button>
+                                  </form>
+                                  <form action={moveProductSortOrderAction}>
+                                    <input type="hidden" name="productId" value={product.id} />
+                                    <input type="hidden" name="direction" value="down" />
+                                    <button
+                                      type="submit"
+                                      className={styles.reorderButton}
+                                      disabled={isLastVisible}
                                       aria-label={`Move ${product.name} down`}
                                     >
                                       <FiChevronDown />

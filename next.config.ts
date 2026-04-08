@@ -63,6 +63,8 @@ function getContentSecurityPolicy() {
     "https://m.stripe.network",
     "https://q.stripe.com",
     "https://r.stripe.com",
+    "https://www.google-analytics.com",
+    "https://region1.google-analytics.com",
   ]);
   const frameSrc = new Set([
     "'self'",
@@ -81,6 +83,7 @@ function getContentSecurityPolicy() {
     "'self'",
     "'unsafe-inline'",
     "https://js.stripe.com",
+    "https://www.googletagmanager.com",
   ]);
 
   if (process.env.NODE_ENV !== "production") {

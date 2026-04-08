@@ -106,7 +106,7 @@
 }
 
 .imageColumn {
-  width: 100%;
+  width: 85%;
 }
 
 .heroImageWrap {
@@ -219,13 +219,26 @@
   font-size: calc(1.05rem - 4px);
 }
 
-.description {
+.descriptionBlock {
   margin: 26px 0 0;
   max-width: 560px;
+}
+
+.description {
+  margin: 0;
   font-family: var(--font-body--family);
   font-size: calc(1.3rem - 4px);
   line-height: 1.45;
   color: #272727;
+}
+
+.allergens {
+  margin: 12px 0 0;
+  font-family: var(--font-body--family);
+  font-size: calc(1.08rem - 4px);
+  line-height: 1.45;
+  font-weight: 700;
+  color: #1f1f1f;
 }
 
 .relatedSection {
@@ -333,6 +346,10 @@
     padding: 0 0 14px;
   }
 
+  .imageColumn {
+    width: 100%;
+  }
+
   .heroImageWrap,
   .giftHero {
     aspect-ratio: 1 / 1;
@@ -367,8 +384,15 @@
   }
 
   .description {
-    margin-top: 16px;
     font-size: calc(1.22rem - 4px);
+  }
+
+  .descriptionBlock {
+    margin-top: 16px;
+  }
+
+  .allergens {
+    margin-top: 10px;
   }
 
   .relatedSection {

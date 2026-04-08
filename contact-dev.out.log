@@ -1,0 +1,32 @@
+
+> grown-cookies@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.1 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.53:3000
+- Environments: .env.local
+✓ Ready in 666ms
+Creating turbopack project { dir: 'E:\\Websites\\grown-cookies', testMode: true }
+- Experiments (use with caution):
+  · serverActions
+
+ GET /contact 200 in 1220ms (next.js: 502ms, application-code: 718ms)
+Contact enquiry captured locally without email delivery. {
+  recipient: 'orders@growncookies.co.uk',
+  name: 'Local Test',
+  email: 'test@example.com',
+  phone: '07846677463',
+  subject: 'Local smoke test',
+  message: 'This verifies the Zoho contact route falls back cleanly when mail secrets are missing.'
+}
+ POST /api/contact 200 in 182ms (next.js: 155ms, application-code: 28ms)
+Contact enquiry captured locally without email delivery. {
+  recipient: 'orders@growncookies.co.uk',
+  name: 'Direct Test',
+  email: 'test@example.com',
+  phone: '07846677463',
+  subject: 'Direct smoke test',
+  message: 'This request should fail cleanly if the dev server is not running or return a JSON fallback if it is.'
+}
+ POST /api/contact 200 in 31ms (next.js: 5ms, application-code: 26ms)

@@ -1,6 +1,11 @@
 import Link from "next/link";
 import CheckoutSuccessBasketClearer from "@/components/checkout-success-basket-clearer";
+import { ensurePaidOrderEmails, isOrderNotificationEmailConfigured } from "@/lib/order-notifications";
+import { getStripeClient } from "@/lib/stripe-customer-payment-methods";
+import { STRIPE_CHECKOUT_ORDER_STATUS, updateOrderStatusByIdentifiers } from "@/lib/stripe-checkout";
 import styles from "./page.module.css";
+
+export const runtime = "nodejs";
 
 type SearchParamValue = string | string[] | undefined;
 
@@ -16,6 +21,39 @@ function getSearchParamValue(value: SearchParamValue) {
   return value ?? null;
 }
 
+async function reconcileOrderConfirmationEmail(orderId: string | null, paymentIntentId: string | null) {
+  if (!orderId || !paymentIntentId || !isOrderNotificationEmailConfigured()) {
+    return false;
+  }
+
+  try {
+    const stripe = getStripeClient();
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    const paymentIntentOrderId = typeof paymentIntent.metadata?.orderId === "string"
+      ? paymentIntent.metadata.orderId.trim()
+      : "";
+
+    if (paymentIntent.status !== "succeeded" || paymentIntentOrderId !== orderId) {
+      return false;
+    }
+
+    await updateOrderStatusByIdentifiers({
+      orderPublicId: orderId,
+      paymentIntentId,
+      status: STRIPE_CHECKOUT_ORDER_STATUS.paid,
+    });
+    await ensurePaidOrderEmails(orderId);
+    return true;
+  } catch (error) {
+    console.error("[checkout.success] Failed to reconcile confirmation email.", {
+      orderId,
+      paymentIntentId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return false;
+  }
+}
+
 export default async function CheckoutSuccessPage({ searchParams }: CheckoutSuccessPageProps) {
   const params = await searchParams;
   const orderId = getSearchParamValue(params.orderId);
@@ -26,6 +64,9 @@ export default async function CheckoutSuccessPage({ searchParams }: CheckoutSucc
     Boolean(paymentIntentId) &&
     (redirectStatus ? redirectStatus === "succeeded" : Boolean(paymentIntentClientSecret));
   const shouldClearBasket = isPaymentSuccessful && Boolean(orderId);
+  const confirmationEmailTriggered = isPaymentSuccessful
+    ? await reconcileOrderConfirmationEmail(orderId, paymentIntentId)
+    : false;
 
   if (!isPaymentSuccessful) {
     return (
@@ -54,8 +95,12 @@ export default async function CheckoutSuccessPage({ searchParams }: CheckoutSucc
         <p className={styles.badge}>Payment complete</p>
         <h1>Thank you for your order</h1>
         <p>
-          Your payment has been confirmed and we are preparing your order. A confirmation email is on
-          the way.
+          Your payment has been confirmed and we are preparing your order.
+        </p>
+        <p>
+          {confirmationEmailTriggered || isOrderNotificationEmailConfigured()
+            ? "We will send your confirmation by email shortly."
+            : "Email confirmation is not currently available. If you need help with this order, contact orders@growncookies.co.uk."}
         </p>
         <p>Order reference: {orderId ? <strong>{orderId}</strong> : "processing"}</p>
         <Link href="/shop" className={styles.button}>

@@ -1,5 +1,6 @@
 import { executeCloudflareD1, hasCloudflareD1Config, queryCloudflareD1 } from "@/lib/cloudflare-d1";
 import { ensureCustomerAccountSchema } from "@/lib/customer-profiles";
+import { sendDeliveredOrderEmail } from "@/lib/order-notifications";
 import {
   expireStalePendingOrders,
   PENDING_ORDER_WARNING_MINUTES,
@@ -11,6 +12,11 @@ export type AdminOrderSummary = {
   status: string;
   email: string;
   customerName: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  postcode: string;
+  country: string;
   deliveryAddress: string;
   itemCount: number;
   itemsSummary: string;
@@ -19,9 +25,19 @@ export type AdminOrderSummary = {
   createdAt: string;
   deliveredAt: string;
   isPendingWarning: boolean;
+  items: AdminOrderItem[];
+};
+
+export type AdminOrderItem = {
+  slug: string;
+  name: string;
+  quantity: number;
+  unitPriceCents: number;
+  lineTotalCents: number;
 };
 
 type AdminOrderRow = {
+  id: number;
   public_id: string;
   status: string;
   email: string;
@@ -40,8 +56,22 @@ type AdminOrderRow = {
   items_summary: string | null;
 };
 
+type AdminOrderItemRow = {
+  order_id: number;
+  product_slug: string | null;
+  product_name: string | null;
+  unit_price_cents: number | null;
+  quantity: number | null;
+  line_total_cents: number | null;
+};
+
 function normalizeText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeInteger(value: unknown) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function buildDeliveryAddress(row: AdminOrderRow) {
@@ -66,6 +96,60 @@ function getPendingAgeMinutes(createdAt: string) {
   return Math.max(0, (Date.now() - createdAtTime) / 60000);
 }
 
+function mapOrderItemRow(row: AdminOrderItemRow): AdminOrderItem | null {
+  const name = normalizeText(row.product_name);
+
+  if (!name) {
+    return null;
+  }
+
+  return {
+    slug: normalizeText(row.product_slug),
+    name,
+    quantity: Math.max(0, normalizeInteger(row.quantity)),
+    unitPriceCents: Math.max(0, normalizeInteger(row.unit_price_cents)),
+    lineTotalCents: Math.max(0, normalizeInteger(row.line_total_cents)),
+  };
+}
+
+async function getOrderItemsByOrderId(orderIds: number[]) {
+  if (orderIds.length === 0) {
+    return new Map<number, AdminOrderItem[]>();
+  }
+
+  const placeholders = orderIds.map(() => "?").join(", ");
+  const rows = await queryCloudflareD1<AdminOrderItemRow>(
+    `SELECT
+       order_id,
+       product_slug,
+       product_name,
+       unit_price_cents,
+       quantity,
+       line_total_cents
+     FROM order_items
+     WHERE order_id IN (${placeholders})
+     ORDER BY order_id ASC, id ASC`,
+    orderIds,
+    { cache: "no-store" },
+  );
+
+  const itemsByOrderId = new Map<number, AdminOrderItem[]>();
+
+  for (const row of rows) {
+    const item = mapOrderItemRow(row);
+
+    if (!item) {
+      continue;
+    }
+
+    const existing = itemsByOrderId.get(row.order_id) ?? [];
+    existing.push(item);
+    itemsByOrderId.set(row.order_id, existing);
+  }
+
+  return itemsByOrderId;
+}
+
 export async function getAdminOrders(limit = 100): Promise<AdminOrderSummary[]> {
   if (!hasCloudflareD1Config()) {
     return [];
@@ -76,6 +160,7 @@ export async function getAdminOrders(limit = 100): Promise<AdminOrderSummary[]> 
 
   const rows = await queryCloudflareD1<AdminOrderRow>(
     `SELECT
+       o.id,
        o.public_id,
        o.status,
        o.email,
@@ -116,6 +201,10 @@ export async function getAdminOrders(limit = 100): Promise<AdminOrderSummary[]> 
     { cache: "no-store" },
   );
 
+  const itemsByOrderId = await getOrderItemsByOrderId(
+    rows.map((row) => row.id).filter((id) => Number.isFinite(id) && id > 0),
+  );
+
   return rows.map((row) => {
     const status = normalizeText(row.status);
     const createdAt = normalizeText(row.created_at);
@@ -125,6 +214,11 @@ export async function getAdminOrders(limit = 100): Promise<AdminOrderSummary[]> 
       status,
       email: normalizeText(row.email),
       customerName: [normalizeText(row.first_name), normalizeText(row.last_name)].filter(Boolean).join(" "),
+      addressLine1: normalizeText(row.address_line1),
+      addressLine2: normalizeText(row.address_line2),
+      city: normalizeText(row.city),
+      postcode: normalizeText(row.postcode),
+      country: normalizeText(row.country),
       deliveryAddress: buildDeliveryAddress(row),
       itemCount: Number.isFinite(row.item_count) ? Number(row.item_count) : 0,
       itemsSummary: normalizeText(row.items_summary),
@@ -135,6 +229,7 @@ export async function getAdminOrders(limit = 100): Promise<AdminOrderSummary[]> 
       isPendingWarning:
         status === STRIPE_CHECKOUT_ORDER_STATUS.pending &&
         getPendingAgeMinutes(createdAt) >= PENDING_ORDER_WARNING_MINUTES,
+      items: itemsByOrderId.get(row.id) ?? [],
     };
   });
 }
@@ -200,5 +295,11 @@ export async function markAdminOrderDelivered(orderPublicId: string) {
     [existingOrder.id],
   );
 
-  return { alreadyDelivered: false };
+  try {
+    await sendDeliveredOrderEmail(normalizedOrderId);
+    return { alreadyDelivered: false, emailWarning: "" };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "The delivery confirmation email could not be sent.";
+    return { alreadyDelivered: false, emailWarning: message };
+  }
 }

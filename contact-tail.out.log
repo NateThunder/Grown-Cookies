@@ -1,0 +1,24 @@
+
+ ⛅️ wrangler 4.80.0
+───────────────────
+Successfully created tail, expires at 2026-04-06T18:48:36Z
+Connected to grown-cookies, waiting for logs...
+POST https://grown-cookies.orders-657.workers.dev/api/contact - Ok @ 06/04/2026, 15:17:53
+POST https://grown-cookies.orders-657.workers.dev/api/contact - Ok @ 06/04/2026, 15:18:17
+POST https://grown-cookies.orders-657.workers.dev/api/contact - Ok @ 06/04/2026, 15:18:33
+  (error) Contact enquiry submission failed. SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+POST https://grown-cookies.orders-657.workers.dev/api/contact - Ok @ 06/04/2026, 15:19:17
+  (error) Contact enquiry submission failed. SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+POST https://grown-cookies.orders-657.workers.dev/api/contact - Ok @ 06/04/2026, 15:19:17
+  (error) Contact enquiry submission failed. SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+POST https://growncookies.co.uk/api/contact - Ok @ 06/04/2026, 15:19:40
+POST https://growncookies.co.uk/api/contact - Ok @ 06/04/2026, 15:19:43
+POST https://grown-cookies.orders-657.workers.dev/api/contact - Ok @ 06/04/2026, 15:20:05
+  (error) Contact enquiry submission failed. SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+POST https://growncookies.co.uk/api/contact - Ok @ 06/04/2026, 15:21:13
+POST https://growncookies.co.uk/api/contact - Ok @ 06/04/2026, 15:21:24
+GET https://www.growncookies.co.uk/ - Ok @ 06/04/2026, 15:27:54
+POST https://growncookies.co.uk/api/debug/send-order-test - Ok @ 06/04/2026, 15:31:02
+  (info) [orders.email] Skipped delivered email because email env is incomplete. { orderPublicId: 'order_1774900492546_51cb1efd' }
+POST https://growncookies.co.uk/api/debug/send-order-test - Ok @ 06/04/2026, 15:31:10
+  (info) [orders.email] Skipped delivered email because email env is incomplete. { orderPublicId: 'order_1774900492546_51cb1efd' }

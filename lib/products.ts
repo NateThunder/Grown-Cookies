@@ -7,6 +7,7 @@ type ProductBase = {
   name: string;
   price: string;
   description: string;
+  allergens?: string;
   featured?: boolean;
   hidden?: boolean;
   sortOrder?: number;
@@ -31,6 +32,7 @@ type ProductRow = {
   name: string;
   price: string;
   description: string;
+  allergens: string | null;
   image_key: string | null;
   alt_text: string | null;
   is_gift_card: number;
@@ -219,12 +221,33 @@ function normalizeRelatedSlugs(value: string | null) {
   }
 }
 
+function splitLegacyDescription(rawDescription: string, rawAllergens: string | null) {
+  let description = rawDescription.trim();
+  let allergens = rawAllergens?.trim() ?? "";
+  const containsMatch = description.match(/\s*Contains:\s*([^.]*)\./i);
+
+  if (!allergens && containsMatch?.[1]) {
+    allergens = containsMatch[1].trim();
+  }
+
+  description = description
+    .replace(
+      /\s*Contains:\s*[^.]*\.\s*All cookies are baked in an environment that handles[^.]*\./i,
+      "",
+    )
+    .replace(/\s*Contains:\s*[^.]*\./i, "")
+    .trim();
+
+  return { description, allergens };
+}
+
 function mapStaticProduct(record: StaticProductRecord): ShopProduct {
   return {
     slug: record.slug,
     name: record.name,
     price: record.price,
     description: record.description,
+    allergens: record.allergens,
     featured: record.featured,
     hidden: record.hidden,
     sortOrder: record.sortOrder,
@@ -237,11 +260,14 @@ function mapStaticProduct(record: StaticProductRecord): ShopProduct {
 }
 
 function mapRowToProduct(row: ProductRow): ShopProduct {
+  const normalizedCopy = splitLegacyDescription(row.description, row.allergens);
+
   return {
     slug: row.slug,
     name: row.name,
     price: row.price,
-    description: row.description,
+    description: normalizedCopy.description,
+    allergens: normalizedCopy.allergens,
     featured: row.featured_position !== null,
     hidden: Boolean(row.hidden),
     sortOrder: row.featured_position ?? row.sort_order ?? 0,
@@ -279,6 +305,7 @@ async function fetchProductsFromD1() {
        p.name,
        p.price,
        p.description,
+       p.allergens,
        p.is_gift_card,
        p.hidden,
        fp.position AS featured_position,
@@ -319,6 +346,7 @@ const getFeaturedProductsCached = unstable_cache(
          p.name,
          p.price,
          p.description,
+         p.allergens,
          p.is_gift_card,
          p.hidden,
          fp.position AS featured_position,

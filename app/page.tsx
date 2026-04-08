@@ -132,8 +132,8 @@ export default async function Home() {
 
       <section className={styles.brandStory}>
         <Image
-          src="/Box_Shots/_DSC6378.jpg"
-          alt="Grown Cookies box background"
+          src="/Box_Shots/_DSC6373.jpg"
+          alt="Grown Cookies product box"
           fill
           className={styles.brandStoryImage}
         />

@@ -28,6 +28,7 @@ export type AccountOrderItem = {
 };
 
 type AccountOrderRow = {
+  id: number;
   public_id: string;
   status: string;
   total_cents: number;
@@ -42,6 +43,17 @@ type AccountOrderRow = {
   country: string | null;
   supabase_user_id: string | null;
   items_json: string | null;
+};
+
+type AccountOrderItemRow = {
+  order_id: number;
+  product_slug: string | null;
+  product_name: string | null;
+  unit_price_cents: number | null;
+  quantity: number | null;
+  line_total_cents: number | null;
+  image_path: string | null;
+  image_alt: string | null;
 };
 
 function normalizeText(value: string | null | undefined) {
@@ -102,6 +114,65 @@ function parseOrderItems(itemsJson: string | null | undefined): AccountOrderItem
   }
 }
 
+function mapItemRow(row: AccountOrderItemRow): AccountOrderItem | null {
+  const name = normalizeText(row.product_name);
+
+  if (!name) {
+    return null;
+  }
+
+  return {
+    slug: normalizeText(row.product_slug),
+    name,
+    image: normalizeText(row.image_path),
+    imageAlt: normalizeText(row.image_alt),
+    quantity: Math.max(0, normalizeInteger(row.quantity)),
+    unitPriceCents: Math.max(0, normalizeInteger(row.unit_price_cents)),
+    lineTotalCents: Math.max(0, normalizeInteger(row.line_total_cents)),
+  };
+}
+
+async function getOrderItemsByOrderId(orderIds: number[]) {
+  if (orderIds.length === 0) {
+    return new Map<number, AccountOrderItem[]>();
+  }
+
+  const placeholders = orderIds.map(() => "?").join(", ");
+  const itemRows = await queryCloudflareD1<AccountOrderItemRow>(
+    `SELECT
+       oi.order_id,
+       oi.product_slug,
+       oi.product_name,
+       oi.unit_price_cents,
+       oi.quantity,
+       oi.line_total_cents,
+       p.image_path,
+       p.alt_text AS image_alt
+     FROM order_items oi
+     LEFT JOIN products p ON p.slug = oi.product_slug
+     WHERE oi.order_id IN (${placeholders})
+     ORDER BY oi.order_id ASC, oi.id ASC`,
+    orderIds,
+    { cache: "no-store" },
+  );
+
+  const itemsByOrderId = new Map<number, AccountOrderItem[]>();
+
+  for (const row of itemRows) {
+    const item = mapItemRow(row);
+
+    if (!item) {
+      continue;
+    }
+
+    const existing = itemsByOrderId.get(row.order_id) ?? [];
+    existing.push(item);
+    itemsByOrderId.set(row.order_id, existing);
+  }
+
+  return itemsByOrderId;
+}
+
 export async function getAccountOrderSummariesForCustomer(params: {
   supabaseUserId: string;
   email: string;
@@ -118,6 +189,7 @@ export async function getAccountOrderSummariesForCustomer(params: {
 
   const rows = await queryCloudflareD1<AccountOrderRow>(
     `SELECT
+       id,
        public_id,
        status,
        total_cents,
@@ -140,6 +212,10 @@ export async function getAccountOrderSummariesForCustomer(params: {
     { cache: "no-store" },
   );
 
+  const itemsByOrderId = await getOrderItemsByOrderId(
+    rows.map((row) => row.id).filter((id) => Number.isFinite(id) && id > 0),
+  );
+
   return rows.map((row) => ({
     orderId: normalizeText(row.public_id),
     status: normalizeText(row.status),
@@ -152,7 +228,7 @@ export async function getAccountOrderSummariesForCustomer(params: {
     city: normalizeText(row.city),
     postcode: normalizeText(row.postcode),
     country: normalizeText(row.country),
-    items: parseOrderItems(row.items_json),
+    items: itemsByOrderId.get(row.id) ?? parseOrderItems(row.items_json),
   }));
 }
 
@@ -168,6 +244,7 @@ export async function getAccountOrderSummariesByEmail(email: string): Promise<Ac
 
   const rows = await queryCloudflareD1<AccountOrderRow>(
     `SELECT
+       id,
        public_id,
        status,
        total_cents,
@@ -189,6 +266,10 @@ export async function getAccountOrderSummariesByEmail(email: string): Promise<Ac
     { cache: "no-store" },
   );
 
+  const itemsByOrderId = await getOrderItemsByOrderId(
+    rows.map((row) => row.id).filter((id) => Number.isFinite(id) && id > 0),
+  );
+
   return rows.map((row) => ({
     orderId: normalizeText(row.public_id),
     status: normalizeText(row.status),
@@ -201,6 +282,6 @@ export async function getAccountOrderSummariesByEmail(email: string): Promise<Ac
     city: normalizeText(row.city),
     postcode: normalizeText(row.postcode),
     country: normalizeText(row.country),
-    items: parseOrderItems(row.items_json),
+    items: itemsByOrderId.get(row.id) ?? parseOrderItems(row.items_json),
   }));
 }

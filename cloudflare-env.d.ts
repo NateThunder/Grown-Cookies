@@ -26,6 +26,13 @@ declare global {
 
   interface CloudflareEnv {
     DB?: D1Database;
+    CONTACT_FORM_FROM?: string;
+    CONTACT_FORM_TO?: string;
+    ORDER_NOTIFICATION_FROM?: string;
+    ZOHO_CLIENT_ID?: string;
+    ZOHO_CLIENT_SECRET?: string;
+    ZOHO_REFRESH_TOKEN?: string;
+    ZOHO_ACCOUNT_ID?: string;
   }
 }
 

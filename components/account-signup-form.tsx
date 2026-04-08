@@ -30,17 +30,43 @@ function getCanonicalAccountRedirectUrl() {
   return `${DEFAULT_SITE_URL}/account`;
 }
 
+function hasRecoveryParams() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  return searchParams.get("type") === "recovery" || hashParams.get("type") === "recovery";
+}
+
 export default function AccountSignupForm() {
   const [mode, setMode] = useState<AuthMode>("signup");
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<Status>(initialStatus);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+  const [isRequestingReset, setIsRequestingReset] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isRecoveryPasswordVisible, setIsRecoveryPasswordVisible] = useState(false);
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
+    const recoveryRequested = hasRecoveryParams();
+
+    if (recoveryRequested) {
+      setIsRecoveryMode(true);
+    }
 
     if (!supabase) {
       return;
@@ -57,16 +83,31 @@ export default function AccountSignupForm() {
 
       setSession(data.session ?? null);
       setUser(data.session?.user ?? null);
+
+      if (recoveryRequested && !data.session?.user) {
+        setIsRecoveryMode(false);
+        setStatus({
+          type: "error",
+          message: "This password reset link is invalid or has expired. Request a new reset email.",
+        });
+      }
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
       setIsSubmitting(false);
       setIsGoogleSubmitting(false);
+      setIsRequestingReset(false);
+      setIsResettingPassword(false);
       setIsSigningOut(false);
+
+      if (event === "PASSWORD_RECOVERY") {
+        setIsRecoveryMode(true);
+        setStatus(initialStatus);
+      }
     });
 
     return () => {
@@ -116,52 +157,14 @@ export default function AccountSignupForm() {
     });
   }
 
-  async function handleGoogleSignup() {
-    setStatus(initialStatus);
-
-    const supabase = getSupabaseBrowserClient();
-
-    if (!supabase) {
-      setStatus({
-        type: "error",
-        message:
-          "Supabase is not configured yet. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to continue.",
-      });
-      return;
-    }
-
-    setIsGoogleSubmitting(true);
-
-    const redirectTo = getCanonicalAccountRedirectUrl();
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo,
-      },
-    });
-
-    setIsGoogleSubmitting(false);
-
-    if (error) {
-      setStatus({
-        type: "error",
-        message: error.message,
-      });
-    }
-  }
-
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus(initialStatus);
+    const trimmedFirstName = firstName.trim();
+    const trimmedLastName = lastName.trim();
+    const trimmedEmail = email.trim();
 
-    const formData = new FormData(event.currentTarget);
-    const firstName = String(formData.get("firstName") ?? "").trim();
-    const lastName = String(formData.get("lastName") ?? "").trim();
-    const email = String(formData.get("email") ?? "").trim();
-    const password = String(formData.get("password") ?? "");
-
-    if (!email || !password || (mode === "signup" && (!firstName || !lastName))) {
+    if (!trimmedEmail || !password || (mode === "signup" && (!trimmedFirstName || !trimmedLastName))) {
       setStatus({
         type: "error",
         message:
@@ -199,13 +202,13 @@ export default function AccountSignupForm() {
       const emailRedirectTo = getCanonicalAccountRedirectUrl();
 
       const response = await supabase.auth.signUp({
-        email,
+        email: trimmedEmail,
         password,
         options: {
           data: {
-            first_name: firstName,
-            last_name: lastName,
-            full_name: `${firstName} ${lastName}`,
+            first_name: trimmedFirstName,
+            last_name: trimmedLastName,
+            full_name: `${trimmedFirstName} ${trimmedLastName}`,
           },
           emailRedirectTo,
         },
@@ -227,7 +230,7 @@ export default function AccountSignupForm() {
       }
     } else {
       const response = await supabase.auth.signInWithPassword({
-        email,
+        email: trimmedEmail,
         password,
       });
 
@@ -250,11 +253,152 @@ export default function AccountSignupForm() {
       });
       return;
     }
-
-    event.currentTarget.reset();
   }
 
-  if (session && user) {
+  async function handleGoogleAuth() {
+    setStatus(initialStatus);
+
+    const supabase = getSupabaseBrowserClient();
+
+    if (!supabase) {
+      setStatus({
+        type: "error",
+        message:
+          "Supabase is not configured yet. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to continue.",
+      });
+      return;
+    }
+
+    setIsGoogleSubmitting(true);
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: getCanonicalAccountRedirectUrl(),
+      },
+    });
+
+    if (error) {
+      setIsGoogleSubmitting(false);
+      setStatus({
+        type: "error",
+        message: error.message,
+      });
+    }
+  }
+
+  async function handleForgotPassword() {
+    setStatus(initialStatus);
+
+    const supabase = getSupabaseBrowserClient();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      setStatus({
+        type: "error",
+        message: "Enter your email address first so we know where to send the reset link.",
+      });
+      return;
+    }
+
+    if (!supabase) {
+      setStatus({
+        type: "error",
+        message:
+          "Supabase is not configured yet. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to continue.",
+      });
+      return;
+    }
+
+    setIsRequestingReset(true);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+      redirectTo: getCanonicalAccountRedirectUrl(),
+    });
+
+    setIsRequestingReset(false);
+
+    if (error) {
+      setStatus({
+        type: "error",
+        message: error.message,
+      });
+      return;
+    }
+
+    setStatus({
+      type: "success",
+      message:
+        "Password reset email sent. Check your inbox and spam folder, then open the link to set a new password.",
+    });
+  }
+
+  async function handlePasswordReset(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setStatus(initialStatus);
+
+    const supabase = getSupabaseBrowserClient();
+
+    if (!supabase) {
+      setStatus({
+        type: "error",
+        message:
+          "Supabase is not configured yet. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to continue.",
+      });
+      return;
+    }
+
+    if (!newPassword || !confirmPassword) {
+      setStatus({
+        type: "error",
+        message: "Enter and confirm your new password.",
+      });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setStatus({
+        type: "error",
+        message: "Use a password with at least 8 characters.",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setStatus({
+        type: "error",
+        message: "Your password confirmation does not match.",
+      });
+      return;
+    }
+
+    setIsResettingPassword(true);
+
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    setIsResettingPassword(false);
+
+    if (error) {
+      setStatus({
+        type: "error",
+        message: error.message,
+      });
+      return;
+    }
+
+    setIsRecoveryMode(false);
+    setNewPassword("");
+    setConfirmPassword("");
+    setIsRecoveryPasswordVisible(false);
+    setStatus({
+      type: "success",
+      message: "Password updated successfully. You can continue in your account.",
+    });
+  }
+
+  if (session && user && !isRecoveryMode) {
     return (
       <div className={styles.accountState}>
         <div className={styles.accountSummary}>
@@ -284,6 +428,156 @@ export default function AccountSignupForm() {
     );
   }
 
+  if (isRecoveryMode) {
+    return (
+      <div className={styles.authCard}>
+        <div className={styles.recoveryIntro}>
+          <p className={styles.accountEyebrow}>Password reset</p>
+          <h3>Set your new password</h3>
+          <p>Choose a new password for your Grown Cookies account to finish recovery.</p>
+        </div>
+
+        <form className={styles.form} onSubmit={handlePasswordReset}>
+          <label className={styles.field}>
+            <span>New password</span>
+            <div className={styles.passwordField}>
+              <input
+                name="newPassword"
+                type={isRecoveryPasswordVisible ? "text" : "password"}
+                minLength={8}
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+              />
+              <button
+                type="button"
+                className={styles.passwordToggle}
+                onClick={() => setIsRecoveryPasswordVisible((current) => !current)}
+                aria-label={isRecoveryPasswordVisible ? "Hide password" : "Show password"}
+                aria-pressed={isRecoveryPasswordVisible}
+              >
+                {isRecoveryPasswordVisible ? (
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M3 4.5 19.5 21M10.6 10.7a2 2 0 0 0 2.7 2.7M9.9 5.1A10.9 10.9 0 0 1 12 5c5.2 0 9.4 3.6 10.8 7-0.7 1.8-2.1 3.6-4 4.9M6.7 6.8C4.7 8 3.3 9.8 2.5 12c1.4 3.4 5.6 7 10.8 7 1.5 0 2.9-.3 4.1-.8"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.8"
+                    />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M2.5 12C3.9 8.6 8.1 5 13.3 5s9.4 3.6 10.8 7c-1.4 3.4-5.6 7-10.8 7S3.9 15.4 2.5 12Z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.8"
+                    />
+                    <circle
+                      cx="13.3"
+                      cy="12"
+                      r="3"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.8"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </label>
+
+          <label className={styles.field}>
+            <span>Confirm new password</span>
+            <div className={styles.passwordField}>
+              <input
+                name="confirmPassword"
+                type={isRecoveryPasswordVisible ? "text" : "password"}
+                minLength={8}
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+              />
+              <button
+                type="button"
+                className={styles.passwordToggle}
+                onClick={() => setIsRecoveryPasswordVisible((current) => !current)}
+                aria-label={isRecoveryPasswordVisible ? "Hide password" : "Show password"}
+                aria-pressed={isRecoveryPasswordVisible}
+              >
+                {isRecoveryPasswordVisible ? (
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M3 4.5 19.5 21M10.6 10.7a2 2 0 0 0 2.7 2.7M9.9 5.1A10.9 10.9 0 0 1 12 5c5.2 0 9.4 3.6 10.8 7-0.7 1.8-2.1 3.6-4 4.9M6.7 6.8C4.7 8 3.3 9.8 2.5 12c1.4 3.4 5.6 7 10.8 7 1.5 0 2.9-.3 4.1-.8"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.8"
+                    />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M2.5 12C3.9 8.6 8.1 5 13.3 5s9.4 3.6 10.8 7c-1.4 3.4-5.6 7-10.8 7S3.9 15.4 2.5 12Z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.8"
+                    />
+                    <circle
+                      cx="13.3"
+                      cy="12"
+                      r="3"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.8"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </label>
+
+          <button className={styles.submit} type="submit" disabled={isResettingPassword}>
+            {isResettingPassword ? "Updating password..." : "Update password"}
+          </button>
+
+          <button
+            type="button"
+            className={styles.textAction}
+            onClick={() => {
+              setIsRecoveryMode(false);
+              setNewPassword("");
+              setConfirmPassword("");
+              setStatus(initialStatus);
+            }}
+          >
+            Back to sign in
+          </button>
+
+          <p
+            className={`${styles.status} ${
+              status.type === "error" ? styles.error : ""
+            } ${status.type === "success" ? styles.success : ""}`.trim()}
+            aria-live="polite"
+          >
+            {status.message}
+          </p>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.authCard}>
       <div className={styles.modeSwitch} role="tablist" aria-label="Account access">
@@ -293,6 +587,7 @@ export default function AccountSignupForm() {
           onClick={() => {
             setMode("signup");
             setStatus(initialStatus);
+            setIsPasswordVisible(false);
           }}
           aria-pressed={mode === "signup"}
         >
@@ -304,6 +599,7 @@ export default function AccountSignupForm() {
           onClick={() => {
             setMode("signin");
             setStatus(initialStatus);
+            setIsPasswordVisible(false);
           }}
           aria-pressed={mode === "signin"}
         >
@@ -316,51 +612,129 @@ export default function AccountSignupForm() {
           <div className={styles.identityGrid}>
             <label className={styles.field}>
               <span>First name</span>
-              <input name="firstName" type="text" autoComplete="given-name" />
+              <input
+                name="firstName"
+                type="text"
+                autoComplete="given-name"
+                value={firstName}
+                onChange={(event) => setFirstName(event.target.value)}
+              />
             </label>
 
             <label className={styles.field}>
               <span>Last name</span>
-              <input name="lastName" type="text" autoComplete="family-name" />
+              <input
+                name="lastName"
+                type="text"
+                autoComplete="family-name"
+                value={lastName}
+                onChange={(event) => setLastName(event.target.value)}
+              />
             </label>
           </div>
         ) : null}
 
         <label className={styles.field}>
           <span>Email address</span>
-          <input name="email" type="email" autoComplete="email" />
+          <input
+            name="email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
         </label>
 
         <label className={styles.field}>
           <span>Password</span>
-          <input
-            name="password"
-            type="password"
-            minLength={8}
-            autoComplete={mode === "signup" ? "new-password" : "current-password"}
-          />
+          <div className={styles.passwordField}>
+            <input
+              name="password"
+              type={isPasswordVisible ? "text" : "password"}
+              minLength={8}
+              autoComplete={mode === "signup" ? "new-password" : "current-password"}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+            <button
+              type="button"
+              className={styles.passwordToggle}
+              onClick={() => setIsPasswordVisible((current) => !current)}
+              aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+              aria-pressed={isPasswordVisible}
+            >
+              {isPasswordVisible ? (
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M3 4.5 19.5 21M10.6 10.7a2 2 0 0 0 2.7 2.7M9.9 5.1A10.9 10.9 0 0 1 12 5c5.2 0 9.4 3.6 10.8 7-0.7 1.8-2.1 3.6-4 4.9M6.7 6.8C4.7 8 3.3 9.8 2.5 12c1.4 3.4 5.6 7 10.8 7 1.5 0 2.9-.3 4.1-.8"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.8"
+                  />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M2.5 12C3.9 8.6 8.1 5 13.3 5s9.4 3.6 10.8 7c-1.4 3.4-5.6 7-10.8 7S3.9 15.4 2.5 12Z"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.8"
+                  />
+                  <circle
+                    cx="13.3"
+                    cy="12"
+                    r="3"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.8"
+                  />
+                </svg>
+              )}
+            </button>
+          </div>
         </label>
 
-        <button className={styles.submit} type="submit" disabled={isSubmitting || isGoogleSubmitting}>
+        {mode === "signin" ? (
+          <button
+            type="button"
+            className={styles.textAction}
+            onClick={() => void handleForgotPassword()}
+            disabled={isRequestingReset || isSubmitting}
+          >
+            {isRequestingReset ? "Sending reset link..." : "Forgot password?"}
+          </button>
+        ) : null}
+
+        <button className={styles.submit} type="submit" disabled={isSubmitting}>
           {isSubmitting
             ? mode === "signup"
               ? "Creating account..."
               : "Signing in..."
             : mode === "signup"
               ? "Create account"
-              : "Sign in"}
+            : "Sign in"}
         </button>
 
+        <div className={styles.divider} aria-hidden="true">
+          <span>or</span>
+        </div>
+
         <button
-          className={styles.googleButton}
+          className={styles.oauthButton}
           type="button"
-          onClick={handleGoogleSignup}
+          onClick={() => void handleGoogleAuth()}
           disabled={isGoogleSubmitting || isSubmitting}
         >
-          <span className={styles.googleIconBadge} aria-hidden="true">
+          <span className={styles.oauthIconBadge} aria-hidden="true">
             <FaGoogle />
           </span>
-          <span>{isGoogleSubmitting ? "Opening Google..." : "Continue with Google"}</span>
+          <span>{isGoogleSubmitting ? "Redirecting to Google..." : "Continue with Google"}</span>
         </button>
 
         <p

@@ -9,6 +9,7 @@ import {
   createAdminProduct,
   deleteAdminProduct,
   moveFeaturedProductPosition,
+  moveProductSortOrder,
   setAdminProductHidden,
   updateAdminProduct,
 } from "@/lib/product-admin";
@@ -529,6 +530,35 @@ export async function moveFeaturedProductAction(formData: FormData) {
   }
 }
 
+export async function moveProductSortOrderAction(formData: FormData) {
+  try {
+    await requireAdminSession();
+
+    const productId = Number.parseInt(getTextField(formData, "productId"), 10);
+    const directionValue = getTextField(formData, "direction").trim();
+    const direction = directionValue === "up" || directionValue === "down" ? directionValue : null;
+
+    if (!Number.isFinite(productId) || !direction) {
+      throw new Error("Could not move product.");
+    }
+
+    await moveProductSortOrder(productId, direction);
+
+    redirectToAdmin({
+      returnView: "all",
+      notice: "Product order updated.",
+    });
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+    redirectToAdmin({
+      returnView: "all",
+      error: error instanceof Error ? error.message : "The product could not be moved.",
+    });
+  }
+}
+
 export async function deleteProductAction(formData: FormData) {
   try {
     const productId = Number.parseInt(getTextField(formData, "productId"), 10);
@@ -637,6 +667,7 @@ export async function markOrderDeliveredAction(formData: FormData) {
       returnPath,
       returnView,
       notice: result.alreadyDelivered ? "Order already marked as delivered." : "Order marked as delivered.",
+      warning: result.emailWarning || undefined,
     });
   } catch (error) {
     if (isRedirectError(error)) {

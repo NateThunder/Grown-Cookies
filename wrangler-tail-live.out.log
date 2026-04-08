@@ -1,0 +1,23 @@
+
+ ⛅️ wrangler 4.80.0
+───────────────────
+Successfully created tail, expires at 2026-04-06T18:48:36Z
+Connected to grown-cookies, waiting for logs...
+POST https://growncookies.co.uk/api/contact - Ok @ 06/04/2026, 13:59:08
+  (error) Cloudflare contact email delivery failed. {
+  error: { code: 'E_INTERNAL_SERVER_ERROR' },
+  sender: 'no-reply@growncookies.co.uk',
+  recipient: 'orders@growncookies.co.uk',
+  subject: 'Tail test after sender fix',
+  replyTo: 'test@example.com'
+}
+POST https://growncookies.co.uk/api/contact - Ok @ 06/04/2026, 13:59:31
+  (error) Cloudflare contact email delivery failed. {
+  error: { code: 'E_INTERNAL_SERVER_ERROR' },
+  sender: 'no-reply@growncookies.co.uk',
+  recipient: 'orders@growncookies.co.uk',
+  subject: 'Direct verification',
+  replyTo: 'test@example.com'
+}
+GET https://growncookies.co.uk/robots.txt - Ok @ 06/04/2026, 14:09:12
+GET http://growncookies.co.uk/wp-login.php - Ok @ 06/04/2026, 14:18:20

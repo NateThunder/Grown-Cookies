@@ -525,7 +525,7 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 56rem;
+  min-width: 60rem;
 }
 
 .table thead th {
@@ -551,13 +551,6 @@
   background: rgba(118, 26, 108, 0.04);
 }
 
-.productCell {
-  display: grid;
-  grid-template-columns: 4rem minmax(0, 1fr);
-  gap: 0.85rem;
-  align-items: center;
-}
-
 .productThumb {
   position: relative;
   width: 4rem;
@@ -580,21 +573,14 @@
   font-size: 1.1rem;
 }
 
-.productInfo {
+.productNameCell {
   display: grid;
-  gap: 0.22rem;
   min-width: 0;
 }
 
-.productInfo strong {
+.productNameCell strong {
   color: #351927;
   font-size: 1rem;
-}
-
-.productInfo span {
-  color: rgba(70, 43, 55, 0.64);
-  font-family: var(--font-anonymous-pro), monospace;
-  font-size: 0.83rem;
 }
 
 .priceCell {
@@ -670,6 +656,86 @@
   line-height: 1.45;
 }
 
+.orderDetailsSummary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 5.5rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid rgba(118, 26, 108, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #4b183f;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.orderDetailsSummary::-webkit-details-marker {
+  display: none;
+}
+
+.orderDetailsCard {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  padding: 1.1rem;
+  border: 1px solid rgba(118, 26, 108, 0.08);
+  border-radius: 1.4rem;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  text-align: left;
+}
+
+.orderDetailsModal {
+  width: min(54rem, calc(100vw - 2.5rem));
+}
+
+.orderDetailsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.orderDetailsSection {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.orderDetailsSection p {
+  margin: 0;
+  color: rgba(70, 43, 55, 0.78);
+  line-height: 1.45;
+}
+
+.orderDetailsLabel {
+  color: #8f5767;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.orderLineItemList {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.orderLineItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.9rem;
+  align-items: start;
+  padding: 0.8rem 0;
+  border-top: 1px solid rgba(118, 26, 108, 0.08);
+}
+
+.orderLineItem:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
 .ordersEmptyState {
   padding: 0 1.5rem 1.5rem;
 }
@@ -690,6 +756,7 @@
 .actionsColumn {
   text-align: right;
   white-space: nowrap;
+  vertical-align: middle;
 }
 
 .rowActions {
@@ -873,6 +940,7 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
+  padding: 1.25rem 1.5rem 1.5rem;
 }
 
 .emptyState {
@@ -931,6 +999,10 @@
   .tableHint {
     max-width: none;
     text-align: left;
+  }
+
+  .orderDetailsGrid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1028,6 +1100,19 @@
   .modalBody {
     flex: 1 1 auto;
     min-height: 0;
+    padding: 1rem;
+  }
+
+  .orderDetailsModal {
+    width: 100%;
+  }
+
+  .orderDetailsCard {
+    padding: 1rem;
+  }
+
+  .orderLineItem {
+    flex-direction: column;
   }
 }
 
