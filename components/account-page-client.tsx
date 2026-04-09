@@ -9,6 +9,7 @@ import AccountSignupForm from "@/components/account-signup-form";
 import type { AccountOrderItem, AccountOrderSummary } from "@/lib/account-orders";
 import type { CustomerAddress, CustomerProfile } from "@/lib/customer-profiles";
 import type { SavedPaymentMethod } from "@/lib/saved-payment-methods";
+import { publicStripeAppearance } from "@/lib/stripe-appearance";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import styles from "@/app/account/page.module.css";
 
@@ -1139,7 +1140,10 @@ export default function AccountPageClient() {
           {paymentSetupError ? <p className={styles.sectionStatus}>{paymentSetupError}</p> : null}
 
           {isAddingPaymentMethod && paymentSetupClientSecret && stripePromise ? (
-            <Elements stripe={stripePromise} options={{ clientSecret: paymentSetupClientSecret }}>
+            <Elements
+              stripe={stripePromise}
+              options={{ clientSecret: paymentSetupClientSecret, appearance: publicStripeAppearance }}
+            >
               <AddPaymentMethodForm
                 clientSecret={paymentSetupClientSecret}
                 onCancel={handleCancelAddPaymentMethod}

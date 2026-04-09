@@ -1,13 +1,13 @@
 .page {
   min-height: 100vh;
-  background: #fff8fb;
+  background: var(--public-gradient);
 }
 
 .hero {
   display: grid;
   gap: 24px;
   align-items: start;
-  padding: 32px 16px 56px;
+  padding: 24px 16px 40px;
 }
 
 .authHero {
@@ -25,9 +25,10 @@
 .eyebrow,
 .panelEyebrow {
   margin: 0 0 12px;
-  color: #761A6C;
-  font-family: var(--font-header--family);
-  font-size: 0.78rem;
+  color: rgba(75, 20, 95, 0.78);
+  font-family: var(--font-body--family);
+  font-size: 0.72rem;
+  font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
@@ -35,34 +36,34 @@
 .copy h1 {
   margin: 0;
   max-width: none;
-  color: #240f26;
+  color: var(--public-plum-deep);
   font-family: var(--font-heading--family);
-  font-size: clamp(2.1rem, 11vw, 3.8rem);
-  line-height: 0.98;
+  font-size: clamp(1.55rem, 7.7vw, 2.8rem);
+  line-height: 0.94;
 }
 
 .description {
   max-width: 38rem;
-  margin: 18px 0 0;
-  color: #4f3c51;
-  font-size: 1rem;
-  line-height: 1.65;
+  margin: 12px 0 0;
+  color: var(--public-ink-soft);
+  font-size: 0.94rem;
+  line-height: 1.55;
 }
 
 .perks {
   display: grid;
   gap: 12px;
-  padding: 24px 0 0;
+  padding: 18px 0 0;
   margin: 0;
   list-style: none;
 }
 
 .perks li {
   position: relative;
-  padding-left: 24px;
-  color: #321d37;
-  font-size: 0.96rem;
-  line-height: 1.55;
+  padding-left: 20px;
+  color: var(--public-ink);
+  font-size: 0.88rem;
+  line-height: 1.45;
 }
 
 .perks li::before {
@@ -78,12 +79,12 @@
 }
 
 .panel {
-  border: 1px solid rgba(118, 26, 108, 0.12);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.84);
-  box-shadow: 0 20px 44px rgba(118, 26, 108, 0.1);
-  padding: 22px 18px;
-  backdrop-filter: blur(10px);
+  border: 1px solid var(--public-border);
+  border-radius: var(--public-radius-lg);
+  background: var(--public-panel-gradient);
+  box-shadow: var(--public-shadow);
+  padding: 18px 16px;
+  backdrop-filter: blur(12px);
 }
 
 .panelHeader {
@@ -92,19 +93,19 @@
 
 .panelHeader h2 {
   margin: 0;
-  color: #240f26;
+  color: var(--public-plum-deep);
   font-family: var(--font-heading--family);
-  font-size: clamp(1.5rem, 7vw, 2.1rem);
+  font-size: clamp(1.15rem, 4.9vw, 1.5rem);
 }
 
 .panelHeader p:last-child {
   margin: 10px 0 0;
-  color: #5c495f;
-  line-height: 1.6;
+  color: var(--public-ink-soft);
+  line-height: 1.5;
 }
 
 .accountLoading {
-  padding: 32px 16px 56px;
+  padding: 24px 16px 40px;
 }
 
 .loadingCard,
@@ -113,14 +114,14 @@
 .sidebarNav,
 .orderCard,
 .emptyOrders {
-  border: 1px solid rgba(118, 26, 108, 0.12);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.84);
-  box-shadow: 0 18px 42px rgba(118, 26, 108, 0.08);
+  border: 1px solid var(--public-border);
+  border-radius: var(--public-radius-lg);
+  background: var(--public-panel-gradient);
+  box-shadow: var(--public-shadow-soft);
 }
 
 .loadingCard {
-  padding: 22px 18px;
+  padding: 18px 16px;
 }
 
 .dashboard {
@@ -130,7 +131,7 @@
   display: grid;
   gap: 18px;
   align-items: start;
-  padding: 24px 16px 28px;
+  padding: 18px 16px 22px;
 }
 
 .sidebar {
@@ -145,9 +146,10 @@
 .sidebarEyebrow,
 .sectionEyebrow {
   margin: 0 0 10px;
-  color: #761A6C;
-  font-family: var(--font-header--family);
-  font-size: 0.74rem;
+  color: rgba(75, 20, 95, 0.78);
+  font-family: var(--font-body--family);
+  font-size: 0.7rem;
+  font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
@@ -156,10 +158,10 @@
 .loadingCard h1,
 .sectionHeader h2 {
   margin: 0;
-  color: #240f26;
+  color: var(--public-plum-deep);
   font-family: var(--font-heading--family);
-  font-size: clamp(1.4rem, 6vw, 2rem);
-  line-height: 1.02;
+  font-size: clamp(1rem, 4.2vw, 1.4rem);
+  line-height: 0.98;
 }
 
 .sidebarCard h1,
@@ -185,8 +187,8 @@
 .loadingCard p:last-child,
 .sectionHeader p:last-child {
   margin: 10px 0 0;
-  color: #5c495f;
-  line-height: 1.6;
+  color: var(--public-ink-soft);
+  line-height: 1.5;
 }
 
 .sidebarNav {
@@ -230,11 +232,11 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   padding: 12px;
-  border: 1px solid rgba(118, 26, 108, 0.12);
-  border-radius: 18px;
-  background: rgba(255, 248, 251, 0.92);
+  border: 1px solid var(--public-border);
+  border-radius: 16px;
+  background: rgba(255, 248, 241, 0.92);
   backdrop-filter: blur(10px);
-  box-shadow: 0 14px 34px rgba(118, 26, 108, 0.08);
+  box-shadow: var(--public-shadow-soft);
 }
 
 .mobileSectionLink {
@@ -249,7 +251,7 @@
 
 .dashboardSection {
   scroll-margin-top: calc(var(--account-anchor-offset) + 12px);
-  padding: 22px 18px;
+  padding: 18px 16px;
 }
 
 .sectionHeader {
@@ -333,24 +335,25 @@
 .secondaryButton {
   width: 100%;
   border-radius: 999px;
-  font-family: var(--font-header--family);
-  font-size: 0.82rem;
-  letter-spacing: 0.08em;
+  font-family: var(--font-body--family);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 14px 18px;
+  padding: 11px 15px;
   cursor: pointer;
 }
 
 .primaryButton {
   border: 0;
-  background: #761A6C;
-  color: #ffffff;
+  background: linear-gradient(135deg, var(--public-plum-deep), var(--public-plum));
+  color: var(--public-cream);
 }
 
 .secondaryButton {
-  border: 1px solid rgba(118, 26, 108, 0.18);
-  background: #ffffff;
-  color: #240f26;
+  border: 1px solid var(--public-border);
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--public-ink);
 }
 
 .primaryButton:disabled,
@@ -366,9 +369,9 @@
 }
 
 .infoCard {
-  border-radius: 18px;
-  background: rgba(247, 239, 248, 0.72);
-  padding: 18px;
+  border-radius: 16px;
+  background: rgba(247, 236, 242, 0.72);
+  padding: 14px;
 }
 
 .infoCard h3,

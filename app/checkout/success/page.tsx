@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SiteHeader from "@/components/site-header";
 import CheckoutSuccessBasketClearer from "@/components/checkout-success-basket-clearer";
 import { ensurePaidOrderEmails, isOrderNotificationEmailConfigured } from "@/lib/order-notifications";
 import { getStripeClient } from "@/lib/stripe-customer-payment-methods";
@@ -71,6 +72,7 @@ export default async function CheckoutSuccessPage({ searchParams }: CheckoutSucc
   if (!isPaymentSuccessful) {
     return (
       <main className={styles.page}>
+        <SiteHeader variant="hero" showAnnouncement={false} />
         <section className={styles.content}>
           <p className={styles.badge}>Payment cancelled</p>
           <h1>Checkout was not completed</h1>
@@ -90,6 +92,7 @@ export default async function CheckoutSuccessPage({ searchParams }: CheckoutSucc
 
   return (
     <main className={styles.page}>
+      <SiteHeader variant="hero" showAnnouncement={false} />
       <CheckoutSuccessBasketClearer shouldClearBasket={shouldClearBasket} />
       <section className={styles.content}>
         <p className={styles.badge}>Payment complete</p>

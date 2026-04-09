@@ -1,76 +1,84 @@
 .page {
   min-height: 100vh;
-  background: #fff8fb;
+  background: var(--public-gradient);
 }
 
 .hero {
+  max-width: var(--public-page-max);
+  margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
-  gap: 40px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(20rem, 1.1fr);
+  gap: clamp(1.5rem, 4vw, 3rem);
   align-items: start;
-  padding: 72px 48px 96px;
+  padding: clamp(2.5rem, 6vw, 5rem) var(--public-page-padding) clamp(4rem, 8vw, 6rem);
 }
 
 .copy {
-  padding-top: 24px;
+  padding-top: 0.5rem;
 }
 
 .eyebrow {
-  margin: 0 0 14px;
-  color: #761A6C;
-  font-family: var(--font-header--family);
-  font-size: 0.85rem;
-  letter-spacing: 0.18em;
+  margin: 0 0 0.8rem;
+  color: rgba(75, 20, 95, 0.78);
+  font-family: var(--font-public-ui);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
 .copy h1 {
   margin: 0;
-  max-width: 10ch;
-  color: #240f26;
-  font-family: var(--font-heading--family);
-  font-size: clamp(2.6rem, 5vw, 5.2rem);
-  line-height: 0.98;
+  max-width: 9ch;
+  color: var(--public-plum-deep);
+  font-family: var(--font-public-display);
+  font-size: clamp(2.1rem, 4.2vw, 3.65rem);
+  line-height: 0.92;
+  font-weight: 700;
 }
 
 .description {
   max-width: 38rem;
-  margin: 24px 0 0;
-  color: #4f3c51;
-  font-size: 1.05rem;
-  line-height: 1.7;
+  margin: 1.3rem 0 0;
+  color: var(--public-ink-soft);
+  font-family: var(--font-public-ui);
+  font-size: 0.9rem;
+  line-height: 1.6;
 }
 
 .panel {
-  border: 1px solid rgba(118, 26, 108, 0.12);
-  border-radius: 28px;
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 28px 60px rgba(118, 26, 108, 0.1);
-  padding: 32px;
-  backdrop-filter: blur(10px);
+  border: 1px solid var(--public-border);
+  border-radius: var(--public-radius-xl);
+  background: var(--public-panel-gradient);
+  box-shadow: var(--public-shadow);
+  padding: clamp(1.4rem, 3vw, 2rem);
 }
 
 .section + .section {
-  margin-top: 24px;
-  padding-top: 24px;
-  border-top: 1px solid rgba(118, 26, 108, 0.12);
+  margin-top: 1.3rem;
+  padding-top: 1.3rem;
+  border-top: 1px solid rgba(87, 31, 108, 0.08);
 }
 
 .section h2 {
-  margin: 0 0 10px;
-  color: #240f26;
-  font-family: var(--font-heading--family);
-  font-size: clamp(1.4rem, 2vw, 2rem);
+  margin: 0 0 0.7rem;
+  color: var(--public-plum-deep);
+  font-family: var(--font-public-display);
+  font-size: clamp(1.1rem, 2vw, 1.55rem);
+  line-height: 0.98;
+  font-weight: 700;
 }
 
 .section p {
   margin: 0;
-  color: #5c495f;
-  line-height: 1.7;
+  color: var(--public-ink-soft);
+  font-family: var(--font-public-ui);
+  font-size: 0.88rem;
+  line-height: 1.6;
 }
 
 .section a {
-  color: #761A6C;
+  color: var(--public-plum-deep);
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
@@ -78,7 +86,6 @@
 @media (max-width: 900px) {
   .hero {
     grid-template-columns: 1fr;
-    padding: 48px 24px 72px;
   }
 
   .copy {
@@ -92,12 +99,6 @@
 
 @media (max-width: 640px) {
   .hero {
-    gap: 28px;
-    padding: 36px 16px 56px;
-  }
-
-  .panel {
-    padding: 24px 18px;
-    border-radius: 22px;
+    padding-inline: 1rem;
   }
 }

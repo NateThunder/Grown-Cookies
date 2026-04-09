@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { FiShoppingBag, FiX } from "react-icons/fi";
 import { BASKET_UPDATED_EVENT, getBasketQuantity } from "@/lib/basket-storage";
 import CartClient from "@/components/cart-client";
@@ -15,8 +16,13 @@ type BasketLinkProps = {
 export default function BasketLink({ position = "top" }: BasketLinkProps) {
   const [itemCount, setItemCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
   const hasTopTrigger = position === "top" || position === "both";
   const hasFloatingTrigger = position === "floating" || position === "both";
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   useEffect(() => {
     const refreshCount = () => setItemCount(getBasketQuantity());
@@ -55,34 +61,20 @@ export default function BasketLink({ position = "top" }: BasketLinkProps) {
   }, [isOpen]);
 
   const label = itemCount === 1 ? "1 item" : `${itemCount} items`;
-
-  return (
+  const floatingTrigger = (
+    <button
+      type="button"
+      onClick={() => setIsOpen(true)}
+      aria-expanded={isOpen}
+      aria-label={`Open basket (${label})`}
+      className={`${styles.link} ${styles.floating}`}
+    >
+      <FiShoppingBag />
+      {itemCount > 0 ? <span className={styles.badge}>{itemCount}</span> : null}
+    </button>
+  );
+  const drawerUi = (
     <>
-      {hasTopTrigger && (
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          aria-expanded={isOpen}
-          aria-label={`Open basket (${label})`}
-          className={`${styles.link} ${styles.top}`}
-        >
-          <FiShoppingBag />
-          {itemCount > 0 ? <span className={styles.badge}>{itemCount}</span> : null}
-        </button>
-      )}
-      {hasFloatingTrigger && (
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          aria-expanded={isOpen}
-          aria-label={`Open basket (${label})`}
-          className={`${styles.link} ${styles.floating}`}
-        >
-          <FiShoppingBag />
-          {itemCount > 0 ? <span className={styles.badge}>{itemCount}</span> : null}
-        </button>
-      )}
-
       <div
         className={`${styles.backdrop} ${isOpen ? styles.backdropOpen : ""}`.trim()}
         onClick={() => setIsOpen(false)}
@@ -106,6 +98,26 @@ export default function BasketLink({ position = "top" }: BasketLinkProps) {
           ) : null}
         </div>
       </aside>
+    </>
+  );
+
+  return (
+    <>
+      {hasTopTrigger && (
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          aria-expanded={isOpen}
+          aria-label={`Open basket (${label})`}
+          className={`${styles.link} ${styles.top}`}
+        >
+          <FiShoppingBag />
+          {itemCount > 0 ? <span className={styles.badge}>{itemCount}</span> : null}
+        </button>
+      )}
+      {hasFloatingTrigger && hasMounted ? createPortal(floatingTrigger, document.body) : null}
+
+      {hasMounted ? createPortal(drawerUi, document.body) : null}
     </>
   );
 }

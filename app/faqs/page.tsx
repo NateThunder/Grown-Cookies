@@ -5,7 +5,7 @@ import styles from "./page.module.css";
 export default function FaqsPage() {
   return (
     <main className={styles.page}>
-      <SiteHeader activeRoute="faqs" />
+      <SiteHeader activeRoute="faqs" variant="hero" showAnnouncement={false} />
 
       <section className={styles.faqSection}>
         <div className={styles.contentWrap}>

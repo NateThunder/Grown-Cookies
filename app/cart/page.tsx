@@ -5,9 +5,8 @@ import styles from "./page.module.css";
 export default function CartPage() {
   return (
     <main className={styles.page}>
-      <SiteHeader />
+      <SiteHeader variant="hero" showAnnouncement={false} />
       <CartClient />
     </main>
   );
 }
-

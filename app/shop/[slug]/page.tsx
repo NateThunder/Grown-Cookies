@@ -43,7 +43,7 @@ export default async function ProductPage({
 
   return (
     <main className={styles.page}>
-      <SiteHeader activeRoute="shop" products={products} />
+      <SiteHeader activeRoute="shop" products={products} variant="hero" showAnnouncement={false} />
 
       <section className={styles.productSection}>
         <div className={styles.imageColumn}>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useId, useState } from "react";
+import { createPortal } from "react-dom";
 import { FiMenu, FiX } from "react-icons/fi";
 import styles from "./site-header.module.css";
 
@@ -17,7 +18,12 @@ type MobileNavProps = {
 
 export default function MobileNav({ items }: MobileNavProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
   const menuId = useId();
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) {
@@ -40,19 +46,8 @@ export default function MobileNav({ items }: MobileNavProps) {
     };
   }, [isOpen]);
 
-  return (
+  const drawerUi = (
     <>
-      <button
-        type="button"
-        className={styles.mobileMenuButton}
-        aria-expanded={isOpen}
-        aria-controls={menuId}
-        aria-label="Open navigation menu"
-        onClick={() => setIsOpen(true)}
-      >
-        <FiMenu />
-      </button>
-
       <div
         className={`${styles.mobileMenuBackdrop} ${isOpen ? styles.mobileMenuBackdropOpen : ""}`.trim()}
         onClick={() => setIsOpen(false)}
@@ -89,6 +84,22 @@ export default function MobileNav({ items }: MobileNavProps) {
           ))}
         </nav>
       </aside>
+    </>
+  );
+
+  return (
+    <>
+      <button
+        type="button"
+        className={styles.mobileMenuButton}
+        aria-expanded={isOpen}
+        aria-controls={menuId}
+        aria-label="Open navigation menu"
+        onClick={() => setIsOpen(true)}
+      >
+        <FiMenu />
+      </button>
+      {hasMounted && isOpen ? createPortal(drawerUi, document.body) : null}
     </>
   );
 }

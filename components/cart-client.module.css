@@ -1,66 +1,73 @@
 .cart {
-  width: min(100%, 720px);
+  width: min(100%, 44rem);
   margin: 0 auto;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 1.5rem;
 }
 
 .pageCart {
-  padding: 32px 24px 56px;
+  padding: 2rem var(--public-page-padding) 3.5rem;
 }
 
 .drawerCart {
   width: 100%;
   min-height: 100%;
-  padding: 18px 22px 22px;
+  padding: 1rem 1.2rem 1.2rem;
 }
 
 .cart h1 {
   margin: 0;
-  font-family: var(--font-body--family);
-  font-size: clamp(2rem, 3.5vw, 2.8rem);
-  font-weight: 600;
-  line-height: 1.05;
+  color: var(--public-plum-deep);
+  font-family: var(--font-public-display);
+  font-size: clamp(2.2rem, 5vw, 3.2rem);
+  font-weight: 700;
+  line-height: 0.95;
+}
+
+.emptyState,
+.loadingState,
+.summary {
+  border: 1px solid var(--public-border);
+  border-radius: var(--public-radius-lg);
+  background: rgba(255, 248, 241, 0.84);
+  box-shadow: var(--public-shadow-soft);
 }
 
 .emptyState {
-  background: #ffffff;
-  border-radius: 18px;
-  padding: 32px 24px;
+  padding: 2rem 1.5rem;
 }
 
 .loadingState {
-  padding: 20px 0;
+  padding: 1.25rem 1.2rem;
+}
+
+.emptyState p,
+.loadingState p {
+  margin: 0;
+  color: var(--public-ink-soft);
+  font-family: var(--font-public-ui);
+  font-size: 1rem;
 }
 
 .emptyState p {
-  margin: 0 0 16px;
-  color: #2f2929;
-  font-family: var(--font-body--family);
-  font-size: 1.05rem;
-}
-
-.loadingState p {
-  margin: 0;
-  color: #5b5050;
-  font-family: var(--font-body--family);
-  font-size: 1rem;
+  margin-bottom: 1rem;
 }
 
 .shopLink {
   display: inline-flex;
-  min-height: 46px;
+  min-height: 3rem;
   align-items: center;
   justify-content: center;
-  padding: 0 20px;
-  border: 1px solid #d7cfcf;
-  border-radius: 10px;
-  background: #ffffff;
-  color: #191616;
+  padding: 0 1.25rem;
+  border: 1px solid var(--public-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--public-ink);
   text-decoration: none;
-  font-family: var(--font-body--family);
+  font-family: var(--font-public-ui);
+  font-weight: 700;
 }
 
 .itemList {
@@ -68,35 +75,32 @@
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 0;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: auto;
+  gap: 1rem;
 }
 
 .item {
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: 6rem minmax(0, 1fr);
+  gap: 1rem;
   align-items: start;
-  padding: 18px 0;
-  border-top: 1px solid #ece4e4;
-}
-
-.item:first-child {
-  border-top: 0;
-  padding-top: 0;
+  padding: 1rem;
+  border: 1px solid var(--public-border);
+  border-radius: var(--public-radius-lg);
+  background: rgba(255, 248, 241, 0.84);
+  box-shadow: var(--public-shadow-soft);
 }
 
 .itemImageWrap {
   position: relative;
-  width: 88px;
+  width: 6rem;
   aspect-ratio: 1 / 1;
   overflow: hidden;
-  border-radius: 10px;
-  background: #f7cadb;
-  color: #6b5b61;
-  font-family: var(--font-body--family);
+  border-radius: 1rem;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.46), transparent 42%),
+    linear-gradient(180deg, #f1bfd2, #ebb0c7);
+  color: var(--public-ink-soft);
+  font-family: var(--font-public-ui);
   font-size: 0.74rem;
 }
 
@@ -111,9 +115,9 @@
 }
 
 .itemGiftCardTile {
-  width: 88px;
+  width: 6rem;
   max-width: 100%;
-  --gift-card-radius: 8px;
+  --gift-card-radius: 10px;
   --gift-card-aspect-ratio: 1.45 / 1;
   --gift-card-image-scale: 1;
   --gift-card-image-shadow: none;
@@ -159,91 +163,89 @@
 
 .itemBody h2 {
   margin: 0;
-  color: #181313;
-  font-family: var(--font-body--family);
-  font-size: 1.08rem;
-  font-weight: 600;
-  line-height: 1.32;
+  color: var(--public-plum-deep);
+  font-family: var(--font-public-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 0.98;
 }
 
 .itemPrice {
-  margin: 8px 0 0;
-  color: #221c1c;
-  font-family: var(--font-body--family);
-  font-size: 0.98rem;
-  font-weight: 500;
+  margin: 0.55rem 0 0;
+  color: var(--public-ink-soft);
+  font-family: var(--font-public-ui);
+  font-size: 0.94rem;
+  font-weight: 600;
 }
 
 .itemActions {
   width: 100%;
-  margin-top: 14px;
+  margin-top: 1rem;
 }
 
 .controlGroup {
   display: inline-grid;
-  grid-template-columns: 44px 44px 44px auto;
-  min-height: 42px;
-  border: 1px solid #d9d2d2;
-  border-radius: 12px;
+  grid-template-columns: 2.6rem 2.6rem 2.6rem auto;
+  min-height: 2.6rem;
+  border: 1px solid rgba(87, 31, 108, 0.12);
+  border-radius: 999px;
   overflow: hidden;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .controlButton,
 .controlValue {
-  min-height: 42px;
+  min-height: 2.6rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-body--family);
-  color: #211b1b;
+  font-family: var(--font-public-ui);
+  color: var(--public-ink);
 }
 
 .controlButton {
   border: 0;
   background: transparent;
   cursor: pointer;
-  transition:
-    background-color 0.18s ease,
-    color 0.18s ease;
+  transition: background-color var(--public-transition), color var(--public-transition);
 }
 
 .controlButton:hover {
-  background: #f7f2f2;
+  background: rgba(111, 43, 139, 0.08);
 }
 
 .controlButton:disabled {
-  background: #fbf8f8;
-  color: #bbb1b1;
+  background: rgba(255, 255, 255, 0.44);
+  color: rgba(53, 20, 63, 0.35);
   cursor: not-allowed;
 }
 
 .quantityButton {
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   line-height: 1;
 }
 
 .controlValue {
-  border-inline: 1px solid #e5dddd;
-  font-size: 1rem;
-  font-weight: 600;
+  border-inline: 1px solid rgba(87, 31, 108, 0.08);
+  font-size: 0.96rem;
+  font-weight: 700;
 }
 
 .removeButton {
-  padding: 0 18px;
-  border-left: 1px solid #e5dddd;
-  font-size: 0.98rem;
+  padding: 0 1rem;
+  border-left: 1px solid rgba(87, 31, 108, 0.08);
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .summary {
   margin-top: auto;
-  padding-top: 18px;
-  border-top: 1px solid #ece4e4;
+  padding: 1.2rem;
 }
 
 .summaryFooter {
   display: grid;
-  gap: 14px;
+  gap: 0.9rem;
 }
 
 .summaryFooterRow {
@@ -251,10 +253,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  color: #201919;
-  font-family: var(--font-body--family);
-  font-size: 1.12rem;
+  gap: 1rem;
+  color: var(--public-ink);
+  font-family: var(--font-public-ui);
+  font-size: 1rem;
 }
 
 .summaryFooterRow strong {
@@ -263,29 +265,26 @@
 
 .checkoutButton {
   display: inline-flex;
-  min-height: 48px;
+  min-height: 3.4rem;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  background: #8f2f87;
-  color: #ffffff !important;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--public-plum-deep), var(--public-plum));
+  color: var(--public-cream) !important;
   text-decoration: none;
-  font-family: var(--font-body--family);
-  font-size: 1.04rem;
-  font-weight: 600;
-  transition:
-    filter 0.18s ease,
-    transform 0.18s ease;
+  font-family: var(--font-public-ui);
+  font-size: 0.98rem;
+  font-weight: 700;
+  transition: transform var(--public-transition), box-shadow var(--public-transition);
+  box-shadow: var(--public-pill-shadow);
 }
 
 .checkoutButton:hover {
-  filter: brightness(1.03);
-  transform: translateY(-1px);
-  color: #ffffff !important;
+  transform: translateY(-2px);
 }
 
 .checkoutButton:visited {
-  color: #ffffff !important;
+  color: var(--public-cream) !important;
 }
 
 .clearAllButton {
@@ -293,9 +292,9 @@
   border: 0;
   padding: 0;
   background: transparent;
-  color: #3d3535;
-  font-family: var(--font-body--family);
-  font-size: 1rem;
+  color: var(--public-ink-soft);
+  font-family: var(--font-public-ui);
+  font-size: 0.95rem;
   cursor: pointer;
 }
 
@@ -303,37 +302,23 @@
   text-decoration: underline;
 }
 
-@media (max-width: 720px) {
-  .pageCart {
-    padding-inline: 18px;
-  }
-}
-
 @media (max-width: 520px) {
   .pageCart,
   .drawerCart {
-    padding-inline: 16px;
+    padding-inline: 1rem;
   }
 
   .item {
-    grid-template-columns: 88px minmax(0, 1fr);
-    gap: 14px;
+    grid-template-columns: 1fr;
   }
 
-  .itemImageWrap {
-    width: 88px;
-  }
-
-  .itemBody h2 {
-    font-size: 1rem;
+  .itemImageWrap,
+  .itemGiftCardTile {
+    width: 100%;
+    max-width: 7rem;
   }
 
   .controlGroup {
     width: 100%;
-    grid-template-columns: 42px 46px 42px minmax(92px, 1fr);
-  }
-
-  .removeButton {
-    padding-inline: 12px;
   }
 }

@@ -28,6 +28,7 @@ import {
 import GiftCardTile from "@/components/gift-card-tile";
 import type { CustomerAddress, CustomerProfile } from "@/lib/customer-profiles";
 import type { SavedPaymentMethod } from "@/lib/saved-payment-methods";
+import { publicStripeAppearance } from "@/lib/stripe-appearance";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import styles from "@/components/checkout-client.module.css";
 
@@ -1140,6 +1141,7 @@ export default function CheckoutClient() {
       currency: quote.currency,
       mode: "payment",
       paymentMethodCreation: "manual",
+      appearance: publicStripeAppearance,
     };
   }, [quote]);
 
