@@ -13,44 +13,35 @@
 
 .top {
   color: inherit;
-  font-size: 1.3rem;
+  font-size: 1.2rem;
 }
 
 .floating {
   position: fixed;
-  right: 18px;
-  bottom: 18px;
+  right: 1.15rem;
+  bottom: 1.15rem;
   z-index: 1200;
-  width: 52px;
-  height: 52px;
+  width: 3.35rem;
+  height: 3.35rem;
   border-radius: 999px;
-  color: #ffffff;
-  background: #761A6C;
-  border: 2px solid #ffffff;
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.24);
-  font-size: 1.2rem;
-}
-
-@media (max-width: 900px) {
-  .floating {
-    right: 14px;
-    bottom: 14px;
-    width: 48px;
-    height: 48px;
-  }
+  color: var(--public-cream);
+  background: var(--public-plum-deep);
+  border: 1px solid rgba(255, 248, 241, 0.28);
+  box-shadow: var(--public-pill-shadow);
+  font-size: 1.15rem;
 }
 
 .badge {
   position: absolute;
-  top: -8px;
-  right: -10px;
-  min-width: 17px;
-  height: 17px;
-  padding: 0 5px;
+  top: -0.45rem;
+  right: -0.5rem;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  padding: 0 0.3rem;
   border-radius: 999px;
-  background: #8d029b;
-  color: #ffffff;
-  font-family: var(--font-body--family);
+  background: var(--public-pink);
+  color: var(--public-plum-deep);
+  font-family: var(--font-public-ui);
   font-size: 0.65rem;
   font-weight: 700;
   display: inline-flex;
@@ -61,11 +52,11 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 15, 15, 0.38);
+  background: rgba(27, 12, 33, 0.38);
   z-index: 1290;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.25s ease;
 }
 
 .backdropOpen {
@@ -77,44 +68,46 @@
   position: fixed;
   inset-block: 0;
   inset-inline-end: 0;
-  width: min(396px, 92vw);
-  background: #ffffff;
+  width: min(25rem, 94vw);
+  background: #FFE9F1;
   box-shadow: none;
   z-index: 1300;
   transform: translateX(100%);
-  transition: transform 0.35s ease;
+  transition: transform 0.32s ease;
   display: flex;
   flex-direction: column;
+  border-left: 1px solid var(--public-border);
 }
 
 .drawerOpen {
-  box-shadow: -8px 0 28px rgba(0, 0, 0, 0.2);
+  box-shadow: -10px 0 28px rgba(34, 12, 45, 0.18);
   transform: translateX(0);
 }
 
 .drawerHeader {
-  padding: 20px 22px 18px;
-  border-bottom: 1px solid #ebebeb;
-  font-family: var(--font-body--family);
-  font-size: 1.18rem;
-  font-weight: 600;
+  padding: 1.2rem 1.2rem 1rem;
+  border-bottom: 1px solid var(--public-border);
+  color: var(--public-plum-deep);
+  font-family: var(--font-public-display);
+  font-size: 1.55rem;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .drawerHeader button {
-  border: 0;
-  background: transparent;
-  width: 34px;
-  height: 34px;
+  border: 1px solid var(--public-border);
+  background: rgba(255, 248, 241, 0.84);
+  width: 2.35rem;
+  height: 2.35rem;
   border-radius: 999px;
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #1f1f1f;
+  color: var(--public-ink);
   cursor: pointer;
 }
 
@@ -123,12 +116,20 @@
   min-height: 0;
   overflow: hidden;
   display: flex;
-  background: #ffffff;
 }
 
 .cartInsideDrawer {
   flex: 1;
   min-height: 0;
+}
+
+@media (max-width: 900px) {
+  .floating {
+    right: 0.9rem;
+    bottom: 0.9rem;
+    width: 3.1rem;
+    height: 3.1rem;
+  }
 }
 
 @media (max-width: 480px) {

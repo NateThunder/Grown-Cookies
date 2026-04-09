@@ -6,7 +6,7 @@ import styles from "../legal.module.css";
 export default function PrivacyPage() {
   return (
     <main className={styles.page}>
-      <SiteHeader />
+      <SiteHeader variant="hero" showAnnouncement={false} />
       <section className={styles.hero}>
         <div className={styles.copy}>
           <p className={styles.eyebrow}>Privacy Policy</p>

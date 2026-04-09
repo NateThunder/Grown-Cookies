@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import SiteHeader from "@/components/site-header";
 import styles from "./page.module.css";
 
 export default function CheckoutCancelPage() {
   return (
     <main className={styles.page}>
+      <SiteHeader variant="hero" showAnnouncement={false} />
       <section className={styles.content}>
         <p className={styles.badge}>Payment cancelled</p>
         <h1>Checkout was not completed</h1>

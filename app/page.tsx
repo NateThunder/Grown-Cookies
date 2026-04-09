@@ -1,147 +1,123 @@
 import Image from "next/image";
 import Link from "next/link";
-import GiftCardTile from "@/components/gift-card-tile";
 import QuickAddButton from "@/components/quick-add-button";
 import SiteHeader from "@/components/site-header";
+import HomepagePromoStrip from "@/components/homepage-promo-strip";
 import { getAllProducts } from "@/lib/products";
 import {
   getHomepageSectionSettings,
 } from "@/lib/store-settings";
 import styles from "./page.module.css";
 
+const flavourToneMap: Record<string, string> = {
+  "matcha-white-chocolate": "matchaTone",
+  "red-velvet": "redTone",
+  "dark-choc-maldon-salt": "chocolateTone",
+  "double-chocolate-hazelnut": "hazelnutTone",
+};
+
+const flavourNoteMap: Record<string, string> = {
+  "matcha-white-chocolate": "white chocolate",
+  "red-velvet": "cocoa crumb",
+  "dark-choc-maldon-salt": "maldon salt",
+  "double-chocolate-hazelnut": "roasted hazelnut",
+};
+
+function getFlavourToneClass(slug: string) {
+  return styles[flavourToneMap[slug] ?? "genericTone"];
+}
+
+function getFlavourNote(slug: string) {
+  return flavourNoteMap[slug] ?? "house favourite";
+}
+
 export default async function Home() {
   const [products, homepageSettings] = await Promise.all([
     getAllProducts(),
     getHomepageSectionSettings(),
   ]);
-  const { cookieOfMonth: cookieOfMonthSetting, shopIntro: shopIntroSetting, brandStory: brandStorySetting } =
-    homepageSettings;
-  const featuredProducts = products.filter((product) => product.featured);
+  const shoppableProducts = products.filter((product) => !product.isGiftCard);
+  const featuredProducts = shoppableProducts.filter((product) => product.featured);
   const homepageProducts =
-    featuredProducts.length >= 3 ? featuredProducts.slice(0, 3) : products.slice(0, 3);
-  const cookieOfMonthProductSlug = cookieOfMonthSetting.productSlug;
-  const cookieOfMonthProduct = products.find(
-    (product) => product.slug === cookieOfMonthProductSlug,
-  );
-  const cookieOfMonthHref = cookieOfMonthProduct ? `/shop/${cookieOfMonthProduct.slug}` : "/shop";
-  const cookieOfMonthTitle = cookieOfMonthSetting.title;
-  const cookieOfMonthCtaLabel = cookieOfMonthSetting.ctaLabel;
-  const shopIntroEyebrow = shopIntroSetting.eyebrow;
-  const shopIntroTitle = shopIntroSetting.title;
-  const shopIntroBody = shopIntroSetting.body;
-  const shopIntroCtaLabel = shopIntroSetting.ctaLabel;
-  const brandStoryBody = brandStorySetting.body;
+    featuredProducts.length >= 3 ? featuredProducts.slice(0, 3) : shoppableProducts.slice(0, 3);
 
   return (
     <main className={`${styles.page} ${styles.pageWidthWide}`}>
-      <SiteHeader activeRoute="home" products={products} />
+      <div className={styles.posterShell}>
+        <SiteHeader activeRoute="home" products={products} variant="hero" showAnnouncement={false} />
 
-      <section className={styles.hero}>
-        <Image
-          src="/Hands_Milk_Shot/_DSC6461.jpg"
-          alt="Stacked artisan cookies held in hand"
-          fill
-          priority
-          className={styles.heroImage}
-        />
-        <div className={styles.overlay} />
-        <div className={styles.heroContent}>
-          <h1>Order your cookies today!</h1>
-          <p>Artisan cookies for, &apos;Grown folks!&apos;</p>
-          <Link href="/shop" className={styles.cta}>
-            Shop now
-          </Link>
-        </div>
-      </section>
-
-      <section className={styles.featured}>
-        <h2>Featured products</h2>
-        <div className={styles.grid}>
-          {homepageProducts.map((product) => (
-            <article
-              key={product.slug}
-              className={`${styles.card} ${
-                product.isGiftCard ? styles.giftCardPositioned : ""
-              }`}
-            >
-              <div className={styles.cardImageWrap}>
-                <Link href={`/shop/${product.slug}`} className={styles.cardMediaLink}>
-                  {product.isGiftCard ? (
-                    <GiftCardTile
-                      className={styles.giftCardTile}
-                      src={product.image}
-                      alt={product.imageAlt ?? product.name}
-                    />
-                  ) : product.image ? (
-                    <Image
-                      src={product.image}
-                      alt={product.imageAlt ?? product.name}
-                      fill
-                      className={styles.cardImage}
-                    />
-                  ) : null}
-                </Link>
-                <QuickAddButton product={product} className={styles.quickAdd} />
-              </div>
-              <Link href={`/shop/${product.slug}`} className={styles.cardContentLink}>
-                <h3>{product.name}</h3>
-                <p>{product.price}</p>
+        <section className={styles.hero}>
+          <div className={styles.heroCopy}>
+            <h1 className={styles.heroTitle}>
+              <span>
+                Order <span className={styles.heroAccent}>your</span> cookies today
+                <span className={styles.heroAccent}>!</span>
+              </span>
+            </h1>
+            <p className={styles.heroBody}>Cookies for Grown folks</p>
+            <div className={styles.heroActions}>
+              <Link href="/shop" className={`${styles.primaryCta} ${styles.heroCta}`}>
+                Shop Now 
               </Link>
-            </article>
-          ))}
-        </div>
-      </section>
+            </div>
+          </div>
 
-      <section className={styles.monthSection}>
-        <div className={styles.monthImagePanel}>
-          <Image
-            src="/Box_Shots/_DSC6382.jpg"
-            alt="Cookie box with matcha cookies"
-            fill
-            className={styles.monthImage}
-          />
-        </div>
+          <div className={styles.heroImageWrap}>
+            <Image
+              src="/Hands_Milk_Shot/_DSC6461.jpg"
+              alt="Stacked artisan cookies held in hand"
+              fill
+              priority
+              sizes="(max-width: 820px) 100vw, 50vw"
+              className={styles.heroImage}
+            />
+          </div>
+        </section>
 
-        <div className={styles.monthImagePanel}>
-          <Image
-            src="/Hands_Milk_Shot/_DSC6537.jpg"
-            alt="Cookie dipped in milk"
-            fill
-            className={styles.monthImage}
-          />
-        </div>
+        <section id="flavours" className={styles.featured}>
+          <div className={styles.featuredHeader}>
+            <h2 className={styles.featuredTitle}>Featured Products</h2>
+          </div>
+          <div className={styles.flavourGrid}>
+            {homepageProducts.map((product) => (
+              <article
+                key={product.slug}
+                className={`${styles.flavourCard} ${getFlavourToneClass(product.slug)}`}
+              >
+                <div className={styles.flavourImageWrap}>
+                  <Link
+                    href={`/shop/${product.slug}`}
+                    className={styles.flavourTileLink}
+                    aria-label={`View featured product ${product.name}`}
+                  >
+                    {product.image ? (
+                      <Image
+                        src={product.image}
+                        alt={product.imageAlt ?? product.name}
+                        fill
+                        sizes="(max-width: 620px) 100vw, (max-width: 980px) 50vw, 33vw"
+                        className={styles.flavourImage}
+                      />
+                    ) : null}
+                  </Link>
+                  <QuickAddButton product={product} className={styles.featuredQuickAdd} />
+                </div>
 
-        <div className={styles.monthTextPanel}>
-          <h2 className={styles.monthTitle}>{cookieOfMonthTitle}</h2>
-          <Link href={cookieOfMonthHref} className={styles.monthButton}>
-            {cookieOfMonthCtaLabel}
-          </Link>
-        </div>
-      </section>
+                <Link
+                  href={`/shop/${product.slug}`}
+                  className={`${styles.flavourCopy} ${styles.flavourTileLink}`}
+                  aria-label={`View featured product ${product.name}`}
+                >
+                  <p className={styles.flavourLabel}>{getFlavourNote(product.slug)}</p>
+                  <h2>{product.name}</h2>
+                </Link>
+              </article>
+            ))}
+          </div>
+        </section>
 
-      <section className={styles.shopIntro}>
-        <div className={styles.shopIntroInner}>
-          <p className={styles.shopIntroEyebrow}>{shopIntroEyebrow}</p>
-          <h2 className={styles.shopIntroTitle}>{shopIntroTitle}</h2>
-          <p className={styles.shopIntroBody}>{shopIntroBody}</p>
-          <Link href="/shop" className={styles.shopIntroLink}>
-            {shopIntroCtaLabel}
-          </Link>
-        </div>
-      </section>
-
-      <section className={styles.brandStory}>
-        <Image
-          src="/Box_Shots/_DSC6373.jpg"
-          alt="Grown Cookies product box"
-          fill
-          className={styles.brandStoryImage}
-        />
-        <div className={styles.brandStoryOverlay} />
-        <div className={styles.brandStoryContent}>
-          <p>{brandStoryBody}</p>
-        </div>
-      </section>
+        <HomepagePromoStrip homepageSettings={homepageSettings} products={products} />
+      </div>
     </main>
   );
 }

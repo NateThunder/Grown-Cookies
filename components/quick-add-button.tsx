@@ -33,6 +33,7 @@ export default function QuickAddButton({
     event.stopPropagation();
 
     addToBasket(product.slug, 1);
+    event.currentTarget.blur();
 
     setJustAdded(true);
 

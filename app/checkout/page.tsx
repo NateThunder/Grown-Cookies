@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default function CheckoutPage() {
   return (
     <main className={styles.page}>
-      <SiteHeader showAnnouncement={false} />
+      <SiteHeader variant="hero" showAnnouncement={false} />
       <CheckoutClient />
     </main>
   );

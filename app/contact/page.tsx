@@ -5,7 +5,7 @@ import styles from "./page.module.css";
 export default function ContactPage() {
   return (
     <main className={styles.page}>
-      <SiteHeader activeRoute="contact" />
+      <SiteHeader activeRoute="contact" variant="hero" showAnnouncement={false} />
 
       <section className={styles.contactSection}>
         <div className={styles.contentWrap}>
