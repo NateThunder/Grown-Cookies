@@ -3,10 +3,8 @@ import Link from "next/link";
 import QuickAddButton from "@/components/quick-add-button";
 import SiteHeader from "@/components/site-header";
 import HomepagePromoStrip from "@/components/homepage-promo-strip";
-import { getAllProducts } from "@/lib/products";
-import {
-  getHomepageSectionSettings,
-} from "@/lib/store-settings";
+import { getAllProducts, type ShopProduct } from "@/lib/products";
+import { getHomepageSectionSettings } from "@/lib/store-settings";
 import styles from "./page.module.css";
 
 const flavourToneMap: Record<string, string> = {
@@ -16,19 +14,93 @@ const flavourToneMap: Record<string, string> = {
   "double-chocolate-hazelnut": "hazelnutTone",
 };
 
-const flavourNoteMap: Record<string, string> = {
+const flavourLabelMap: Record<string, string> = {
   "matcha-white-chocolate": "white chocolate",
   "red-velvet": "cocoa crumb",
   "dark-choc-maldon-salt": "maldon salt",
   "double-chocolate-hazelnut": "roasted hazelnut",
 };
 
+const flavourNoteMap: Record<string, string> = {
+  "matcha-white-chocolate": "Earthy matcha with a creamy white chocolate finish.",
+  "red-velvet": "Soft cocoa richness with a velvety, dessert-style bite.",
+  "dark-choc-maldon-salt": "Rich dark chocolate lifted with a clean Maldon salt finish.",
+  "double-chocolate-hazelnut": "Deep cocoa flavour with roasted hazelnut crunch in every bite.",
+  "granola-raisin": "Toasted granola and juicy raisins with a warm oat chew.",
+};
+
 function getFlavourToneClass(slug: string) {
   return styles[flavourToneMap[slug] ?? "genericTone"];
 }
 
-function getFlavourNote(slug: string) {
-  return flavourNoteMap[slug] ?? "house favourite";
+function getCompactExcerpt(text: string, maxLength = 84) {
+  const normalized = text.trim();
+
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  const truncated = normalized.slice(0, maxLength);
+  const lastWordBoundary = truncated.lastIndexOf(" ");
+
+  return `${truncated.slice(0, lastWordBoundary > 0 ? lastWordBoundary : maxLength).trimEnd()}...`;
+}
+
+function getFlavourLabel(slug: string) {
+  return flavourLabelMap[slug] ?? "house favourite";
+}
+
+function getFlavourNote(product: ShopProduct) {
+  return flavourNoteMap[product.slug] ?? getCompactExcerpt(product.description, 78);
+}
+
+function formatHomepagePrice(price: string) {
+  const normalized = price.trim();
+  const match = normalized.match(/(?:GBP|£)\s*([0-9]+(?:\.[0-9]{1,2})?)/i);
+
+  if (!match) {
+    return normalized;
+  }
+
+  const numericPrice = Number.parseFloat(match[1]);
+
+  if (!Number.isFinite(numericPrice)) {
+    return normalized;
+  }
+
+  return `£${Number.isInteger(numericPrice) ? numericPrice.toFixed(0) : numericPrice.toFixed(2)}`;
+}
+
+function getHomepageProducts(products: ShopProduct[]) {
+  const shoppableProducts = products.filter((product) => !product.isGiftCard);
+  const photographedProducts = shoppableProducts.filter((product) => Boolean(product.image));
+  const prioritizedProducts = [
+    ...photographedProducts.filter((product) => product.featured),
+    ...photographedProducts.filter((product) => !product.featured),
+  ];
+  const selectedProducts: ShopProduct[] = [];
+
+  for (const product of prioritizedProducts) {
+    if (!selectedProducts.some((selectedProduct) => selectedProduct.slug === product.slug)) {
+      selectedProducts.push(product);
+    }
+
+    if (selectedProducts.length === 3) {
+      return selectedProducts;
+    }
+  }
+
+  for (const product of shoppableProducts) {
+    if (!selectedProducts.some((selectedProduct) => selectedProduct.slug === product.slug)) {
+      selectedProducts.push(product);
+    }
+
+    if (selectedProducts.length === 3) {
+      break;
+    }
+  }
+
+  return selectedProducts;
 }
 
 export default async function Home() {
@@ -36,10 +108,7 @@ export default async function Home() {
     getAllProducts(),
     getHomepageSectionSettings(),
   ]);
-  const shoppableProducts = products.filter((product) => !product.isGiftCard);
-  const featuredProducts = shoppableProducts.filter((product) => product.featured);
-  const homepageProducts =
-    featuredProducts.length >= 3 ? featuredProducts.slice(0, 3) : shoppableProducts.slice(0, 3);
+  const homepageProducts = getHomepageProducts(products);
 
   return (
     <main className={`${styles.page} ${styles.pageWidthWide}`}>
@@ -76,41 +145,46 @@ export default async function Home() {
 
         <section id="flavours" className={styles.featured}>
           <div className={styles.featuredHeader}>
+            <p className={styles.featuredEyebrow}>Shop the favourites</p>
             <h2 className={styles.featuredTitle}>Featured Products</h2>
           </div>
           <div className={styles.flavourGrid}>
-            {homepageProducts.map((product) => (
+            {homepageProducts.map((product, index) => (
               <article
                 key={product.slug}
-                className={`${styles.flavourCard} ${getFlavourToneClass(product.slug)}`}
+                className={`${styles.flavourCard} ${index === 0 ? styles.flavourCardLead : ""} ${getFlavourToneClass(product.slug)}`.trim()}
               >
                 <div className={styles.flavourImageWrap}>
-                  <Link
-                    href={`/shop/${product.slug}`}
-                    className={styles.flavourTileLink}
-                    aria-label={`View featured product ${product.name}`}
-                  >
-                    {product.image ? (
-                      <Image
-                        src={product.image}
-                        alt={product.imageAlt ?? product.name}
-                        fill
-                        sizes="(max-width: 620px) 100vw, (max-width: 980px) 50vw, 33vw"
-                        className={styles.flavourImage}
-                      />
-                    ) : null}
-                  </Link>
-                  <QuickAddButton product={product} className={styles.featuredQuickAdd} />
+                  {product.image ? (
+                    <Image
+                      src={product.image}
+                      alt={product.imageAlt ?? product.name}
+                      fill
+                      sizes={
+                        index === 0
+                          ? "(max-width: 620px) 100vw, (max-width: 980px) 100vw, 52vw"
+                          : "(max-width: 620px) 100vw, (max-width: 980px) 50vw, 26vw"
+                      }
+                      className={styles.flavourImage}
+                    />
+                  ) : null}
                 </div>
-
-                <Link
-                  href={`/shop/${product.slug}`}
-                  className={`${styles.flavourCopy} ${styles.flavourTileLink}`}
-                  aria-label={`View featured product ${product.name}`}
-                >
-                  <p className={styles.flavourLabel}>{getFlavourNote(product.slug)}</p>
-                  <h2>{product.name}</h2>
-                </Link>
+                <div className={styles.flavourBody}>
+                  <div className={styles.flavourMeta}>
+                    <p className={styles.flavourLabel}>{getFlavourLabel(product.slug)}</p>
+                    <h3 className={styles.flavourName}>{product.name}</h3>
+                    <p className={styles.flavourNote}>{getFlavourNote(product)}</p>
+                  </div>
+                  <div className={styles.flavourFooter}>
+                    <p className={styles.flavourPrice}>{formatHomepagePrice(product.price)}</p>
+                    <div className={styles.flavourActions}>
+                      <Link href={`/shop/${product.slug}`} className={`${styles.flavourCta} ${styles.flavourViewCta}`}>
+                        View cookie
+                      </Link>
+                      <QuickAddButton product={product} className={`${styles.flavourCta} ${styles.featuredQuickAdd}`} />
+                    </div>
+                  </div>
+                </div>
               </article>
             ))}
           </div>

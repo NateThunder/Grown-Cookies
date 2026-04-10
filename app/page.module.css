@@ -14,13 +14,11 @@
   margin: 0;
   background: transparent;
   border-radius: 0;
-  box-shadow: none;
   overflow: clip;
 }
 
 .hero,
 .featured,
-.promoStrip,
 .heroCopy,
 .heroImageWrap {
   animation: publicFadeUp 0.8s ease both;
@@ -93,17 +91,11 @@
 
 .heroActions {
   display: flex;
-  justify-content: center;
-}
-
-.heroActions {
   justify-content: flex-start;
   margin-top: 0.15rem;
 }
 
-.primaryCta,
-.secondaryCta,
-.tertiaryCta {
+.primaryCta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -116,18 +108,6 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  transition:
-    transform var(--public-transition),
-    background-color var(--public-transition),
-    border-color var(--public-transition),
-    color var(--public-transition),
-    box-shadow var(--public-transition);
-}
-
-.primaryCta {
-  background: var(--public-pink);
-  color: var(--public-cream);
-  box-shadow: 0 10px 24px rgba(98, 26, 91, 0.18);
 }
 
 .heroCta {
@@ -139,24 +119,6 @@
   font-weight: 800;
   letter-spacing: 0.05em;
   box-shadow: 0 16px 34px rgba(48, 9, 66, 0.22);
-}
-
-.secondaryCta {
-  background: var(--public-plum-deep);
-  color: var(--public-cream);
-  box-shadow: 0 10px 24px rgba(75, 20, 95, 0.16);
-}
-
-.tertiaryCta {
-  background: rgba(111, 43, 139, 0.07);
-  border-color: rgba(87, 31, 108, 0.12);
-  color: var(--public-plum-deep);
-}
-
-.primaryCta:hover,
-.secondaryCta:hover,
-.tertiaryCta:hover {
-  transform: translateY(-2px);
 }
 
 .heroImageWrap {
@@ -177,16 +139,29 @@
 .featured {
   position: relative;
   z-index: 2;
-  margin-top: 0;
   margin-inline: auto;
-  max-width: 1110px;
-  padding: clamp(1.75rem, 3vw, 2.5rem) clamp(1rem, 2vw, 1.45rem) clamp(1.35rem, 2vw, 1.8rem);
+  max-width: 1180px;
+  padding: clamp(3.2rem, 5vw, 5rem) clamp(1rem, 2vw, 1.7rem) clamp(2.8rem, 4vw, 4.2rem);
   animation-delay: 0.12s;
 }
 
 .featuredHeader {
-  margin-bottom: clamp(1rem, 2vw, 1.35rem);
+  display: grid;
+  gap: 0.55rem;
+  justify-items: center;
+  margin-bottom: clamp(1.45rem, 2vw, 1.9rem);
   text-align: center;
+}
+
+.featuredEyebrow,
+.flavourLabel {
+  margin: 0;
+  color: rgba(75, 20, 95, 0.72);
+  font-family: var(--font-public-ui);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
 .featuredTitle {
@@ -202,316 +177,151 @@
 
 .flavourGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(0.85rem, 1.8vw, 1.15rem);
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.86fr);
+  grid-auto-rows: 1fr;
+  gap: clamp(1rem, 1.8vw, 1.3rem);
+  align-items: stretch;
 }
 
 .flavourCard {
-  position: relative;
+  --product-accent: #f0c7d8;
+  display: grid;
+  grid-template-rows: minmax(17rem, 1fr) auto;
+  min-width: 0;
+  border: 1px solid rgba(87, 31, 108, 0.1);
+  border-radius: 1.6rem;
   overflow: hidden;
-  min-height: 24rem;
-  border-radius: 1.25rem;
-  box-shadow: 0 14px 30px rgba(92, 28, 104, 0.14);
-  transition:
-    transform var(--public-transition),
-    box-shadow var(--public-transition);
+  background: rgba(255, 248, 241, 0.86);
 }
 
-.flavourTileLink {
-  display: block;
-  color: inherit;
-  text-decoration: none;
+.flavourCardLead {
+  grid-row: span 2;
+  grid-template-rows: minmax(25rem, 1fr) auto;
 }
 
-.flavourCard:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 18px 36px rgba(92, 28, 104, 0.18);
+.flavourImageWrap {
+  position: relative;
+  min-height: 0;
+  background: var(--product-accent);
 }
 
-.flavourCard:focus-visible {
-  outline: 3px solid rgba(255, 248, 241, 0.96);
-  outline-offset: 3px;
-  transform: translateY(-4px);
-  box-shadow: 0 18px 36px rgba(92, 28, 104, 0.18);
+.flavourImage {
+  object-fit: cover;
+  object-position: center 18%;
 }
 
-.flavourCard:focus-within {
-  transform: translateY(-4px);
-  box-shadow: 0 18px 36px rgba(92, 28, 104, 0.18);
+.flavourBody {
+  display: grid;
+  gap: 1.2rem;
+  padding: 1.2rem 1.15rem 1.25rem;
+  background: rgba(255, 248, 241, 0.96);
 }
 
-.flavourCopy {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.45rem;
-  padding: 1.4rem 1rem 1.2rem;
-  text-align: center;
+.flavourMeta {
+  display: grid;
+  gap: 0.5rem;
 }
 
-.flavourLabel,
-.promoEyebrow {
+.flavourName {
   margin: 0;
-  color: rgba(255, 248, 241, 0.82);
-  font-family: var(--font-public-ui);
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-
-.flavourCopy h2 {
-  margin: 0;
-  max-width: 10ch;
-  color: var(--public-cream);
+  max-width: 11ch;
+  color: var(--public-plum-deep);
   font-family: var(--font-public-display);
-  font-size: clamp(1.45rem, 2vw, 1.9rem);
+  font-size: clamp(1.55rem, 2vw, 2rem);
   line-height: 0.94;
   font-weight: 700;
   text-wrap: balance;
 }
 
-.flavourLabel {
-  margin-top: 0.15rem;
+.flavourCardLead .flavourName {
+  font-size: clamp(2rem, 2.7vw, 2.85rem);
 }
 
-.flavourImageWrap {
-  position: relative;
-  inset: 0;
-  min-height: 24rem;
-}
-
-.flavourImageWrap .flavourTileLink {
-  position: absolute;
-  inset: 0;
-}
-
-.flavourImage {
-  object-fit: cover;
-  object-position: center 10%;
-  transform: scale(1);
-  transition: transform 0.35s ease;
-}
-
-.flavourCard:hover .flavourImage,
-.flavourCard:focus-within .flavourImage {
-  transform: scale(1.03);
-}
-
-.featuredQuickAdd {
-  position: absolute;
-  right: 0.8rem;
-  bottom: 0.8rem;
-  z-index: 3;
-  min-width: 5.2rem;
-  height: 2.35rem;
-  padding: 0 0.95rem;
-  border: 1px solid rgba(255, 248, 241, 0.4);
-  border-radius: 999px;
-  background: rgba(75, 20, 95, 0.76);
-  color: var(--public-cream);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
+.flavourNote {
+  margin: 0;
+  max-width: 34ch;
+  color: var(--public-ink-soft);
   font-family: var(--font-public-ui);
-  font-size: 0.88rem;
-  line-height: 1;
-  opacity: 0;
-  transform: translateY(8px);
-  transition:
-    opacity var(--public-transition),
-    transform var(--public-transition),
-    background-color var(--public-transition),
-    color var(--public-transition);
-  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1.45;
 }
 
-.flavourCard:hover .featuredQuickAdd,
-.flavourCard:focus-within .featuredQuickAdd {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.featuredQuickAdd[data-added="true"] {
-  background: var(--public-cream);
-  color: var(--public-plum-deep);
-}
-
-.matchaTone {
-  background: linear-gradient(180deg, #b7cc73 0%, #93aa5c 100%);
-}
-
-.redTone {
-  background: linear-gradient(180deg, #f2abc3 0%, #d879a4 100%);
-}
-
-.chocolateTone {
-  background: linear-gradient(180deg, #efc58e 0%, #d79368 100%);
-}
-
-.hazelnutTone {
-  background: linear-gradient(180deg, #f1c58f 0%, #e0a46d 100%);
-}
-
-.genericTone {
-  background: linear-gradient(180deg, #d2aadf 0%, #9767b3 100%);
-}
-
-.promoStrip {
-  width: min(calc(100% - 2rem), 1120px);
-  margin: 0 auto clamp(1rem, 2vw, 1.45rem);
+.flavourFooter {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.8rem;
-  animation-delay: 0.18s;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
-.promoTopCta {
+.flavourPrice {
+  margin: 0;
+  color: var(--public-plum-deep);
+  font-family: var(--font-public-display);
+  font-size: clamp(1.35rem, 1.8vw, 1.8rem);
+  line-height: 1;
+  font-weight: 700;
+}
+
+.flavourActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.flavourCta,
+.featuredQuickAdd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 2.6rem;
-  padding: 0 1.65rem;
+  min-height: 2.75rem;
+  padding: 0 1.15rem;
   border-radius: 999px;
-  background: linear-gradient(180deg, #7f3c97 0%, #5c1d7c 100%);
-  color: #fff8fb;
   font-family: var(--font-public-ui);
   font-size: 0.76rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-decoration: none;
-  box-shadow: 0 12px 24px rgba(77, 24, 104, 0.16);
-}
-
-.promoStage {
-  position: relative;
-  width: 100%;
-  min-height: clamp(13.5rem, 18vw, 15.5rem);
-  overflow: visible;
-}
-
-.promoMediaPanel {
-  position: absolute;
-  left: clamp(0.25rem, 0.9vw, 0.9rem);
-  bottom: clamp(1rem, 1.6vw, 1.25rem);
-  width: clamp(12.75rem, 22.75vw, 17.25rem);
-  height: clamp(11.5rem, 15vw, 13.25rem);
-  z-index: 2;
-}
-
-.promoMedia {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.promoImage {
-  object-fit: contain;
-  object-position: left bottom;
-  transform: scale(1.07);
-  transform-origin: left bottom;
-  filter: saturate(1.02) contrast(1.02) drop-shadow(0 18px 26px rgba(72, 16, 95, 0.16));
-}
-
-.promoCard {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  min-height: clamp(11.5rem, 15vw, 13.25rem);
-  margin: clamp(1rem, 1.5vw, 1.2rem) clamp(1rem, 1.6vw, 1.25rem) clamp(1rem, 1.6vw, 1.25rem)
-    clamp(9.95rem, 16.5vw, 12.8rem);
-  border-radius: 1.45rem;
-  background: rgba(255, 251, 248, 0.98);
-  box-shadow: 0 18px 36px rgba(89, 26, 101, 0.12);
-  overflow: hidden;
-}
-
-.promoBlock {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 0.68rem;
-  padding: clamp(1.35rem, 2vw, 1.8rem) clamp(1.2rem, 1.9vw, 1.7rem);
-  min-width: 0;
-}
-
-.promoPanelPrimary {
-  padding-left: clamp(6.8rem, 11.2vw, 9.4rem);
-}
-
-.promoPanelSecondary {
-  border-left: 1px solid rgba(87, 31, 108, 0.12);
-}
-
-.promoBlock h2 {
-  margin: 0;
-  max-width: 9.6ch;
-  color: var(--public-plum-deep);
-  font-family: var(--font-public-display);
-  font-size: clamp(1.55rem, 2.15vw, 2.2rem);
-  line-height: 0.9;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  text-wrap: balance;
-}
-
-.promoBlock p:not(.promoEyebrow) {
-  margin: 0;
-  max-width: 16rem;
-  color: var(--public-ink-soft);
-  font-family: var(--font-public-ui);
-  font-size: clamp(0.72rem, 0.82vw, 0.86rem);
-  line-height: 1.52;
-}
-
-.promoEyebrow {
-  color: rgba(75, 20, 95, 0.72);
-  font-size: 0.6rem;
-  letter-spacing: 0.16em;
-}
-
-.promoPrimaryCta,
-.promoSecondaryCta {
-  min-height: 2.45rem;
-  width: fit-content;
-  margin-top: 0.3rem;
-  padding-inline: 1.2rem;
-  font-size: 0.72rem;
-  font-weight: 800;
   letter-spacing: 0.06em;
-  box-shadow: none;
+  text-transform: uppercase;
 }
 
-.promoPrimaryCta {
-  background: linear-gradient(180deg, #eca3c5 0%, #e391b7 100%);
-  color: #fffafc;
-  box-shadow: 0 10px 20px rgba(92, 28, 104, 0.1);
+.flavourViewCta {
+  border: 1px solid transparent;
+  background: var(--public-plum-deep);
+  color: var(--public-cream);
 }
 
-.promoSecondaryCta {
-  background: linear-gradient(180deg, #f3a7c6 0%, #e58eb4 100%);
-  border-color: transparent;
-  color: #fffafc;
-  box-shadow: 0 10px 20px rgba(92, 28, 104, 0.1);
+.featuredQuickAdd {
+  border: 1px solid rgba(87, 31, 108, 0.14);
+  background: transparent;
+  color: var(--public-plum-deep);
+  gap: 0.45rem;
+  cursor: pointer;
 }
 
-.promoCaption {
-  margin: 0 auto;
-  max-width: 62rem;
-  padding: 0 1rem;
-  color: var(--public-ink-soft);
-  font-family: var(--font-public-ui);
-  font-size: 0.78rem;
-  line-height: 1.5;
-  text-align: center;
+.featuredQuickAdd[data-added="true"] {
+  background: var(--public-plum-deep);
+  color: var(--public-cream);
+}
+
+.matchaTone {
+  --product-accent: #bfd58d;
+}
+
+.redTone {
+  --product-accent: #f2b6cb;
+}
+
+.chocolateTone {
+  --product-accent: #f0c991;
+}
+
+.hazelnutTone {
+  --product-accent: #e7bc8e;
+}
+
+.genericTone {
+  --product-accent: #d7c0e4;
 }
 
 @media (max-width: 980px) {
@@ -524,40 +334,28 @@
     font-size: clamp(3.9rem, 7.9vw, 6.1rem);
   }
 
+  .featured {
+    padding-top: clamp(2.8rem, 5vw, 4rem);
+  }
+
   .flavourGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: auto;
   }
 
-  .promoStage {
-    min-height: 0;
-    padding-top: 9.75rem;
+  .flavourCardLead {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    grid-template-rows: none;
   }
 
-  .promoMediaPanel {
-    left: 50%;
-    bottom: auto;
-    top: 0.5rem;
-    width: min(18rem, calc(100% - 2rem));
-    height: 10.5rem;
-    transform: translateX(-50%);
+  .flavourCardLead .flavourImageWrap {
+    min-height: 22rem;
   }
 
-  .promoImage {
-    object-position: center bottom;
-    transform: scale(1.02) translateY(4%);
-  }
-
-  .promoCard {
-    margin: 0 0.9rem 0.9rem;
-    min-height: 0;
-  }
-
-  .promoPanelPrimary {
-    padding-left: 3.9rem;
-  }
-
-  .featured {
-    margin-top: 0;
+  .flavourCardLead .flavourBody {
+    align-content: space-between;
   }
 }
 
@@ -581,34 +379,7 @@
   }
 
   .featured {
-    margin-top: 0;
     padding-inline: 1rem;
-  }
-
-  .flavourGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .flavourCard,
-  .flavourImageWrap {
-    min-height: 21rem;
-  }
-
-  .featuredQuickAdd {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  .promoStrip {
-    width: calc(100% - 2rem);
-  }
-
-  .promoStage {
-    padding-top: 9rem;
-  }
-
-  .promoMediaPanel {
-    height: 9.75rem;
   }
 }
 
@@ -643,7 +414,11 @@
   }
 
   .featured {
-    margin-top: 0;
+    padding: 2.6rem 1rem 2.7rem;
+  }
+
+  .featuredTitle {
+    font-size: clamp(2.65rem, 13vw, 4rem);
   }
 
   .flavourGrid {
@@ -651,52 +426,44 @@
   }
 
   .flavourCard,
-  .flavourImageWrap {
-    min-height: auto;
-    aspect-ratio: 15 / 16;
-  }
-
-  .featuredQuickAdd {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  .promoStage {
-    padding-top: 8.4rem;
-  }
-
-  .promoMediaPanel {
-    width: min(15rem, calc(100% - 1.25rem));
-    height: 9rem;
-  }
-
-  .promoImage {
-    object-position: center bottom;
-    transform: scale(0.98) translateY(2%);
-  }
-
-  .promoCard {
+  .flavourCardLead {
+    grid-column: auto;
     grid-template-columns: 1fr;
-    margin: 0 0.7rem 0.7rem;
+    grid-template-rows: minmax(18.5rem, auto) auto;
   }
 
-  .promoPanelPrimary {
-    padding-left: 1.15rem;
+  .flavourCardLead .flavourImageWrap,
+  .flavourImageWrap {
+    min-height: 18.5rem;
   }
 
-  .promoPanelSecondary {
-    border-left: 0;
-    border-top: 1px solid rgba(87, 31, 108, 0.12);
+  .flavourBody {
+    gap: 1rem;
+    padding: 1.05rem;
   }
 
-  .promoPrimaryCta,
-  .promoSecondaryCta {
-    width: fit-content;
-    max-width: 100%;
+  .flavourName,
+  .flavourCardLead .flavourName {
+    max-width: 12ch;
+    font-size: clamp(1.7rem, 7.4vw, 2.25rem);
   }
 
-  .promoCaption {
-    padding-inline: 0.35rem;
+  .flavourNote {
+    font-size: 0.88rem;
+  }
+
+  .flavourFooter {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .flavourActions {
+    width: 100%;
+  }
+
+  .flavourCta,
+  .featuredQuickAdd {
+    flex: 1 1 10rem;
   }
 }
 
