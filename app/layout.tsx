@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Abril_Fatface, Anonymous_Pro, Besley, Fraunces } from "next/font/google";
+import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
 import { FaTiktok } from "react-icons/fa6";
@@ -150,24 +151,41 @@ export default async function RootLayout({
               <div className="site-footer-main">
                 <div className="site-footer-upper">
                   <div className="site-footer-copy">
-                    <h2>Join our cookie community</h2>
-                    <p>Subscribe now for exclusive offers and mouthwatering recipes!</p>
+                    <p className="site-footer-eyebrow">Stay close</p>
+                    <h2>Monthly flavour drops and offers, straight to your inbox.</h2>
+                    <p>Be first to hear about new bakes, seasonal boxes, and shop updates.</p>
                   </div>
 
-                  <form className="site-footer-form" aria-label="Newsletter signup">
-                    <label htmlFor="footer-email" className="sr-only">
-                      Email address
-                    </label>
-                    <input
-                      id="footer-email"
-                      type="email"
-                      placeholder="Email address"
-                      className="site-footer-input"
-                    />
-                    <button type="submit" className="site-footer-button">
-                      Sign up
-                    </button>
-                  </form>
+                  <div className="site-footer-panel">
+                    <div className="site-footer-panel-main">
+                      <p className="site-footer-panel-kicker">Monthly flavour drops and offers</p>
+
+                      <form className="site-footer-form" aria-label="Newsletter signup">
+                        <label htmlFor="footer-email" className="sr-only">
+                          Email address
+                        </label>
+                        <input
+                          id="footer-email"
+                          type="email"
+                          placeholder="Email address"
+                          className="site-footer-input"
+                        />
+                        <button type="submit" className="site-footer-button">
+                          Sign up
+                        </button>
+                      </form>
+                    </div>
+
+                    <div className="site-footer-art" aria-hidden="true">
+                      <Image
+                        src="/Hands_Milk_Shot/_DSC6461.jpg"
+                        alt=""
+                        fill
+                        sizes="(max-width: 900px) 0px, 180px"
+                        className="site-footer-art-image"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="site-footer-bottom-row">

@@ -2,20 +2,16 @@
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: clamp(1.5rem, 3vw, 3rem);
-  background:
-    radial-gradient(circle at top, rgba(118, 26, 108, 0.2), transparent 42%),
-    linear-gradient(160deg, #1f1220 0%, #f4ede9 48%, #ead9e8 100%);
+  padding: 1.5rem;
+  background: #f7f1ee;
 }
 
 .panel {
   width: min(100%, 34rem);
-  padding: clamp(1.75rem, 3vw, 2.75rem);
-  border: 1px solid rgba(118, 26, 108, 0.12);
-  border-radius: 1.75rem;
-  background: rgba(255, 249, 246, 0.94);
-  box-shadow: 0 1.5rem 3.5rem rgba(27, 13, 27, 0.16);
-  backdrop-filter: blur(10px);
+  padding: 1.5rem;
+  border: 1px solid #d7c9c3;
+  border-radius: 1rem;
+  background: #fffaf7;
 }
 
 .lockBadge {
@@ -24,42 +20,35 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  border: 1px solid #d7c9c3;
   border-radius: 999px;
-  background: #761a6c;
-  color: #ffffff;
-  font-size: 1.2rem;
+  color: #4f2c42;
 }
 
 .eyebrow {
   margin: 1rem 0 0;
-  font-family: var(--font-accent--family);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(118, 26, 108, 0.9);
+  color: #6f5063;
 }
 
 .panel h1 {
-  margin: 0.8rem 0 0;
-  font-family: var(--font-heading--family);
-  font-size: clamp(2rem, 4vw, 3rem);
-  line-height: 0.95;
-  letter-spacing: -0.03em;
-  color: #1b1118;
+  margin: 0.75rem 0 0;
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  line-height: 1;
+  color: #24141d;
 }
 
 .copy {
   margin: 1rem 0 0;
-  font-size: 1rem;
-  line-height: 1.65;
-  color: rgba(27, 17, 24, 0.8);
+  line-height: 1.6;
+  color: #463540;
 }
 
 .copy code {
-  font-family: var(--font-accent--family);
   font-size: 0.95em;
-  color: #761a6c;
 }
 
 .banner {
@@ -68,7 +57,10 @@
   gap: 0.75rem;
   align-items: flex-start;
   padding: 0.85rem 1rem;
-  border-radius: 1rem;
+  border: 1px solid #e3bcbc;
+  border-radius: 0.75rem;
+  background: #fff1f1;
+  color: #7b2727;
   font-size: 0.94rem;
   line-height: 1.5;
 }
@@ -79,17 +71,19 @@
 }
 
 .bannerError {
-  background: rgba(145, 22, 22, 0.08);
-  color: #7f1717;
+  border-color: #e3bcbc;
+  background: #fff1f1;
+  color: #7b2727;
 }
 
 .bannerWarning {
-  background: rgba(142, 91, 7, 0.11);
-  color: #7f4f07;
+  border-color: #e6d2ad;
+  background: #fff7e6;
+  color: #7a5a18;
 }
 
 .form {
-  margin-top: 1.4rem;
+  margin-top: 1.5rem;
   display: grid;
   gap: 1rem;
 }
@@ -107,56 +101,31 @@
 
 .field input {
   width: 100%;
-  border: 1px solid rgba(118, 26, 108, 0.18);
-  border-radius: 0.95rem;
-  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #cbb9c2;
+  border-radius: 0.75rem;
+  background: #ffffff;
   padding: 0.9rem 1rem;
   font: inherit;
   color: #111111;
 }
 
 .field input:focus {
-  outline: 2px solid rgba(118, 26, 108, 0.24);
+  outline: 2px solid #d9cad3;
   outline-offset: 2px;
-  border-color: rgba(118, 26, 108, 0.4);
 }
 
 .button {
-  border: 0;
+  border: 1px solid #4f2c42;
   border-radius: 999px;
   padding: 0.95rem 1.4rem;
-  background: linear-gradient(135deg, #761a6c 0%, #9a2f8e 100%);
+  background: #4f2c42;
   color: #ffffff;
-  font-family: var(--font-heading--family);
-  font-size: 1rem;
-  letter-spacing: 0.01em;
+  font: inherit;
+  font-weight: 700;
   cursor: pointer;
-  transition:
-    transform 140ms ease,
-    box-shadow 140ms ease,
-    opacity 140ms ease;
-  box-shadow: 0 0.9rem 1.9rem rgba(118, 26, 108, 0.2);
-}
-
-.button:hover,
-.button:focus-visible {
-  transform: translateY(-1px);
-  box-shadow: 0 1.15rem 2.15rem rgba(118, 26, 108, 0.24);
 }
 
 .button:disabled {
-  opacity: 0.72;
+  opacity: 0.7;
   cursor: wait;
-  transform: none;
-}
-
-@media (max-width: 640px) {
-  .panel {
-    border-radius: 1.35rem;
-    padding: 1.4rem;
-  }
-
-  .panel h1 {
-    font-size: 2rem;
-  }
 }

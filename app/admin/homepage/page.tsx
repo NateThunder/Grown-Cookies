@@ -103,8 +103,8 @@ export default async function HomepageAdminPage({ searchParams }: HomepageAdminP
                   <h2>Site lock</h2>
                 </div>
                 <p className={styles.tableHint}>
-                  Turn the temporary public lock screen on or off. When enabled, visitors must use
-                  an admin account to view the main site while `/admin` stays available.
+                  Turn the public lock screen on or off. When enabled, visitors must sign in with an
+                  admin account to view the main site while <code>/admin</code> stays available.
                 </p>
               </div>
 

@@ -7,22 +7,22 @@ import styles from "./homepage-promo-strip.module.css";
 type HomepagePromoStripProps = {
   homepageSettings: HomepageSectionSettings;
   products: ShopProduct[];
-  showCaption?: boolean;
-  showTopCta?: boolean;
 };
 
-function getCompactHeading(text: string, fallback: string, maxLength = 44) {
-  const normalized = text.trim();
-
-  if (!normalized) {
-    return fallback;
-  }
-
-  const [firstSentence] = normalized.split(/(?<=[.!?])\s+/);
-  const candidate = firstSentence?.trim() || normalized;
-
-  return candidate.length <= maxLength ? candidate : fallback;
-}
+const benefitPoints = [
+  {
+    title: "Handmade in small batches",
+    body: "Each box is baked in limited runs for a fresher, softer cookie with more character.",
+  },
+  {
+    title: "Bold grown-up flavours",
+    body: "From matcha to Maldon salt, every flavour leans richer and less expected than the usual cookie line-up.",
+  },
+  {
+    title: "Event boxes & gifting",
+    body: "Birthday tables, thank-you drops, and late-night gifting all land better with a box that looks the part.",
+  },
+];
 
 function getCompactExcerpt(text: string, maxLength = 150) {
   const normalized = text.trim();
@@ -37,66 +37,94 @@ function getCompactExcerpt(text: string, maxLength = 150) {
   return `${truncated.slice(0, lastWordBoundary > 0 ? lastWordBoundary : maxLength).trimEnd()}...`;
 }
 
-export default function HomepagePromoStrip({
-  homepageSettings,
-  products,
-  showCaption = false,
-  showTopCta = false,
-}: HomepagePromoStripProps) {
+export default function HomepagePromoStrip({ homepageSettings, products }: HomepagePromoStripProps) {
   const { cookieOfMonth: cookieOfMonthSetting, shopIntro: shopIntroSetting, brandStory: brandStorySetting } =
     homepageSettings;
   const cookieOfMonthProduct = products.find(
     (product) => product.slug === cookieOfMonthSetting.productSlug,
   );
-  const cookieOfMonthHref = cookieOfMonthProduct ? `/shop/${cookieOfMonthProduct.slug}` : "/shop";
-  const cookieOfMonthHeading = cookieOfMonthProduct?.name ?? "Cookie of the month";
-  const cookieOfMonthHeadingClassName =
-    cookieOfMonthProduct?.slug === "dark-choc-maldon-salt" ? styles.singleLineHeading : undefined;
+  const localCookieOfMonthProduct =
+    process.env.NODE_ENV !== "production"
+      ? products.find((product) => product.slug === "double-chocolate-hazelnut") ?? cookieOfMonthProduct
+      : cookieOfMonthProduct;
+  const cookieOfMonthHref = localCookieOfMonthProduct ? `/shop/${localCookieOfMonthProduct.slug}` : "/shop";
+  const cookieOfMonthHeading = localCookieOfMonthProduct?.name ?? "Cookie of the month";
   const cookieOfMonthBody = getCompactExcerpt(cookieOfMonthSetting.title, 132);
-  const shopPromoHeading = getCompactHeading(shopIntroSetting.title, "Signature delivery");
-  const shopPromoBody = getCompactExcerpt(shopIntroSetting.body || shopIntroSetting.title, 150);
-  const brandStoryCaption = getCompactExcerpt(brandStorySetting.body, 156);
+  const whyIntro = getCompactExcerpt(
+    [shopIntroSetting.title, shopIntroSetting.body].filter(Boolean).join(" "),
+    168,
+  );
+  const buildYourBoxBody = getCompactExcerpt(brandStorySetting.body, 144);
+  const cookieSpotlightImage = localCookieOfMonthProduct?.image ?? "/Box_Shots/_DSC6373.jpg";
+  const cookieSpotlightAlt =
+    localCookieOfMonthProduct?.imageAlt ?? `${cookieOfMonthHeading} cookie from Grown Cookies`;
 
   return (
     <section className={styles.section}>
-      {showTopCta ? (
-        <Link href="/shop" className={styles.topCta}>
-          View flavours
-        </Link>
-      ) : null}
+      <div className={styles.stack}>
+        <section className={styles.spotlight}>
+          <div className={styles.spotlightMedia}>
+            <Image
+              src={cookieSpotlightImage}
+              alt={cookieSpotlightAlt}
+              fill
+              sizes="(max-width: 820px) 100vw, 52vw"
+              className={styles.spotlightImage}
+            />
+          </div>
 
-      <div className={styles.promo}>
-        <Image
-          src="/grown cookie box.png"
-          alt="Open Grown Cookies box with assorted cookies"
-          width={960}
-          height={760}
-          sizes="(max-width: 980px) 100vw, 28vw"
-          className={styles.promo__image}
-        />
-
-        <div className={styles.promo__card}>
-          <article className={`${styles.block} ${styles.promo__primary}`}>
+          <div className={styles.spotlightCopy}>
             <p className={styles.eyebrow}>Cookie of the month</p>
-            <h2 className={cookieOfMonthHeadingClassName}>{cookieOfMonthHeading}</h2>
+            <h2>{cookieOfMonthHeading}</h2>
             <p className={styles.body}>{cookieOfMonthBody}</p>
-            <Link href={cookieOfMonthHref} className={`${styles.button} ${styles.buttonPrimary}`}>
+            <Link href={cookieOfMonthHref} className={styles.primaryButton}>
               {cookieOfMonthSetting.ctaLabel}
             </Link>
-          </article>
+          </div>
+        </section>
 
-          <article className={`${styles.block} ${styles.secondaryPanel}`}>
+        <section className={styles.why}>
+          <div className={styles.whyIntro}>
             <p className={styles.eyebrow}>{shopIntroSetting.eyebrow}</p>
-            <h2>{shopPromoHeading}</h2>
-            <p className={styles.body}>{shopPromoBody}</p>
-            <Link href="/shop" className={`${styles.button} ${styles.buttonSecondary}`}>
+            <h2>Why Grown Cookies?</h2>
+            <p className={styles.body}>{whyIntro}</p>
+            <Link href="/shop" className={styles.secondaryButton}>
               {shopIntroSetting.ctaLabel}
             </Link>
-          </article>
-        </div>
-      </div>
+          </div>
 
-      {showCaption ? <p className={styles.caption}>{brandStoryCaption}</p> : null}
+          <div className={styles.benefitGrid}>
+            {benefitPoints.map((benefit, index) => (
+              <article key={benefit.title} className={styles.benefit}>
+                <p className={styles.benefitIndex}>{`0${index + 1}`}</p>
+                <h3>{benefit.title}</h3>
+                <p>{benefit.body}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className={styles.build}>
+          <div className={styles.buildMedia}>
+            <Image
+              src="/Box_Shots/_DSC6378.jpg"
+              alt="Grown Cookies box ready to gift"
+              fill
+              sizes="(max-width: 820px) 100vw, 48vw"
+              className={styles.buildImage}
+            />
+          </div>
+
+          <div className={styles.buildCopy}>
+            <p className={styles.eyebrow}>Build your box</p>
+            <h2>Choose a box that lands like a gift.</h2>
+            <p className={styles.buildBody}>{buildYourBoxBody}</p>
+            <Link href="/shop" className={styles.buildButton}>
+              Build your box
+            </Link>
+          </div>
+        </section>
+      </div>
     </section>
   );
 }
