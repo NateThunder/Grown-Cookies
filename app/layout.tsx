@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Abril_Fatface, Anonymous_Pro, Besley, Fraunces } from "next/font/google";
 import Link from "next/link";
 import Script from "next/script";
 import { FaTiktok } from "react-icons/fa6";
 import { FiInstagram } from "react-icons/fi";
 import CookieConsentBanner from "@/components/cookie-consent-banner";
+import SiteLockGate from "@/components/site-lock-gate";
 import { COOKIE_CONSENT_STORAGE_KEY } from "@/lib/cookie-consent";
+import { isSiteLockEnabled } from "@/lib/site-lock";
+import { ADMIN_AUTH_COOKIE, getSupabaseUserFromAccessToken } from "@/lib/supabase/admin-auth";
 import "./globals.css";
 
 const besley = Besley({
@@ -110,14 +114,25 @@ function getConsentModeBootstrapScript(measurementId: string) {
   `;
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const siteLockEnabled = await isSiteLockEnabled();
+  let isUnlockedForAdmin = false;
+
+  if (siteLockEnabled) {
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get(ADMIN_AUTH_COOKIE)?.value;
+    const adminUser = accessToken ? await getSupabaseUserFromAccessToken(accessToken) : null;
+    isUnlockedForAdmin = Boolean(adminUser);
+  }
+
   return (
     <html lang="en">
       <head>
+        {siteLockEnabled ? <meta name="robots" content="noindex, nofollow" /> : null}
         {googleAnalyticsId ? (
           <Script id="google-consent-mode" strategy="beforeInteractive">
             {getConsentModeBootstrapScript(googleAnalyticsId)}
@@ -127,51 +142,55 @@ export default function RootLayout({
       <body
         className={`${besley.variable} ${fraunces.variable} ${anonymousPro.variable} ${abrilFatface.variable} antialiased`}
       >
-        {children}
-        {googleAnalyticsId ? <CookieConsentBanner /> : null}
-        <footer className="site-footer">
-          <div className="site-footer-main">
-            <div className="site-footer-upper">
-              <div className="site-footer-copy">
-                <h2>Join our cookie community</h2>
-                <p>Subscribe now for exclusive offers and mouthwatering recipes!</p>
-              </div>
+        <SiteLockGate enabled={siteLockEnabled} isUnlockedForAdmin={isUnlockedForAdmin}>
+          <>
+            {children}
+            {googleAnalyticsId ? <CookieConsentBanner /> : null}
+            <footer className="site-footer">
+              <div className="site-footer-main">
+                <div className="site-footer-upper">
+                  <div className="site-footer-copy">
+                    <h2>Join our cookie community</h2>
+                    <p>Subscribe now for exclusive offers and mouthwatering recipes!</p>
+                  </div>
 
-              <form className="site-footer-form" aria-label="Newsletter signup">
-                <label htmlFor="footer-email" className="sr-only">
-                  Email address
-                </label>
-                <input
-                  id="footer-email"
-                  type="email"
-                  placeholder="Email address"
-                  className="site-footer-input"
-                />
-                <button type="submit" className="site-footer-button">
-                  Sign up
-                </button>
-              </form>
-            </div>
+                  <form className="site-footer-form" aria-label="Newsletter signup">
+                    <label htmlFor="footer-email" className="sr-only">
+                      Email address
+                    </label>
+                    <input
+                      id="footer-email"
+                      type="email"
+                      placeholder="Email address"
+                      className="site-footer-input"
+                    />
+                    <button type="submit" className="site-footer-button">
+                      Sign up
+                    </button>
+                  </form>
+                </div>
 
-            <div className="site-footer-bottom-row">
-              <p>
-                {"\u00A9"} 2026 <span className="site-footer-brand">Grown Cookies</span>, Created by{" "}
-                <a href="https://nathansomevi.dev" target="_blank" rel="noreferrer">
-                  Somevi Labs
-                </a>
-              </p>
-              <Link href="/privacy">Privacy Policy</Link>
-              <div className="site-footer-social">
-                <Link href="#" aria-label="Instagram">
-                  <FiInstagram />
-                </Link>
-                <Link href="#" aria-label="TikTok">
-                  <FaTiktok />
-                </Link>
+                <div className="site-footer-bottom-row">
+                  <p>
+                    {"\u00A9"} 2026 <span className="site-footer-brand">Grown Cookies</span>, Created by{" "}
+                    <a href="https://nathansomevi.dev" target="_blank" rel="noreferrer">
+                      Somevi Labs
+                    </a>
+                  </p>
+                  <Link href="/privacy">Privacy Policy</Link>
+                  <div className="site-footer-social">
+                    <Link href="#" aria-label="Instagram">
+                      <FiInstagram />
+                    </Link>
+                    <Link href="#" aria-label="TikTok">
+                      <FaTiktok />
+                    </Link>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </footer>
+            </footer>
+          </>
+        </SiteLockGate>
       </body>
     </html>
   );

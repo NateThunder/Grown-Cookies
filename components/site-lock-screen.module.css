@@ -1,0 +1,112 @@
+.shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: #f7f1ee;
+}
+
+.panel {
+  width: min(100%, 34rem);
+  padding: 1.5rem;
+  border: 1px solid #d7c9c3;
+  border-radius: 1rem;
+  background: #fffaf7;
+}
+
+.lockBadge {
+  width: 3rem;
+  height: 3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d7c9c3;
+  border-radius: 999px;
+  color: #4f2c42;
+}
+
+.eyebrow {
+  margin: 1rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #6f5063;
+}
+
+.panel h1 {
+  margin: 0.75rem 0 0;
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  line-height: 1;
+  color: #24141d;
+}
+
+.copy {
+  margin: 1rem 0 0;
+  line-height: 1.6;
+  color: #463540;
+}
+
+.copy code {
+  font-size: 0.95em;
+}
+
+.banner {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.85rem 1rem;
+  border: 1px solid #e3bcbc;
+  border-radius: 0.75rem;
+  background: #fff1f1;
+  color: #7b2727;
+}
+
+.form {
+  margin-top: 1.5rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.field span {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #2d1b29;
+}
+
+.field input {
+  width: 100%;
+  border: 1px solid #cbb9c2;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  padding: 0.9rem 1rem;
+  font: inherit;
+  color: #111111;
+}
+
+.field input:focus {
+  outline: 2px solid #d9cad3;
+  outline-offset: 2px;
+}
+
+.button {
+  border: 1px solid #4f2c42;
+  border-radius: 999px;
+  padding: 0.95rem 1.4rem;
+  background: #4f2c42;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}

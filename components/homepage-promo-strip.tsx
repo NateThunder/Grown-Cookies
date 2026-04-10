@@ -11,19 +11,6 @@ type HomepagePromoStripProps = {
   showTopCta?: boolean;
 };
 
-function getCompactHeading(text: string, fallback: string, maxLength = 44) {
-  const normalized = text.trim();
-
-  if (!normalized) {
-    return fallback;
-  }
-
-  const [firstSentence] = normalized.split(/(?<=[.!?])\s+/);
-  const candidate = firstSentence?.trim() || normalized;
-
-  return candidate.length <= maxLength ? candidate : fallback;
-}
-
 function getCompactExcerpt(text: string, maxLength = 150) {
   const normalized = text.trim();
 
@@ -48,13 +35,18 @@ export default function HomepagePromoStrip({
   const cookieOfMonthProduct = products.find(
     (product) => product.slug === cookieOfMonthSetting.productSlug,
   );
-  const cookieOfMonthHref = cookieOfMonthProduct ? `/shop/${cookieOfMonthProduct.slug}` : "/shop";
-  const cookieOfMonthHeading = cookieOfMonthProduct?.name ?? "Cookie of the month";
+  const localCookieOfMonthProduct =
+    process.env.NODE_ENV !== "production"
+      ? products.find((product) => product.slug === "double-chocolate-hazelnut") ?? cookieOfMonthProduct
+      : cookieOfMonthProduct;
+  const cookieOfMonthHref = localCookieOfMonthProduct ? `/shop/${localCookieOfMonthProduct.slug}` : "/shop";
+  const cookieOfMonthHeading = localCookieOfMonthProduct?.name ?? "Cookie of the month";
   const cookieOfMonthHeadingClassName =
-    cookieOfMonthProduct?.slug === "dark-choc-maldon-salt" ? styles.singleLineHeading : undefined;
+    localCookieOfMonthProduct?.slug === "dark-choc-maldon-salt" ? styles.singleLineHeading : undefined;
   const cookieOfMonthBody = getCompactExcerpt(cookieOfMonthSetting.title, 132);
-  const shopPromoHeading = getCompactHeading(shopIntroSetting.title, "Signature delivery");
-  const shopPromoBody = getCompactExcerpt(shopIntroSetting.body || shopIntroSetting.title, 150);
+  const shopPromoParagraphs = [shopIntroSetting.title, shopIntroSetting.body].filter(
+    (paragraph) => paragraph.trim().length > 0,
+  );
   const brandStoryCaption = getCompactExcerpt(brandStorySetting.body, 156);
 
   return (
@@ -69,8 +61,8 @@ export default function HomepagePromoStrip({
         <Image
           src="/grown cookie box.png"
           alt="Open Grown Cookies box with assorted cookies"
-          width={960}
-          height={760}
+          width={916}
+          height={947}
           sizes="(max-width: 980px) 100vw, 28vw"
           className={styles.promo__image}
         />
@@ -87,8 +79,13 @@ export default function HomepagePromoStrip({
 
           <article className={`${styles.block} ${styles.secondaryPanel}`}>
             <p className={styles.eyebrow}>{shopIntroSetting.eyebrow}</p>
-            <h2>{shopPromoHeading}</h2>
-            <p className={styles.body}>{shopPromoBody}</p>
+            <div className={styles.textGroup}>
+              {shopPromoParagraphs.map((paragraph) => (
+                <p key={paragraph} className={styles.body}>
+                  {paragraph}
+                </p>
+              ))}
+            </div>
             <Link href="/shop" className={`${styles.button} ${styles.buttonSecondary}`}>
               {shopIntroSetting.ctaLabel}
             </Link>

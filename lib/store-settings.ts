@@ -10,9 +10,11 @@ const SHOP_INTRO_TITLE_KEY = "shop_intro_title";
 const SHOP_INTRO_BODY_KEY = "shop_intro_body";
 const SHOP_INTRO_CTA_LABEL_KEY = "shop_intro_cta_label";
 const BRAND_STORY_BODY_KEY = "brand_story_body";
+const SITE_LOCK_ENABLED_KEY = "site_lock_enabled";
 const STORE_SETTINGS_TAG = "store-settings";
 const HOMEPAGE_SETTINGS_TAG = "store-settings-homepage";
 const DELIVERY_SETTINGS_TAG = "store-settings-delivery";
+const SITE_LOCK_SETTINGS_TAG = "store-settings-site-lock";
 const STORE_SETTINGS_REVALIDATE_SECONDS = 300;
 
 export const DEFAULT_DELIVERY_COST_CENTS = 1000;
@@ -170,6 +172,12 @@ type BrandStorySectionSetting = {
   updatedAt?: string;
 };
 
+export type SiteLockSetting = {
+  enabled: boolean;
+  isDefault: boolean;
+  updatedAt?: string;
+};
+
 export type HomepageSectionSettings = {
   cookieOfMonth: CookieOfMonthSectionSetting;
   shopIntro: ShopIntroSectionSetting;
@@ -246,6 +254,22 @@ function mapBrandStorySectionSetting(row: StoreSettingRow | null): BrandStorySec
   };
 }
 
+function mapSiteLockSetting(row: StoreSettingRow | null, defaultEnabled: boolean): SiteLockSetting {
+  if (!row) {
+    return {
+      enabled: defaultEnabled,
+      isDefault: true,
+      updatedAt: undefined,
+    };
+  }
+
+  return {
+    enabled: row.value.trim() === "1",
+    isDefault: false,
+    updatedAt: row.updated_at,
+  };
+}
+
 const getDeliveryCostSettingCached = unstable_cache(
   async (): Promise<DeliveryCostSetting> => {
     const row = await getStoreSetting(DELIVERY_COST_SETTING_KEY);
@@ -281,6 +305,18 @@ const getHomepageSectionSettingsCached = unstable_cache(
   {
     revalidate: STORE_SETTINGS_REVALIDATE_SECONDS,
     tags: [STORE_SETTINGS_TAG, HOMEPAGE_SETTINGS_TAG],
+  },
+);
+
+const getSiteLockSettingCached = unstable_cache(
+  async (defaultEnabled: boolean): Promise<SiteLockSetting> => {
+    const row = await getStoreSetting(SITE_LOCK_ENABLED_KEY);
+    return mapSiteLockSetting(row, defaultEnabled);
+  },
+  ["store-settings-site-lock"],
+  {
+    revalidate: STORE_SETTINGS_REVALIDATE_SECONDS,
+    tags: [STORE_SETTINGS_TAG, SITE_LOCK_SETTINGS_TAG],
   },
 );
 
@@ -480,6 +516,18 @@ export async function getBrandStorySectionSetting() {
   return settings.brandStory;
 }
 
+export async function getSiteLockSetting(defaultEnabled: boolean) {
+  if (!hasCloudflareD1Config()) {
+    return {
+      enabled: defaultEnabled,
+      isDefault: true,
+      updatedAt: undefined,
+    };
+  }
+
+  return getSiteLockSettingCached(defaultEnabled);
+}
+
 export async function getHomepageSectionSettings() {
   if (!hasCloudflareD1Config()) {
     return {
@@ -528,5 +576,17 @@ export async function updateBrandStorySectionSetting({
 
   return {
     body: normalizedBody,
+  };
+}
+
+export async function updateSiteLockEnabled(enabled: boolean) {
+  if (!hasCloudflareD1Config()) {
+    throw new Error("Cloudflare D1 is not configured.");
+  }
+
+  await upsertStoreSetting(SITE_LOCK_ENABLED_KEY, enabled ? "1" : "0");
+
+  return {
+    enabled,
   };
 }

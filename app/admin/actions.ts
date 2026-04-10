@@ -20,6 +20,7 @@ import {
   updateCookieOfMonthProductSlug,
   updateCookieOfMonthSectionSetting,
   updateDeliveryCostCents,
+  updateSiteLockEnabled,
   updateShopIntroSectionSetting,
 } from "@/lib/store-settings";
 import {
@@ -406,6 +407,37 @@ export async function updateBrandStoryContentAction(formData: FormData) {
     redirectToAdmin({
       returnPath: getTextField(formData, "returnPath"),
       error: error instanceof Error ? error.message : "The brand story section could not be saved.",
+      returnView: getTextField(formData, "returnView"),
+    });
+  }
+}
+
+export async function updateSiteLockAction(formData: FormData) {
+  try {
+    const returnView = getTextField(formData, "returnView");
+    const returnPath = getTextField(formData, "returnPath");
+    await requireAdminSession();
+
+    const enabled = getTextField(formData, "siteLockEnabled") === "1";
+
+    await updateSiteLockEnabled(enabled);
+    revalidateTag("store-settings-site-lock", "max");
+    revalidatePath("/", "layout");
+    revalidatePath("/admin/homepage");
+
+    redirectToAdmin({
+      returnPath,
+      notice: enabled ? "Site lock enabled." : "Site lock disabled.",
+      returnView,
+    });
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    redirectToAdmin({
+      returnPath: getTextField(formData, "returnPath"),
+      error: error instanceof Error ? error.message : "The site lock could not be updated.",
       returnView: getTextField(formData, "returnView"),
     });
   }
