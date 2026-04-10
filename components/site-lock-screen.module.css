@@ -61,6 +61,25 @@
   border-radius: 0.75rem;
   background: #fff1f1;
   color: #7b2727;
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+.banner svg {
+  flex: 0 0 auto;
+  margin-top: 0.12rem;
+}
+
+.bannerError {
+  border-color: #e3bcbc;
+  background: #fff1f1;
+  color: #7b2727;
+}
+
+.bannerWarning {
+  border-color: #e6d2ad;
+  background: #fff7e6;
+  color: #7a5a18;
 }
 
 .form {

@@ -77,7 +77,7 @@ Example SQL for the Supabase SQL editor:
 ```sql
 update auth.users
 set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"admin"}'::jsonb
-where email = 'orders@growncookies.co.uk';
+where email = 'adminemail@host.com';
 ```
 
 ## Deployment

@@ -28,8 +28,15 @@ export default function SiteLockScreen({ returnPath }: SiteLockScreenProps) {
           finished. Sign in with the same admin Supabase account used for <code>/admin</code>.
         </p>
 
+        {state.warning ? (
+          <div className={`${styles.banner} ${styles.bannerWarning}`}>
+            <FiAlertCircle />
+            <span>{state.warning}</span>
+          </div>
+        ) : null}
+
         {state.error ? (
-          <div className={styles.banner}>
+          <div className={`${styles.banner} ${styles.bannerError}`}>
             <FiAlertCircle />
             <span>{state.error}</span>
           </div>

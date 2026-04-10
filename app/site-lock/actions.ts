@@ -2,17 +2,12 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import {
-  ADMIN_AUTH_COOKIE,
-  getAdminAccessDeniedMessage,
-  getAdminAuthCookieOptions,
-  getSupabaseUserFromAccessToken,
-  isAdminUser,
-  signInToSupabaseWithPassword,
-} from "@/lib/supabase/admin-auth";
+import { authenticateAdminCredentials } from "@/lib/admin-signin";
+import { ADMIN_AUTH_COOKIE, getAdminAuthCookieOptions } from "@/lib/supabase/admin-auth";
 
 export type SiteLockActionState = {
   error?: string;
+  warning?: string;
 };
 
 function getTextField(formData: FormData, key: string) {
@@ -38,29 +33,15 @@ export async function siteLockLoginAction(
   const email = getTextField(formData, "email").trim();
   const password = getTextField(formData, "password");
   const returnPath = getSiteLockReturnPath(getTextField(formData, "returnPath"));
-
-  if (!email || !password) {
-    return {
-      error: "Enter both email and password.",
-    };
-  }
-
-  const result = await signInToSupabaseWithPassword({
+  const result = await authenticateAdminCredentials({
     email,
     password,
   });
 
-  if ("errorMessage" in result) {
+  if (!result.ok) {
     return {
-      error: result.errorMessage,
-    };
-  }
-
-  const user = result.user ?? (await getSupabaseUserFromAccessToken(result.accessToken));
-
-  if (!isAdminUser(user)) {
-    return {
-      error: getAdminAccessDeniedMessage(),
+      error: result.error,
+      warning: result.warning,
     };
   }
 

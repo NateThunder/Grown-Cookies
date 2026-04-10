@@ -9,7 +9,7 @@ import CookieConsentBanner from "@/components/cookie-consent-banner";
 import SiteLockGate from "@/components/site-lock-gate";
 import { COOKIE_CONSENT_STORAGE_KEY } from "@/lib/cookie-consent";
 import { isSiteLockEnabled } from "@/lib/site-lock";
-import { ADMIN_AUTH_COOKIE, getSupabaseUserFromAccessToken } from "@/lib/supabase/admin-auth";
+import { ADMIN_AUTH_COOKIE, getAdminUserFromAccessToken } from "@/lib/supabase/admin-auth";
 import "./globals.css";
 
 const besley = Besley({
@@ -125,7 +125,7 @@ export default async function RootLayout({
   if (siteLockEnabled) {
     const cookieStore = await cookies();
     const accessToken = cookieStore.get(ADMIN_AUTH_COOKIE)?.value;
-    const adminUser = accessToken ? await getSupabaseUserFromAccessToken(accessToken) : null;
+    const adminUser = await getAdminUserFromAccessToken(accessToken);
     isUnlockedForAdmin = Boolean(adminUser);
   }
 

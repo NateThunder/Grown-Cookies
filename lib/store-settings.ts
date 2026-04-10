@@ -264,7 +264,7 @@ function mapSiteLockSetting(row: StoreSettingRow | null, defaultEnabled: boolean
   }
 
   return {
-    enabled: row.value.trim() === "1",
+    enabled: row.value.trim().toLowerCase() === "1",
     isDefault: false,
     updatedAt: row.updated_at,
   };
