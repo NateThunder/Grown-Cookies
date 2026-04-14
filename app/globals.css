@@ -1,9 +1,27 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "BJ Cree";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/bj-cree-400.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "BJ Cree";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/bj-cree-700.ttf") format("truetype");
+}
+
 :root {
   --background: #f4f4f4;
   --foreground: #111111;
   --brand: #761a6c;
+  --font-h1--family: "BJ Cree", Georgia, "Times New Roman", serif;
+  --font-h1--word-spacing: -0.32em;
   --font-body--family:
     "system-ui",
     -apple-system,
@@ -73,6 +91,12 @@ body {
   color: var(--foreground);
   font-family: var(--font-body--family);
   margin: 0;
+}
+
+h1,
+h1 * {
+  font-family: var(--font-h1--family) !important;
+  word-spacing: var(--font-h1--word-spacing, -0.32em);
 }
 
 button,
@@ -210,10 +234,11 @@ body:has(main.account-page) .site-footer {
 .site-footer-copy h2 {
   margin: 0;
   color: var(--public-cream);
-  font-family: var(--font-public-display);
+  font-family: var(--font-h1--family);
+  word-spacing: var(--font-h1--word-spacing, -0.32em);
   font-size: 2.35rem;
   font-weight: 700;
-  line-height: 1.05;
+  line-height: 1.12;
 }
 
 .site-footer-copy p {
