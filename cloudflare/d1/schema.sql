@@ -113,6 +113,17 @@ CREATE TABLE IF NOT EXISTS product_images (
   FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS product_image_variants (
+  product_id INTEGER NOT NULL,
+  variant TEXT NOT NULL,
+  image_key TEXT NOT NULL,
+  alt_text TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (product_id, variant),
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS admin_login_attempts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   scope TEXT NOT NULL,
@@ -135,6 +146,9 @@ CREATE INDEX IF NOT EXISTS idx_product_images_product_id
 
 CREATE INDEX IF NOT EXISTS idx_product_images_primary
   ON product_images(product_id, is_primary, sort_order, id);
+
+CREATE INDEX IF NOT EXISTS idx_product_image_variants_product_id
+  ON product_image_variants(product_id);
 
 CREATE INDEX IF NOT EXISTS idx_admin_login_attempts_scope_identifier_time
   ON admin_login_attempts(scope, identifier_hash, attempted_at);

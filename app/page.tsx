@@ -7,6 +7,7 @@ import { getAllProducts } from "@/lib/products";
 import {
   getHomepageSectionSettings,
 } from "@/lib/store-settings";
+import { getProductImageForVariant, PRODUCT_IMAGE_VARIANTS } from "@/lib/product-image-variants";
 import styles from "./page.module.css";
 
 const flavourToneMap: Record<string, string> = {
@@ -70,45 +71,52 @@ export default async function Home() {
             </h2>
           </div>
           <div className={styles.flavourGrid}>
-            {homepageProducts.map((product) => (
-              <article
-                key={product.slug}
-                className={`${styles.flavourCard} whiteFrame ${getFlavourToneClass(product.slug)}`}
-              >
-                <div className={styles.flavourImageWrap}>
+            {homepageProducts.map((product) => {
+              const homepageImage = getProductImageForVariant(
+                product,
+                PRODUCT_IMAGE_VARIANTS.homepagePolaroid.key,
+              );
+
+              return (
+                <article
+                  key={product.slug}
+                  className={`${styles.flavourCard} whiteFrame ${getFlavourToneClass(product.slug)}`}
+                >
+                  <div className={styles.flavourImageWrap}>
+                    <Link
+                      href={`/shop/${product.slug}`}
+                      className={styles.flavourTileLink}
+                      aria-label={`View featured product ${product.name}`}
+                    >
+                      {homepageImage ? (
+                        <Image
+                          src={homepageImage}
+                          alt={product.imageAlt ?? product.name}
+                          fill
+                          sizes="(max-width: 620px) 100vw, (max-width: 980px) 50vw, 33vw"
+                          className={styles.flavourImage}
+                        />
+                      ) : null}
+                    </Link>
+                  </div>
+
                   <Link
                     href={`/shop/${product.slug}`}
-                    className={styles.flavourTileLink}
+                    className={`${styles.flavourCopy} ${styles.flavourTileLink}`}
                     aria-label={`View featured product ${product.name}`}
                   >
-                    {product.image ? (
-                      <Image
-                        src={product.image}
-                        alt={product.imageAlt ?? product.name}
-                        fill
-                        sizes="(max-width: 620px) 100vw, (max-width: 980px) 50vw, 33vw"
-                        className={styles.flavourImage}
-                      />
-                    ) : null}
+                    <h2 className={styles.grainTitle} data-text={product.name}>
+                      {product.name}
+                    </h2>
                   </Link>
-                </div>
-
-                <Link
-                  href={`/shop/${product.slug}`}
-                  className={`${styles.flavourCopy} ${styles.flavourTileLink}`}
-                  aria-label={`View featured product ${product.name}`}
-                >
-                  <h2 className={styles.grainTitle} data-text={product.name}>
-                    {product.name}
-                  </h2>
-                </Link>
-                <div className={styles.flavourFooter}>
-                  <Link href={`/shop/${product.slug}`} className={styles.featuredShopNow}>
-                    Shop Now
-                  </Link>
-                </div>
-              </article>
-            ))}
+                  <div className={styles.flavourFooter}>
+                    <Link href={`/shop/${product.slug}`} className={styles.featuredShopNow}>
+                      Shop Now
+                    </Link>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </section>
 

@@ -1,6 +1,10 @@
 import { unstable_cache } from "next/cache";
 import { executeCloudflareD1, hasCloudflareD1Config, queryCloudflareD1 } from "./cloudflare-d1";
 import { buildProductImageUrl } from "./product-image-url";
+import {
+  PRODUCT_IMAGE_VARIANTS,
+  type ProductImageVariantMap,
+} from "./product-image-variants";
 
 type ProductBase = {
   slug: string;
@@ -17,6 +21,7 @@ type ProductBase = {
 
 export type ShopProduct = ProductBase & {
   image?: string;
+  imageVariants?: ProductImageVariantMap<string>;
   imageAlt?: string;
   isGiftCard?: boolean;
 };
@@ -35,6 +40,10 @@ type ProductRow = {
   allergens: string | null;
   image_key: string | null;
   alt_text: string | null;
+  homepage_polaroid_image_key: string | null;
+  cookie_month_image_key: string | null;
+  shop_card_image_key: string | null;
+  product_detail_image_key: string | null;
   is_gift_card: number;
   hidden: number;
   featured_position: number | null;
@@ -86,6 +95,24 @@ async function ensureFeaturedProductsSchema() {
   await executeCloudflareD1(
     `CREATE INDEX IF NOT EXISTS idx_featured_products_position
        ON featured_products(position)`,
+  );
+
+  await executeCloudflareD1(
+    `CREATE TABLE IF NOT EXISTS product_image_variants (
+       product_id INTEGER NOT NULL,
+       variant TEXT NOT NULL,
+       image_key TEXT NOT NULL,
+       alt_text TEXT,
+       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+       PRIMARY KEY (product_id, variant),
+       FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+     )`,
+  );
+
+  await executeCloudflareD1(
+    `CREATE INDEX IF NOT EXISTS idx_product_image_variants_product_id
+       ON product_image_variants(product_id)`,
   );
 
   const featuredRowCount = await queryCloudflareD1<{ total: number }>(
@@ -259,6 +286,32 @@ function mapStaticProduct(record: StaticProductRecord): ShopProduct {
   };
 }
 
+function mapVariantImageUrls(row: ProductRow) {
+  const imageVariants: ProductImageVariantMap<string> = {};
+  const homepagePolaroidImage = buildProductImageUrl(row.homepage_polaroid_image_key);
+  const cookieMonthImage = buildProductImageUrl(row.cookie_month_image_key);
+  const shopCardImage = buildProductImageUrl(row.shop_card_image_key);
+  const productDetailImage = buildProductImageUrl(row.product_detail_image_key);
+
+  if (homepagePolaroidImage) {
+    imageVariants[PRODUCT_IMAGE_VARIANTS.homepagePolaroid.key] = homepagePolaroidImage;
+  }
+
+  if (cookieMonthImage) {
+    imageVariants[PRODUCT_IMAGE_VARIANTS.cookieMonth.key] = cookieMonthImage;
+  }
+
+  if (shopCardImage) {
+    imageVariants[PRODUCT_IMAGE_VARIANTS.shopCard.key] = shopCardImage;
+  }
+
+  if (productDetailImage) {
+    imageVariants[PRODUCT_IMAGE_VARIANTS.productDetail.key] = productDetailImage;
+  }
+
+  return Object.values(imageVariants).some(Boolean) ? imageVariants : undefined;
+}
+
 function mapRowToProduct(row: ProductRow): ShopProduct {
   const normalizedCopy = splitLegacyDescription(row.description, row.allergens);
 
@@ -274,6 +327,7 @@ function mapRowToProduct(row: ProductRow): ShopProduct {
     createdAt: row.created_at ?? undefined,
     relatedSlugs: normalizeRelatedSlugs(row.related_slugs),
     image: buildProductImageUrl(row.image_key),
+    imageVariants: mapVariantImageUrls(row),
     imageAlt: row.alt_text ?? undefined,
     isGiftCard: Boolean(row.is_gift_card),
   };
@@ -313,7 +367,15 @@ async function fetchProductsFromD1() {
        p.created_at,
        p.related_slugs,
        pi.image_key,
-       pi.alt_text
+       pi.alt_text,
+       (SELECT image_key FROM product_image_variants WHERE product_id = p.id AND variant = 'homepage_polaroid' LIMIT 1)
+         AS homepage_polaroid_image_key,
+       (SELECT image_key FROM product_image_variants WHERE product_id = p.id AND variant = 'cookie_month' LIMIT 1)
+         AS cookie_month_image_key,
+       (SELECT image_key FROM product_image_variants WHERE product_id = p.id AND variant = 'shop_card' LIMIT 1)
+         AS shop_card_image_key,
+       (SELECT image_key FROM product_image_variants WHERE product_id = p.id AND variant = 'product_detail' LIMIT 1)
+         AS product_detail_image_key
      FROM products p
      LEFT JOIN featured_products fp
        ON fp.product_slug = p.slug
@@ -354,7 +416,15 @@ const getFeaturedProductsCached = unstable_cache(
          p.created_at,
          p.related_slugs,
          pi.image_key,
-         pi.alt_text
+         pi.alt_text,
+         (SELECT image_key FROM product_image_variants WHERE product_id = p.id AND variant = 'homepage_polaroid' LIMIT 1)
+           AS homepage_polaroid_image_key,
+         (SELECT image_key FROM product_image_variants WHERE product_id = p.id AND variant = 'cookie_month' LIMIT 1)
+           AS cookie_month_image_key,
+         (SELECT image_key FROM product_image_variants WHERE product_id = p.id AND variant = 'shop_card' LIMIT 1)
+           AS shop_card_image_key,
+         (SELECT image_key FROM product_image_variants WHERE product_id = p.id AND variant = 'product_detail' LIMIT 1)
+           AS product_detail_image_key
        FROM featured_products fp
        JOIN products p
          ON p.slug = fp.product_slug

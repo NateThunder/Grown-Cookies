@@ -2,6 +2,12 @@ import { revalidateTag } from "next/cache";
 import { executeCloudflareD1, hasCloudflareD1Config, queryCloudflareD1 } from "./cloudflare-d1";
 import { deleteProductImageFromR2, uploadProductImageToR2 } from "./cloudflare-r2";
 import { buildProductImageUrl } from "./product-image-url";
+import {
+  PRIMARY_PRODUCT_IMAGE_VARIANT,
+  PRODUCT_IMAGE_VARIANT_KEYS,
+  PRODUCT_IMAGE_VARIANTS,
+  type ProductImageVariantMap,
+} from "./product-image-variants";
 
 type AdminProductRow = {
   id: number;
@@ -20,6 +26,10 @@ type AdminProductRow = {
   image_id: number | null;
   image_key: string | null;
   alt_text: string | null;
+  homepage_polaroid_image_key: string | null;
+  cookie_month_image_key: string | null;
+  shop_card_image_key: string | null;
+  product_detail_image_key: string | null;
 };
 
 type ColumnInfo = {
@@ -42,6 +52,8 @@ export type AdminProduct = {
   imageId?: number;
   imageKey?: string;
   imageUrl?: string;
+  imageVariantKeys?: ProductImageVariantMap<string>;
+  imageVariantUrls?: ProductImageVariantMap<string>;
   imageAlt: string;
   isGiftCard: boolean;
   hidden: boolean;
@@ -57,6 +69,7 @@ export type AdminProductInput = {
   featuredPosition: number;
   sortOrder: number;
   imageFile?: File | null;
+  imageVariantFiles?: ProductImageVariantMap<File | null>;
   isGiftCard?: boolean;
   hidden?: boolean;
 };
@@ -77,7 +90,15 @@ const ADMIN_PRODUCT_SELECT = `SELECT
   p.updated_at,
   pi.id AS image_id,
   pi.image_key,
-  pi.alt_text
+  pi.alt_text,
+  (SELECT image_key FROM product_image_variants WHERE product_id = p.id AND variant = 'homepage_polaroid' LIMIT 1)
+    AS homepage_polaroid_image_key,
+  (SELECT image_key FROM product_image_variants WHERE product_id = p.id AND variant = 'cookie_month' LIMIT 1)
+    AS cookie_month_image_key,
+  (SELECT image_key FROM product_image_variants WHERE product_id = p.id AND variant = 'shop_card' LIMIT 1)
+    AS shop_card_image_key,
+  (SELECT image_key FROM product_image_variants WHERE product_id = p.id AND variant = 'product_detail' LIMIT 1)
+    AS product_detail_image_key
 FROM products p
 LEFT JOIN featured_products fp
   ON fp.product_slug = p.slug
@@ -146,6 +167,24 @@ async function ensureAdminSchema() {
       await executeCloudflareD1(
         `CREATE INDEX IF NOT EXISTS idx_featured_products_position
            ON featured_products(position)`,
+      );
+
+      await executeCloudflareD1(
+        `CREATE TABLE IF NOT EXISTS product_image_variants (
+           product_id INTEGER NOT NULL,
+           variant TEXT NOT NULL,
+           image_key TEXT NOT NULL,
+           alt_text TEXT,
+           created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+           updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+           PRIMARY KEY (product_id, variant),
+           FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+         )`,
+      );
+
+      await executeCloudflareD1(
+        `CREATE INDEX IF NOT EXISTS idx_product_image_variants_product_id
+           ON product_image_variants(product_id)`,
       );
 
       const featuredRowCount = await queryCloudflareD1<{ total: number }>(
@@ -248,8 +287,49 @@ function splitLegacyDescription(rawDescription: string, rawAllergens: string | n
   return { description, allergens };
 }
 
+function mapVariantImageKeys(row: AdminProductRow) {
+  const imageVariantKeys: ProductImageVariantMap<string> = {};
+
+  if (row.homepage_polaroid_image_key) {
+    imageVariantKeys[PRODUCT_IMAGE_VARIANTS.homepagePolaroid.key] = row.homepage_polaroid_image_key;
+  }
+
+  if (row.cookie_month_image_key) {
+    imageVariantKeys[PRODUCT_IMAGE_VARIANTS.cookieMonth.key] = row.cookie_month_image_key;
+  }
+
+  if (row.shop_card_image_key) {
+    imageVariantKeys[PRODUCT_IMAGE_VARIANTS.shopCard.key] = row.shop_card_image_key;
+  }
+
+  if (row.product_detail_image_key) {
+    imageVariantKeys[PRODUCT_IMAGE_VARIANTS.productDetail.key] = row.product_detail_image_key;
+  }
+
+  return Object.values(imageVariantKeys).some(Boolean) ? imageVariantKeys : undefined;
+}
+
+function mapVariantImageUrls(imageVariantKeys?: ProductImageVariantMap<string>) {
+  if (!imageVariantKeys) {
+    return undefined;
+  }
+
+  const imageVariantUrls: ProductImageVariantMap<string> = {};
+
+  for (const variant of PRODUCT_IMAGE_VARIANT_KEYS) {
+    const imageUrl = buildProductImageUrl(imageVariantKeys[variant]);
+
+    if (imageUrl) {
+      imageVariantUrls[variant] = imageUrl;
+    }
+  }
+
+  return Object.values(imageVariantUrls).some(Boolean) ? imageVariantUrls : undefined;
+}
+
 function mapRowToAdminProduct(row: AdminProductRow): AdminProduct {
   const normalizedCopy = splitLegacyDescription(row.description, row.allergens);
+  const imageVariantKeys = mapVariantImageKeys(row);
 
   return {
     id: row.id,
@@ -267,6 +347,8 @@ function mapRowToAdminProduct(row: AdminProductRow): AdminProduct {
     imageId: row.image_id ?? undefined,
     imageKey: row.image_key ?? undefined,
     imageUrl: buildProductImageUrl(row.image_key),
+    imageVariantKeys,
+    imageVariantUrls: mapVariantImageUrls(imageVariantKeys),
     imageAlt: row.alt_text ?? `${row.name} product image`,
     isGiftCard: Boolean(row.is_gift_card),
     hidden: Boolean(row.hidden),
@@ -292,7 +374,7 @@ async function queryAdminProductsRows() {
   );
 }
 
-async function getAdminProductById(productId: number) {
+export async function getAdminProductById(productId: number) {
   await ensureAdminSchema();
 
   const rows = await queryCloudflareD1<AdminProductRow>(
@@ -376,6 +458,67 @@ async function upsertPrimaryImage({
   }
 
   return upload.key;
+}
+
+function hasImageVariantFiles(imageVariantFiles?: ProductImageVariantMap<File | null>) {
+  return PRODUCT_IMAGE_VARIANT_KEYS.some((variant) => {
+    const imageFile = imageVariantFiles?.[variant];
+    return Boolean(imageFile && imageFile.size > 0);
+  });
+}
+
+async function upsertProductImageVariants({
+  productId,
+  productSlug,
+  productName,
+  imageVariantFiles,
+  preUploadedKeys = {},
+}: {
+  productId: number;
+  productSlug: string;
+  productName: string;
+  imageVariantFiles?: ProductImageVariantMap<File | null>;
+  preUploadedKeys?: ProductImageVariantMap<string>;
+}) {
+  const altText = `${productName} product image`;
+
+  for (const variant of PRODUCT_IMAGE_VARIANT_KEYS) {
+    const imageFile = imageVariantFiles?.[variant];
+    const preUploadedKey = preUploadedKeys[variant];
+
+    if (!preUploadedKey && (!imageFile || imageFile.size <= 0)) {
+      continue;
+    }
+
+    const imageKey =
+      preUploadedKey ?? (await uploadProductImageToR2(productSlug, imageFile as File)).key;
+
+    await executeCloudflareD1(
+      `INSERT INTO product_image_variants (
+         product_id,
+         variant,
+         image_key,
+         alt_text,
+         created_at,
+         updated_at
+       ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+       ON CONFLICT(product_id, variant) DO UPDATE SET
+         image_key = excluded.image_key,
+         alt_text = excluded.alt_text,
+         updated_at = CURRENT_TIMESTAMP`,
+      [productId, variant, imageKey, altText],
+    );
+  }
+}
+
+async function updateImageVariantAltText(productId: number, productName: string) {
+  await executeCloudflareD1(
+    `UPDATE product_image_variants
+     SET alt_text = ?,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE product_id = ?`,
+    [`${productName} product image`, productId],
+  );
 }
 
 function revalidateProductData() {
@@ -612,14 +755,29 @@ export async function createAdminProduct(input: AdminProductInput) {
 
   let imageWarning: string | undefined;
 
-  if (input.imageFile && input.imageFile.size > 0) {
+  if ((input.imageFile && input.imageFile.size > 0) || hasImageVariantFiles(input.imageVariantFiles)) {
     try {
-      await upsertPrimaryImage({
+      let primaryImageKey: string | undefined;
+
+      if (input.imageFile && input.imageFile.size > 0) {
+        primaryImageKey = await upsertPrimaryImage({
+          productId,
+          productSlug: slug,
+          productName: name,
+          imageFile: input.imageFile,
+        });
+      }
+
+      await upsertProductImageVariants({
         productId,
         productSlug: slug,
         productName: name,
-        imageFile: input.imageFile,
+        imageVariantFiles: input.imageVariantFiles,
+        preUploadedKeys: primaryImageKey
+          ? { [PRIMARY_PRODUCT_IMAGE_VARIANT]: primaryImageKey }
+          : undefined,
       });
+
       await executeCloudflareD1(
         "UPDATE products SET updated_at = CURRENT_TIMESTAMP WHERE id = ?",
         [productId],
@@ -687,14 +845,29 @@ export async function updateAdminProduct(input: AdminProductInput) {
   let imageWarning: string | undefined;
 
   try {
-    if (input.imageFile && input.imageFile.size > 0) {
-      await upsertPrimaryImage({
+    if ((input.imageFile && input.imageFile.size > 0) || hasImageVariantFiles(input.imageVariantFiles)) {
+      let primaryImageKey: string | undefined;
+
+      if (input.imageFile && input.imageFile.size > 0) {
+        primaryImageKey = await upsertPrimaryImage({
+          productId: existingProduct.id,
+          productSlug: existingProduct.slug,
+          productName: name,
+          imageId: existingProduct.imageId,
+          imageFile: input.imageFile,
+        });
+      }
+
+      await upsertProductImageVariants({
         productId: existingProduct.id,
         productSlug: existingProduct.slug,
         productName: name,
-        imageId: existingProduct.imageId,
-        imageFile: input.imageFile,
+        imageVariantFiles: input.imageVariantFiles,
+        preUploadedKeys: primaryImageKey
+          ? { [PRIMARY_PRODUCT_IMAGE_VARIANT]: primaryImageKey }
+          : undefined,
       });
+
       await executeCloudflareD1(
         "UPDATE products SET updated_at = CURRENT_TIMESTAMP WHERE id = ?",
         [existingProduct.id],
@@ -704,6 +877,9 @@ export async function updateAdminProduct(input: AdminProductInput) {
         "UPDATE product_images SET alt_text = ? WHERE id = ?",
         [`${name} product image`, existingProduct.imageId],
       );
+      await updateImageVariantAltText(existingProduct.id, name);
+    } else if (existingProduct.imageVariantKeys) {
+      await updateImageVariantAltText(existingProduct.id, name);
     }
   } catch (error) {
     imageWarning =
@@ -731,9 +907,21 @@ export async function deleteAdminProduct(productId: number) {
 
   let imageWarning: string | undefined;
 
+  const imageKeysToDelete = new Set<string>();
+
   if (existingProduct.imageKey) {
+    imageKeysToDelete.add(existingProduct.imageKey);
+  }
+
+  for (const imageKey of Object.values(existingProduct.imageVariantKeys ?? {})) {
+    if (imageKey) {
+      imageKeysToDelete.add(imageKey);
+    }
+  }
+
+  if (imageKeysToDelete.size > 0) {
     try {
-      await deleteProductImageFromR2(existingProduct.imageKey);
+      await Promise.all([...imageKeysToDelete].map((imageKey) => deleteProductImageFromR2(imageKey)));
     } catch (error) {
       imageWarning =
         error instanceof Error ? error.message : "The product image could not be deleted from storage.";

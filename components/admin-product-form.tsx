@@ -84,10 +84,13 @@ export default function AdminProductForm({
         </div>
         <div className={styles.contentGrid}>
           <AdminImageInput
+            productId={product?.id}
+            productSlug={product?.slug}
             currentImageUrl={product?.imageUrl}
             currentImageAlt={product?.imageAlt ?? `${product?.name ?? "Product"} image`}
             required={isCreateMode && uploadEnabled}
             disabled={!uploadEnabled}
+            canCropCurrentImage={!isCreateMode && Boolean(product?.imageUrl)}
           />
 
           <div className={styles.fieldsColumn}>

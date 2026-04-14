@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ShopProduct } from "@/lib/products";
 import type { HomepageSectionSettings } from "@/lib/store-settings";
+import { getProductImageForVariant, PRODUCT_IMAGE_VARIANTS } from "@/lib/product-image-variants";
 import ShopNowLink from "@/components/shop-now-link";
 import styles from "./homepage-promo-strip.module.css";
 
@@ -45,7 +46,11 @@ export default function HomepagePromoStrip({
   const cookieOfMonthHeadingClassName =
     localCookieOfMonthProduct?.slug === "dark-choc-maldon-salt" ? styles.singleLineHeading : undefined;
   const cookieOfMonthBody = getCompactExcerpt(cookieOfMonthSetting.title, 280);
-  const cookieOfMonthImage = localCookieOfMonthProduct?.image ?? "/Double_Choc_Hazelnut/_DSC6200.jpg";
+  const cookieOfMonthImage =
+    localCookieOfMonthProduct
+      ? getProductImageForVariant(localCookieOfMonthProduct, PRODUCT_IMAGE_VARIANTS.cookieMonth.key)
+      : undefined;
+  const resolvedCookieOfMonthImage = cookieOfMonthImage ?? "/Double_Choc_Hazelnut/_DSC6200.jpg";
   const cookieOfMonthImageAlt =
     localCookieOfMonthProduct?.imageAlt ?? `${cookieOfMonthHeading} cookie stack`;
   const shopPromoParagraphs = [shopIntroSetting.title, shopIntroSetting.body].filter(
@@ -64,7 +69,7 @@ export default function HomepagePromoStrip({
       <article className={styles.cookieMonth}>
         <div className={styles.mediaPanel}>
           <Image
-            src={cookieOfMonthImage}
+            src={resolvedCookieOfMonthImage}
             alt={cookieOfMonthImageAlt}
             fill
             sizes="(max-width: 760px) 100vw, 38vw"

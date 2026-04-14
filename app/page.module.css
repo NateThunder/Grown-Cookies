@@ -224,7 +224,7 @@
   margin: 0;
   color: #50146b;
   font-family: var(--font-heading--family);
-  font-size: clamp(3rem, 6vw, 5.2rem);
+  font-size: clamp(2.4rem, 4.8vw, 4.16rem);
   line-height: 0.82;
   font-weight: 600;
   text-wrap: balance;
@@ -309,7 +309,7 @@
   max-width: 10ch;
   color: #50146b;
   font-family: var(--font-public-display);
-  font-size: clamp(1.45rem, 2vw, 1.9rem);
+  font-size: clamp(1.16rem, 1.6vw, 1.52rem);
   line-height: 0.94;
   font-weight: 700;
   text-wrap: balance;
@@ -766,6 +766,6 @@
   }
 
   .featuredTitle {
-    font-size: 1.9rem;
+    font-size: 1.52rem;
   }
 }
