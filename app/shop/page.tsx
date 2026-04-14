@@ -117,11 +117,13 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         </div>
 
         <div className={styles.grid}>
-          {sortedProducts.map((product) => {
+          {sortedProducts.map((product, index) => {
+            const preloadImage = index < 4;
+
             return (
               <article
                 key={product.slug}
-                className={`${styles.card} ${
+                className={`${styles.card} whiteFrame ${
                   product.isGiftCard ? styles.giftCardPositioned : ""
                 }`}
               >
@@ -132,12 +134,15 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
                         className={styles.giftCardTile}
                         src={product.image}
                         alt={product.imageAlt ?? product.name}
+                        preload={preloadImage}
                       />
                     ) : product.image ? (
                       <Image
                         src={product.image}
                         alt={product.imageAlt ?? product.name}
                         fill
+                        preload={preloadImage}
+                        sizes="(max-width: 520px) 100vw, (max-width: 760px) 50vw, (max-width: 1080px) 33vw, 25vw"
                         className={styles.cardImage}
                       />
                     ) : null}

@@ -59,7 +59,7 @@ export default function PrivacyCookiePreferences() {
   }
 
   return (
-    <div className={styles.panel}>
+    <div className={`${styles.panel} whiteFrame`}>
       <div className={styles.header}>
         <p className={styles.eyebrow}>Cookie preferences</p>
         <p className={styles.description}>

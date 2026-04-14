@@ -15,12 +15,13 @@
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  background: rgba(255, 248, 241, 0.92);
+  overflow: hidden;
+  background: rgb(255, 248, 241);
 }
 
 .quantityControl button {
   border: 0;
-  background: transparent;
+  background: rgb(255, 248, 241);
   color: var(--public-ink);
   font-size: 1.25rem;
   height: 100%;
@@ -38,7 +39,7 @@
   border: 0;
   border-radius: 999px;
   min-height: 3.55rem;
-  background: linear-gradient(135deg, var(--public-plum-deep), var(--public-plum));
+  background: var(--public-plum);
   color: var(--public-cream);
   font-family: var(--font-public-ui);
   font-size: 0.98rem;

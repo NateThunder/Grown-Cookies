@@ -1,40 +1,22 @@
 .section {
-  /* Manual tuning controls for the promo image and panel */
-  /* Horizontal position of the cookie box image */
-  --promo-image-left: 6%;
-  /* Vertical position of the cookie box image */
-  --promo-image-top: 8%;
-  /* Overall width of the cookie box image */
-  --promo-image-width: 126%;
-  /* Overall height of the cookie box image */
-  --promo-image-height: 83.16%;
-  /* Vertical position of the cream content panel */
-  --promo-card-top: 20%;
-  /* Horizontal start position of the cream content panel */
-  --promo-card-left: 18%;
-  /* Overall width of the cream content panel */
-  --promo-card-width: 81%;
-  /* Overall height of the cream content panel */
-  --promo-card-height: 65%;
-  /* Base left padding for the first text column */
-  --promo-primary-offset: 14%;
-  /* Desktop-only extra horizontal shift for the first text column; increase to move text further right */
-  --promo-primary-desktop-extra-offset: 9%;
-  /* Manual horizontal text nudge for the first promo column; positive moves right, negative moves left */
-  --promo-primary-text-x: 20%;
-  /* Manual vertical text nudge for the first promo column; positive moves down, negative moves up */
-  --promo-primary-text-y: 0%;
-  /* Shop section text size controls */
-  --promo-shop-text-size: clamp(0.74rem, 0.78vw, 0.86rem);
-  --promo-shop-text-line-height: 1.45;
-  --promo-shop-text-size-tablet: 0.7rem;
-  --promo-shop-text-size-small-tablet: 0.68rem;
-  width: min(calc(100% - 2rem), 1240px);
-  margin: 0 auto clamp(1.25rem, 2.6vw, 2.1rem);
+  --featured-section-inline-padding: clamp(1rem, 2vw, 1.45rem);
+  --cookie-month-outline-width: 1rem;
+  --homepage-panel-width: min(
+    calc(
+      100vw - var(--featured-section-inline-padding) - var(--featured-section-inline-padding) -
+        var(--cookie-month-outline-width) - var(--cookie-month-outline-width)
+    ),
+    calc(
+      1110px - var(--featured-section-inline-padding) - var(--featured-section-inline-padding) -
+        var(--cookie-month-outline-width) - var(--cookie-month-outline-width)
+    )
+  );
+  width: min(calc(100% - 2rem), 1120px);
+  margin: 0 auto clamp(1.9rem, 3.4vw, 3rem);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.55rem;
+  gap: clamp(1.35rem, 2.8vw, 2rem);
 }
 
 .topCta {
@@ -43,7 +25,7 @@
   justify-content: center;
   min-height: 2.6rem;
   padding: 0 1.65rem;
-  border-radius: 999px;
+  border-radius: 8px;
   background: #f0a8c8;
   color: #fff8fb;
   font-family: var(--font-public-ui);
@@ -54,8 +36,180 @@
   text-decoration: none;
 }
 
+.cookieMonth {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(17rem, 0.86fr) minmax(0, 1.14fr);
+  align-items: center;
+  width: var(--homepage-panel-width);
+  min-height: clamp(18rem, 29vw, 25rem);
+  overflow: hidden;
+  border: 0;
+  outline: 1rem solid #fff8f1;
+  border-radius: 8px;
+  background: #fa94b0;
+}
+
+.cookieMonth::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--public-film-grain-image);
+  background-repeat: repeat;
+  background-position: center;
+  background-size: cover;
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.cookieMonth::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(43% - clamp(2.5rem, 5vw, 4.5rem));
+  z-index: 2;
+  width: clamp(5rem, 10vw, 9rem);
+  background: linear-gradient(90deg, rgba(250, 148, 176, 0) 0%, #fa94b0 76%);
+  pointer-events: none;
+}
+
+.mediaPanel {
+  position: relative;
+  z-index: 1;
+}
+
+.copyPanel {
+  position: relative;
+  z-index: 3;
+  isolation: isolate;
+}
+
+.mediaPanel {
+  align-self: stretch;
+  min-height: clamp(18rem, 29vw, 25rem);
+}
+
+.cookieImage {
+  object-fit: cover;
+  object-position: center;
+}
+
+.copyPanel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: clamp(0.7rem, 1.2vw, 1rem);
+  max-width: 39rem;
+  padding: clamp(1.7rem, 4vw, 3.5rem) clamp(1.4rem, 4vw, 4rem);
+}
+
+.copyPanel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 calc(-1 * clamp(4rem, 8vw, 7rem));
+  z-index: -1;
+  background:
+    radial-gradient(circle at 26% 58%, rgba(220, 126, 88, 0.14) 0%, rgba(220, 126, 88, 0) 34%),
+    radial-gradient(circle at 86% 7%, rgba(255, 199, 218, 0.5) 0%, rgba(255, 199, 218, 0) 38%),
+    linear-gradient(90deg, rgba(250, 148, 176, 0) 0%, #fa94b0 28%, #fa99b7 62%, #f9a2bd 100%);
+  pointer-events: none;
+}
+
+.monthEyebrow {
+  margin: 0;
+  color: var(--public-plum-deep);
+  font-family: var(--font-public-display);
+  font-size: clamp(1.25rem, 2.1vw, 1.95rem);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.copyPanel h2 {
+  margin: 0;
+  max-width: 12ch;
+  color: #50146b;
+  font-family: var(--font-public-display);
+  font-size: clamp(2.25rem, 4.7vw, 4.65rem);
+  line-height: 0.9;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+.copyPanel h2.singleLineHeading {
+  max-width: 14ch;
+  font-size: clamp(2rem, 4vw, 3.8rem);
+  line-height: 0.95;
+}
+
+.badge {
+  margin: 0;
+  width: fit-content;
+  padding: 0.5rem 0.8rem;
+  border-radius: 0;
+  background: #f1c957;
+  color: #4f3b28;
+  font-family: var(--font-public-ui);
+  font-size: 0.73rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.monthBody {
+  margin: 0;
+  max-width: 38rem;
+  color: var(--public-ink-soft);
+  font-family: var(--font-public-ui);
+  font-size: clamp(0.9rem, 1.2vw, 1.08rem);
+  line-height: 1.62;
+}
+
+.monthButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.6rem;
+  margin-top: 0.35rem;
+  padding: 0 1.5rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--public-plum);
+  color: #fffafc;
+  font-family: var(--font-public-ui);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.boxImageWrap {
+  display: none;
+  width: min(42rem, 92%);
+}
+
+.boxImage {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 .promo {
-  /* Shared positioning area for the image and cream panel */
+  --promo-image-left: 6%;
+  --promo-image-top: 8%;
+  --promo-image-width: 126%;
+  --promo-image-height: 83.16%;
+  --promo-card-top: 20%;
+  --promo-card-left: 18%;
+  --promo-card-width: 81%;
+  --promo-card-height: 65%;
+  --promo-shop-text-size: clamp(0.74rem, 0.78vw, 0.86rem);
+  --promo-shop-text-line-height: 1.34;
+  --promo-shop-text-size-tablet: 0.7rem;
+  --promo-shop-text-size-small-tablet: 0.68rem;
   position: relative;
   width: 100%;
   min-height: 18rem;
@@ -64,7 +218,6 @@
 }
 
 .promo__image {
-  /* Cookie box image element */
   position: absolute;
   left: var(--promo-image-left);
   top: var(--promo-image-top);
@@ -80,18 +233,16 @@
 }
 
 .promo__card {
-  /* Main cream panel behind the cookie image */
   position: absolute;
   top: var(--promo-card-top);
   left: var(--promo-card-left);
   z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   width: var(--promo-card-width);
   height: var(--promo-card-height);
-  border: 1px solid rgba(87, 31, 108, 0.08);
+  border: 0;
+  outline: 1rem solid #fff8f1;
   border-radius: 1.8rem;
-  background: #FA94B0;
+  background: #fa94b0;
   overflow: hidden;
 }
 
@@ -99,7 +250,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background-image: url("/film%20grain.png");
+  background-image: var(--public-film-grain-image);
   background-repeat: no-repeat;
   background-position: center;
   background-size: cover;
@@ -108,43 +259,45 @@
 }
 
 .block {
-  /* Shared text-column layout for both content boxes */
   position: relative;
   z-index: 1;
   display: flex;
-  flex-direction: column;
   justify-content: center;
-  gap: clamp(0.52rem, 0.8vw, 0.72rem);
+  --promo-block-gap: clamp(0.52rem, 0.8vw, 0.72rem);
   padding: clamp(1.2rem, 1.7vw, 1.55rem) clamp(0.95rem, 1.5vw, 1.35rem);
   min-width: 0;
 }
 
-.promo__primary {
-  /* Left content column, padded further right to sit clear of the image overlap */
-  padding-left: var(--promo-primary-offset);
-  transform: translate(var(--promo-primary-text-x), var(--promo-primary-text-y));
+.contentBox {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(0.8rem, 1vw, 1rem);
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+  min-height: 0;
+  min-width: 0;
 }
 
-@media (min-width: 981px) {
-  .section {
-    /* Desktop first-column offset = base offset + extra desktop offset */
-    --promo-primary-offset: calc(14% + var(--promo-primary-desktop-extra-offset));
-  }
-
-  .promo {
-    background: transparent;
-  }
+.copyStack {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  gap: var(--promo-block-gap);
+  overflow: hidden;
+  min-height: 0;
+  min-width: 0;
 }
 
-.secondaryPanel {
-  /* Right content column with divider */
+.shopPanel {
   justify-content: flex-start;
   gap: clamp(0.45rem, 0.7vw, 0.62rem);
-  border-left: 1px solid rgba(87, 31, 108, 0.1);
+  padding-left: clamp(10rem, 27%, 19rem);
 }
 
 .eyebrow {
-  /* Small uppercase label above each heading */
   margin: 0;
   color: rgba(98, 56, 118, 0.84);
   font-family: var(--font-public-ui);
@@ -156,7 +309,6 @@
 }
 
 .block h2 {
-  /* Main heading inside each promo column */
   margin: 0;
   max-width: 17ch;
   color: var(--public-plum-deep);
@@ -164,7 +316,7 @@
   font-size: clamp(1.45rem, 2.2vw, 2.45rem);
   line-height: 0.96;
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   text-wrap: balance;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -181,12 +333,11 @@
   text-wrap: balance;
 }
 
-.secondaryPanel h2 {
+.shopPanel h2 {
   max-width: 11ch;
 }
 
 .body {
-  /* Supporting paragraph text */
   margin: 0;
   max-width: 14rem;
   color: var(--public-ink-soft);
@@ -201,19 +352,19 @@
   gap: 0.5rem;
 }
 
-.secondaryPanel .body {
+.shopPanel .body {
   max-width: none;
   font-size: var(--promo-shop-text-size);
   line-height: var(--promo-shop-text-line-height);
 }
 
-.secondaryPanel .button {
-  margin-top: auto;
+.shopPanel .copyStack {
+  max-height: none;
 }
 
 .button {
-  /* Shared pill button styling */
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   min-height: 2.35rem;
@@ -230,20 +381,12 @@
   text-decoration: none;
 }
 
-.buttonPrimary {
-  /* Left-column button color */
-  background: var(--public-plum);
-  color: #fffafc;
-}
-
 .buttonSecondary {
-  /* Right-column button color */
   background: var(--public-plum);
   color: #fffafc;
 }
 
 .caption {
-  /* Optional caption under the promo strip */
   margin: 0 auto;
   max-width: 62rem;
   padding: 0 1rem;
@@ -254,20 +397,46 @@
   text-align: center;
 }
 
-@media (max-width: 980px) {
-  .section {
-    /* Tablet image width */
-    --promo-image-width: min(calc(21rem * 0.63), calc(100% - 1rem));
-    /* Tablet image height */
-    --promo-image-height: auto;
-    /* Tablet left-column padding */
-    --promo-primary-offset: clamp(1.6rem, 3vw, 2.15rem);
+@media (max-width: 820px) {
+  .cookieMonth {
+    grid-template-columns: 1fr;
+  }
+
+  .mediaPanel {
+    min-height: clamp(16rem, 58vw, 24rem);
+  }
+
+  .cookieMonth::after {
+    top: auto;
+    bottom: calc(100% - clamp(16rem, 58vw, 24rem));
+    left: 0;
+    width: 100%;
+    height: clamp(3.5rem, 12vw, 5.5rem);
+    background: linear-gradient(180deg, rgba(250, 148, 176, 0) 0%, #fa94b0 76%);
+  }
+
+  .copyPanel {
+    max-width: none;
+    padding: 1.5rem 1.25rem 1.75rem;
+  }
+
+  .copyPanel::before {
+    inset: calc(-1 * clamp(3.5rem, 12vw, 5.5rem)) 0 0;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(255, 201, 218, 0.45) 0%, rgba(255, 201, 218, 0) 36%),
+      linear-gradient(180deg, rgba(250, 148, 176, 0) 0%, #fa94b0 30%, #fa99b7 62%, #f9a2bd 100%);
+  }
+
+  .copyPanel h2 {
+    max-width: 14ch;
   }
 
   .promo {
+    --promo-image-width: min(calc(21rem * 0.63), calc(100% - 1rem));
+    --promo-image-height: auto;
     min-height: 0;
     aspect-ratio: auto;
-    padding-top: 10.5rem;
+    padding-top: 10rem;
   }
 
   .promo__image {
@@ -281,58 +450,19 @@
     position: relative;
     top: auto;
     left: auto;
-    width: auto;
+    width: 100%;
     height: auto;
-    margin: clamp(5rem, 10vw, 6rem) 0.8rem 0;
+    margin: clamp(5rem, 10vw, 6rem) 0 0;
     min-height: 0;
   }
 
+  .shopPanel {
+    padding-left: clamp(3rem, 18vw, 8rem);
+  }
+
   .block {
-    gap: 0.56rem;
-    padding: 1.1rem 0.9rem 1.15rem;
-  }
-
-  .block h2 {
-    max-width: 15ch;
-    font-size: clamp(1.35rem, 2.8vw, 1.95rem);
-    line-height: 0.96;
-  }
-
-  .block h2.singleLineHeading {
-    max-width: 16ch;
-    font-size: clamp(1rem, 1.85vw, 1.5rem);
-  }
-
-  .secondaryPanel h2 {
-    max-width: 10.5ch;
-  }
-
-  .body {
-    max-width: 12.5rem;
-    font-size: 0.74rem;
-    line-height: 1.28;
-  }
-
-  .secondaryPanel .body {
-    font-size: var(--promo-shop-text-size-tablet);
-    line-height: var(--promo-shop-text-line-height);
-  }
-
-  .button {
-    min-height: 2.2rem;
-    padding-inline: 0.95rem;
-    font-size: 0.64rem;
-  }
-}
-
-@media (max-width: 820px) {
-  .section {
-    /* Smaller-tablet image height */
-    width: calc(100% - 2rem);
-  }
-
-  .promo {
-    padding-top: 10rem;
+    --promo-block-gap: 0.5rem;
+    padding: 1rem 0.82rem 1.05rem;
   }
 
   .block h2 {
@@ -346,13 +476,8 @@
     font-size: clamp(0.95rem, 1.7vw, 1.2rem);
   }
 
-  .secondaryPanel h2 {
+  .shopPanel h2 {
     max-width: 10ch;
-  }
-
-  .block {
-    gap: 0.5rem;
-    padding: 1rem 0.82rem 1.05rem;
   }
 
   .body {
@@ -361,23 +486,62 @@
     line-height: 1.25;
   }
 
-  .secondaryPanel .body {
+  .shopPanel .body {
     font-size: var(--promo-shop-text-size-small-tablet);
     line-height: var(--promo-shop-text-line-height);
   }
+
+  .button {
+    min-height: 2.2rem;
+    padding-inline: 0.95rem;
+    font-size: 0.64rem;
+  }
 }
 
-@media (max-width: 620px) {
+@media (max-width: 520px) {
   .section {
     width: calc(100% - 1rem);
+    margin-bottom: 1rem;
+  }
+
+  .cookieMonth {
+    min-height: 0;
+  }
+
+  .mediaPanel {
+    min-height: 15rem;
+  }
+
+  .copyPanel {
+    gap: 0.68rem;
+    padding: 1.25rem 1rem 1.45rem;
+  }
+
+  .monthEyebrow {
+    font-size: 1.2rem;
+  }
+
+  .copyPanel h2 {
+    font-size: clamp(2rem, 10vw, 2.75rem);
+    line-height: 0.95;
+  }
+
+  .monthBody {
+    font-size: 0.86rem;
+    line-height: 1.48;
+  }
+
+  .boxImageWrap {
+    display: block;
   }
 
   .promo {
-    min-height: 26rem;
+    width: var(--homepage-panel-width);
+    min-height: 0;
     padding-top: 0;
-    border-radius: 1.35rem;
+    padding-bottom: 1rem;
+    border-radius: 8px;
     overflow: visible;
-    background: #f5bfd0;
   }
 
   .promo::after {
@@ -390,49 +554,41 @@
   }
 
   .promo__image {
-    left: -0.8rem;
-    right: auto;
-    top: auto;
-    bottom: 0.2rem;
-    width: min(16.9rem, 78%);
-    height: auto;
-    object-position: left bottom;
-    transform: none;
-    z-index: 1;
+    display: none;
   }
 
   .promo__card {
-    position: absolute;
-    inset: 0;
-    display: block;
+    position: relative;
+    top: auto;
+    left: auto;
     width: 100%;
-    height: 100%;
+    height: auto;
     margin: 0;
-    z-index: auto;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    overflow: visible;
+    border-radius: 8px;
   }
 
   .block {
-    gap: 0.72rem;
+    --promo-block-gap: 0.72rem;
   }
 
-  .promo__primary {
+  .shopPanel {
     position: relative;
     z-index: 2;
-    align-items: center;
+    display: flex;
     justify-content: flex-start;
-    gap: 0.8rem;
-    height: 100%;
-    padding: 1.45rem 1.15rem 16rem 50%;
+    padding: 1.45rem 1.15rem;
+    padding-left: 1.15rem;
     text-align: center;
-    transform: none;
   }
 
-  .secondaryPanel {
-    display: none;
+  .shopPanel .contentBox {
+    width: min(100%, 20rem);
+    margin-inline: auto;
+    align-items: center;
+  }
+
+  .shopPanel .copyStack {
+    overflow: visible;
   }
 
   .eyebrow {
@@ -462,28 +618,18 @@
     line-height: 0.96;
   }
 
-  .body {
+  .promo .body {
     max-width: 12.75rem;
     color: rgba(74, 43, 86, 0.8);
     font-size: 0.82rem;
     line-height: 1.38;
   }
 
-  .button {
+  .promo .button {
     align-self: center;
     min-height: 2.7rem;
     padding-inline: 1.15rem;
     font-size: 0.68rem;
     letter-spacing: 0.08em;
-  }
-
-  .caption {
-    padding-inline: 0.5rem;
-  }
-}
-
-@media (max-width: 425px) {
-  .promo__image {
-    left: clamp(-5rem, -10vw, -2.75rem);
   }
 }

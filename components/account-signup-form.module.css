@@ -35,7 +35,7 @@
   background: transparent;
   color: #5c495f;
   cursor: pointer;
-  font-family: var(--font-header--family);
+  font-family: var(--font-heading--family);
   font-size: 0.82rem;
   letter-spacing: 0.08em;
   padding: 12px 16px;
@@ -182,7 +182,7 @@
 .submit {
   border-radius: 999px;
   background: #761A6C;
-  font-family: var(--font-header--family);
+  font-family: var(--font-heading--family);
   font-size: 0.95rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -212,7 +212,7 @@
   background: rgba(255, 255, 255, 0.96);
   color: #240f26;
   cursor: pointer;
-  font-family: var(--font-header--family);
+  font-family: var(--font-heading--family);
   font-size: 0.9rem;
   letter-spacing: 0.08em;
   padding: 15px 22px;

@@ -430,7 +430,7 @@ export default function AccountSignupForm() {
 
   if (isRecoveryMode) {
     return (
-      <div className={styles.authCard}>
+      <div className={`${styles.authCard} whiteFrame`}>
         <div className={styles.recoveryIntro}>
           <p className={styles.accountEyebrow}>Password reset</p>
           <h3>Set your new password</h3>
@@ -579,7 +579,7 @@ export default function AccountSignupForm() {
   }
 
   return (
-    <div className={styles.authCard}>
+    <div className={`${styles.authCard} whiteFrame`}>
       <div className={styles.modeSwitch} role="tablist" aria-label="Account access">
         <button
           type="button"

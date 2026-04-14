@@ -16,7 +16,7 @@ export default function DataDeletionPage() {
           </p>
         </div>
 
-        <article className={styles.panel}>
+        <article className={`${styles.panel} whiteFrame`}>
           <div className={styles.section}>
             <h2>Request process</h2>
             <p>

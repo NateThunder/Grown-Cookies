@@ -183,7 +183,7 @@ function ProductCard({
   const productName = getSearchProductName(product);
 
   return (
-    <article className={`${styles.card} ${product.isGiftCard ? styles.giftCardPositioned : ""}`}>
+    <article className={`${styles.card} whiteFrame ${product.isGiftCard ? styles.giftCardPositioned : ""}`}>
       <div className={styles.imageWrap}>
         <Link
           href={`/shop/${product.slug}`}

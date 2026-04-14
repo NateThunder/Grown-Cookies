@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import GiftCardTile from "@/components/gift-card-tile";
 import ProductBasketControls from "@/components/product-basket-controls";
+import QuickAddButton from "@/components/quick-add-button";
 import { getAllProducts } from "@/lib/products";
 import SiteHeader from "@/components/site-header";
 import styles from "./page.module.css";
@@ -66,7 +67,7 @@ export default async function ProductPage({
           ) : null}
         </div>
 
-        <div className={styles.infoColumn}>
+        <div className={`${styles.infoColumn} whiteFrame`}>
           <h1>{product.name}</h1>
           <p className={styles.price}>{product.price}</p>
 
@@ -98,31 +99,35 @@ export default async function ProductPage({
 
         <div className={styles.relatedGrid}>
           {relatedProducts.map((item) => (
-            <Link
+            <article
               key={item.slug}
-              href={`/shop/${item.slug}`}
-              className={`${styles.relatedCard} ${
+              className={`${styles.relatedCard} whiteFrame ${
                 item.isGiftCard ? styles.giftCardPositioned : ""
               }`}
             >
               <div className={styles.relatedImageWrap}>
-                {item.isGiftCard ? (
-                  <GiftCardTile
-                    className={styles.relatedGiftCardTile}
-                    src={item.image}
-                    alt={item.imageAlt ?? item.name}
-                  />
-                ) : item.image ? (
-                  <Image
-                    src={item.image}
-                    alt={item.imageAlt ?? item.name}
-                    fill
-                    className={styles.relatedImage}
-                  />
-                ) : null}
+                <Link href={`/shop/${item.slug}`} className={styles.relatedMediaLink}>
+                  {item.isGiftCard ? (
+                    <GiftCardTile
+                      className={styles.relatedGiftCardTile}
+                      src={item.image}
+                      alt={item.imageAlt ?? item.name}
+                    />
+                  ) : item.image ? (
+                    <Image
+                      src={item.image}
+                      alt={item.imageAlt ?? item.name}
+                      fill
+                      className={styles.relatedImage}
+                    />
+                  ) : null}
+                </Link>
+                <QuickAddButton product={item} className={styles.relatedQuickAdd} />
               </div>
-              <h3>{item.name}</h3>
-            </Link>
+              <Link href={`/shop/${item.slug}`} className={styles.relatedContentLink}>
+                <h3>{item.name}</h3>
+              </Link>
+            </article>
           ))}
         </div>
       </section>

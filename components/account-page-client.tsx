@@ -266,7 +266,7 @@ function AddPaymentMethodForm({
   }
 
   return (
-    <div className={styles.paymentSetupCard}>
+    <div className={`${styles.paymentSetupCard} whiteFrame`}>
       <div className={styles.paymentElementWrap}>
         <PaymentElement
           onReady={() => setIsPaymentElementReady(true)}
@@ -783,7 +783,7 @@ export default function AccountPageClient() {
   if (isInitializing) {
     return (
       <section className={styles.accountLoading}>
-        <div className={styles.loadingCard}>
+        <div className={`${styles.loadingCard} whiteFrame`}>
           <p className={styles.panelEyebrow}>Account</p>
           <h1>Loading your account</h1>
           <p>Checking your sign-in status and preparing your dashboard.</p>
@@ -795,7 +795,7 @@ export default function AccountPageClient() {
   if (!session || !user) {
     return (
       <section className={`${styles.hero} ${styles.authHero}`}>
-          <div className={styles.panel}>
+          <div className={`${styles.panel} whiteFrame`}>
             <div className={styles.panelHeader}>
               <p className={styles.panelEyebrow}>Account access</p>
               <h2>Register or sign in</h2>
@@ -811,7 +811,7 @@ export default function AccountPageClient() {
   return (
     <section id="settings" className={styles.dashboard}>
       <aside className={styles.sidebar}>
-        <div className={styles.sidebarCard}>
+        <div className={`${styles.sidebarCard} whiteFrame`}>
           <p className={styles.sidebarEyebrow}>My account</p>
           <h1>{displayName}</h1>
           <p>{user.email}</p>
@@ -827,13 +827,6 @@ export default function AccountPageClient() {
       </aside>
 
       <div className={styles.dashboardContent}>
-        <nav className={styles.mobileSectionNav} aria-label="Account sections">
-          {dashboardNavItems.map((item) => (
-            <a key={item.href} href={item.href} className={styles.mobileSectionLink}>
-              {item.label}
-            </a>
-          ))}
-        </nav>
         <section id="profile" className={styles.dashboardSection}>
           <div className={styles.sectionHeader}>
             <p className={styles.sectionEyebrow}>Profile</p>
@@ -910,15 +903,15 @@ export default function AccountPageClient() {
           </div>
 
           <div className={styles.securityGrid}>
-            <article className={styles.infoCard}>
+            <article className={`${styles.infoCard} whiteFrame`}>
               <h3>Sign-in method</h3>
               <p>{providerLabel}</p>
             </article>
-            <article className={styles.infoCard}>
+            <article className={`${styles.infoCard} whiteFrame`}>
               <h3>Password</h3>
               <p>Use a strong password and rotate it regularly once password settings are enabled.</p>
             </article>
-            <article className={styles.infoCard}>
+            <article className={`${styles.infoCard} whiteFrame`}>
               <h3>Current session</h3>
               <p>This browser session is active and authenticated for your Grown Cookies account.</p>
             </article>
@@ -955,7 +948,7 @@ export default function AccountPageClient() {
           {addresses.length > 0 ? (
             <div className={styles.addressList}>
               {addresses.map((address) => (
-                <article key={address.id} className={styles.addressCard}>
+                <article key={address.id} className={`${styles.addressCard} whiteFrame`}>
                   <div className={styles.addressCardTop}>
                     <div>
                       <h3>{address.label || (address.isDefault ? "Default address" : "Saved address")}</h3>
@@ -1162,7 +1155,7 @@ export default function AccountPageClient() {
           {paymentMethods.length > 0 ? (
             <div className={styles.addressList}>
               {paymentMethods.map((paymentMethod) => (
-                <article key={paymentMethod.id} className={styles.addressCard}>
+                <article key={paymentMethod.id} className={`${styles.addressCard} whiteFrame`}>
                   <div className={styles.addressCardTop}>
                     <div>
                       <h3>{formatCardBrand(paymentMethod.brand)} ending in {paymentMethod.last4}</h3>
@@ -1195,21 +1188,21 @@ export default function AccountPageClient() {
           </div>
 
           <div className={styles.preferenceList}>
-            <label className={styles.preferenceCard}>
+            <label className={`${styles.preferenceCard} whiteFrame`}>
               <div>
                 <h3>Marketing emails</h3>
                 <p>Saved from your profile preference and used for future account communication.</p>
               </div>
               <input type="checkbox" checked={profileForm.marketingOptIn} readOnly />
             </label>
-            <label className={styles.preferenceCard}>
+            <label className={`${styles.preferenceCard} whiteFrame`}>
               <div>
                 <h3>Order updates</h3>
                 <p>Delivery and payment notifications remain tied to each order you place.</p>
               </div>
               <input type="checkbox" checked readOnly />
             </label>
-            <label className={styles.preferenceCard}>
+            <label className={`${styles.preferenceCard} whiteFrame`}>
               <div>
                 <h3>Restock alerts</h3>
                 <p>This preference is not stored yet, but the account area is ready for it later.</p>
@@ -1238,7 +1231,7 @@ export default function AccountPageClient() {
           {!isOrdersLoading && !ordersError && orders.length > 0 ? (
             <div className={styles.orderList}>
               {orders.map((order) => (
-                <article key={order.orderId} className={styles.orderCard}>
+                <article key={order.orderId} className={`${styles.orderCard} whiteFrame`}>
                   <div className={styles.orderTopRow}>
                     <div>
                       <p className={styles.orderMetaLabel}>Order reference</p>

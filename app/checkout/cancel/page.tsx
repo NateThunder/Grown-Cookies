@@ -8,7 +8,7 @@ export default function CheckoutCancelPage() {
   return (
     <main className={styles.page}>
       <SiteHeader variant="hero" showAnnouncement={false} />
-      <section className={styles.content}>
+      <section className={`${styles.content} whiteFrame`}>
         <p className={styles.badge}>Payment cancelled</p>
         <h1>Checkout was not completed</h1>
         <p>

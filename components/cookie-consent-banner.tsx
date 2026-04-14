@@ -55,7 +55,7 @@ export default function CookieConsentBanner() {
   return (
     <div className={styles.root}>
       <section
-        className={styles.banner}
+        className={`${styles.banner} whiteFrame`}
         aria-labelledby="cookie-consent-title"
         aria-describedby="cookie-consent-description"
       >

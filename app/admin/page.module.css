@@ -1,5 +1,7 @@
 .page {
   min-height: 100vh;
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
   background: #f4e8e1;
@@ -7,10 +9,31 @@
 
 .loginPage {
   min-height: 100vh;
+  position: relative;
+  isolation: isolate;
   display: grid;
   place-items: center;
   padding: 1rem;
   background: radial-gradient(circle at top right, #f7d7d2 0%, #f4e8e1 52%, #eadccf 100%);
+}
+
+.page::before,
+.loginPage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--public-film-grain-image);
+  background-repeat: repeat;
+  background-position: center;
+  background-size: cover;
+  opacity: var(--public-film-grain-opacity);
+  pointer-events: none;
+}
+
+.page > *,
+.loginPage > * {
+  position: relative;
+  z-index: 1;
 }
 
 .loginCard {

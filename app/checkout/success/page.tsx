@@ -73,7 +73,7 @@ export default async function CheckoutSuccessPage({ searchParams }: CheckoutSucc
     return (
       <main className={styles.page}>
         <SiteHeader variant="hero" showAnnouncement={false} />
-        <section className={styles.content}>
+        <section className={`${styles.content} whiteFrame`}>
           <p className={styles.badge}>Payment cancelled</p>
           <h1>Checkout was not completed</h1>
           <p>We didn&apos;t receive a completed payment for this order.</p>
@@ -94,7 +94,7 @@ export default async function CheckoutSuccessPage({ searchParams }: CheckoutSucc
     <main className={styles.page}>
       <SiteHeader variant="hero" showAnnouncement={false} />
       <CheckoutSuccessBasketClearer shouldClearBasket={shouldClearBasket} />
-      <section className={styles.content}>
+      <section className={`${styles.content} whiteFrame`}>
         <p className={styles.badge}>Payment complete</p>
         <h1>Thank you for your order</h1>
         <p>

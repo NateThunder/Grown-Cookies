@@ -1,7 +1,26 @@
 .page {
   min-height: 100vh;
+  position: relative;
+  isolation: isolate;
   background: var(--public-gradient);
   color: var(--public-ink);
+}
+
+.page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--public-film-grain-image);
+  background-repeat: repeat;
+  background-position: center;
+  background-size: cover;
+  opacity: var(--public-film-grain-opacity);
+  pointer-events: none;
+}
+
+.page > * {
+  position: relative;
+  z-index: 1;
 }
 
 .productSection {
@@ -157,11 +176,18 @@
     box-shadow var(--public-transition);
 }
 
-.relatedCard:hover,
-.relatedCard:focus-visible {
+.relatedCard:global(.whiteFrame)::after {
+  z-index: 0;
+}
+
+.relatedCard > * {
+  position: relative;
+  z-index: 1;
+}
+
+.relatedCard:hover {
   transform: translateY(-5px);
   box-shadow: var(--public-shadow);
-  outline: none;
 }
 
 .giftCardPositioned {
@@ -179,8 +205,71 @@
     linear-gradient(180deg, #f1bfd2, #ebb0c7);
 }
 
+.relatedMediaLink,
+.relatedContentLink {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.relatedMediaLink {
+  width: 100%;
+  height: 100%;
+}
+
 .relatedImage {
   object-fit: cover;
+}
+
+.relatedQuickAdd {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  min-width: 88px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid #d7bfdc;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.97);
+  color: #412346;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-body--family);
+  font-size: 0.98rem;
+  line-height: 1;
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 200ms ease,
+    transform 220ms ease,
+    background-color 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease;
+  cursor: pointer;
+}
+
+.relatedQuickAdd svg {
+  width: 15px;
+  height: 15px;
+}
+
+.relatedQuickAdd span {
+  white-space: nowrap;
+}
+
+.relatedQuickAdd[data-added="true"] {
+  background: #8d029b;
+  border-color: #8d029b;
+  color: #ffffff;
+}
+
+.relatedCard:hover .relatedQuickAdd,
+.relatedCard:focus-within .relatedQuickAdd {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .relatedGiftCardTile {
@@ -213,6 +302,11 @@
 @media (max-width: 520px) {
   .relatedGrid {
     grid-template-columns: 1fr;
+  }
+
+  .relatedQuickAdd {
+    opacity: 1;
+    transform: translateY(0);
   }
 
   .productSection,

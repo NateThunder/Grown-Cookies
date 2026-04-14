@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { FiCheck, FiChevronDown } from "react-icons/fi";
 import styles from "@/app/shop/page.module.css";
 
@@ -17,8 +20,28 @@ function getSortHref(sort: string) {
 }
 
 export default function ShopSortDropdown({ options, activeSort }: ShopSortDropdownProps) {
+  const menuRef = useRef<HTMLDetailsElement>(null);
+
+  useEffect(() => {
+    function closeMenuOnOutsideClick(event: PointerEvent) {
+      const menu = menuRef.current;
+
+      if (!menu?.open || !event.target || menu.contains(event.target as Node)) {
+        return;
+      }
+
+      menu.open = false;
+    }
+
+    document.addEventListener("pointerdown", closeMenuOnOutsideClick);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeMenuOnOutsideClick);
+    };
+  }, []);
+
   return (
-    <details className={styles.sortMenu}>
+    <details ref={menuRef} className={styles.sortMenu}>
       <summary className={styles.sortToggle}>
         <span>Sort</span>
         <FiChevronDown />

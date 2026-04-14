@@ -1,7 +1,26 @@
 .page {
   min-height: 100vh;
+  position: relative;
+  isolation: isolate;
   background: var(--public-gradient);
   color: var(--public-ink);
+}
+
+.page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--public-film-grain-image);
+  background-repeat: repeat;
+  background-position: center;
+  background-size: cover;
+  opacity: var(--public-film-grain-opacity);
+  pointer-events: none;
+}
+
+.page > * {
+  position: relative;
+  z-index: 1;
 }
 
 .shop {
@@ -120,29 +139,35 @@
 .card {
   display: flex;
   flex-direction: column;
-  border: 0;
-  padding: 0;
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px solid rgba(87, 31, 108, 0.08);
+  border-radius: var(--public-radius-lg);
+  background: rgba(255, 248, 241, 0.78);
+  box-shadow: var(--public-shadow-soft);
   color: inherit;
+  text-decoration: none;
   transform: translateY(0);
   transition:
-    transform 0.25s ease-out,
-    filter 0.25s ease;
+    transform var(--public-transition),
+    box-shadow var(--public-transition);
+}
+
+.card:global(.whiteFrame)::after {
+  z-index: 0;
+}
+
+.card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .card:focus-visible {
-  outline: 2px solid #8d029b;
-  outline-offset: 4px;
+  outline: none;
 }
 
 .giftCardPositioned {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-self: stretch;
-  justify-self: stretch;
-  min-height: 100%;
-  height: 100%;
-  padding-top: 0;
+  justify-content: space-between;
 }
 
 .cardMediaLink,
@@ -160,9 +185,12 @@
 .cardImageWrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 1.25;
+  aspect-ratio: 1 / 1.15;
   overflow: hidden;
-  border-radius: var(--public-radius-lg);
+  border-radius: calc(var(--public-radius-lg) - 10px);
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.46), transparent 44%),
+    linear-gradient(180deg, #f1bfd2, #ebb0c7);
 }
 
 .cardImageWrap::before {
@@ -248,48 +276,40 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: visible;
-  flex: 1;
-  min-height: 0;
+  overflow: hidden;
 }
 
 .giftCardPositioned .cardMediaLink {
-  width: min(100%, 18rem);
+  width: 100%;
   height: auto;
-  flex: 0 0 auto;
   display: block;
 }
 
 .giftCardPositioned .cardContentLink {
-  width: min(100%, 18rem);
-  align-self: center;
+  width: 100%;
 }
 
 .card h3 {
-  margin: 12px 0 4px;
-  font-size: clamp(0.825rem, 1.35vw, 2.175rem);
-  font-family: var(--font-body--family);
-  font-weight: 500;
-  transition: color 220ms ease;
+  margin: 0;
+  color: var(--public-plum-deep);
+  font-family: var(--font-public-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .card p {
-  margin: 0;
-  font-family: var(--font-body--family);
-  color: #404040;
-  font-size: clamp(0.75rem, 0.9vw, 1.5rem);
-  transition: color 220ms ease;
+  margin: 0.4rem 0 0;
+  color: var(--public-ink);
+  font-family: var(--font-public-ui);
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
 .card:hover,
 .card:focus-within {
-  transform: translateY(-4px);
-  filter: none;
-}
-
-.card:hover .cardImage,
-.card:focus-within .cardImage {
-  transform: scale(1.03);
+  transform: translateY(-5px);
+  box-shadow: var(--public-shadow);
 }
 
 .card:hover .cardImageWrap::before,
@@ -305,18 +325,12 @@
 
 .card:hover .giftCardTile,
 .card:focus-within .giftCardTile {
-  transform: translateY(-4px) scale(1.01);
   filter: none;
 }
 
 .card:hover .giftCardTile::after,
 .card:focus-within .giftCardTile::after {
-  transform: translateY(4px);
-}
-
-.card:hover h3,
-.card:focus-within h3 {
-  color: inherit;
+  transform: none;
 }
 
 @media (max-width: 1080px) {

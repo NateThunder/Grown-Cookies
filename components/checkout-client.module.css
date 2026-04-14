@@ -1,5 +1,24 @@
 .checkout {
+  position: relative;
+  isolation: isolate;
   background: var(--public-gradient);
+}
+
+.checkout::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--public-film-grain-image);
+  background-repeat: repeat;
+  background-position: center;
+  background-size: cover;
+  opacity: var(--public-film-grain-opacity);
+  pointer-events: none;
+}
+
+.checkout > * {
+  position: relative;
+  z-index: 1;
 }
 
 .columns {
@@ -712,21 +731,43 @@
   margin-top: 14px;
   border: 0;
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--public-plum-deep), var(--public-plum));
   color: var(--public-cream);
   font-family: var(--font-body--family);
   font-size: 0.88rem;
   font-weight: 700;
 }
 
-.summaryColumn {
+.payButton {
   background: var(--public-plum-deep);
+}
+
+.returnLink {
+  background: linear-gradient(135deg, var(--public-plum-deep), var(--public-plum));
+}
+
+.summaryColumn {
+  position: relative;
+  isolation: isolate;
+  background: #50146b;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.92);
   color: #ffffff;
 }
 
+.summaryColumn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--public-film-grain-image);
+  background-repeat: repeat;
+  background-position: center;
+  background-size: cover;
+  opacity: 0.1;
+  pointer-events: none;
+}
+
 .summaryInner {
-  position: static;
+  position: relative;
+  z-index: 1;
   padding: 38px 32px 94px;
   display: grid;
   align-content: start;

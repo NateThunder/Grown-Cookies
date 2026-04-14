@@ -943,7 +943,7 @@ function PaymentElementForm({
           <p className={styles.savedPaymentScrollHint}>Swipe left or right to view all payment options.</p>
           <div className={styles.savedPaymentList} data-mobile-scroll="true">
             {savedPaymentMethods.map((paymentMethod) => (
-              <label key={paymentMethod.id} className={styles.savedPaymentOption}>
+              <label key={paymentMethod.id} className={`${styles.savedPaymentOption} whiteFrame`}>
                 <div className={styles.paymentHeading}>
                   <input
                     type="radio"
@@ -960,7 +960,7 @@ function PaymentElementForm({
                 </span>
               </label>
             ))}
-            <label className={styles.savedPaymentOption}>
+            <label className={`${styles.savedPaymentOption} whiteFrame`}>
               <div className={styles.paymentHeading}>
                 <input
                   type="radio"
@@ -1048,14 +1048,14 @@ function PaymentElementForm({
       </div>
 
       {usingSavedPaymentMethod ? (
-        <div className={styles.savedPaymentSummary}>
+        <div className={`${styles.savedPaymentSummary} whiteFrame`}>
           <p className={styles.sectionNote}>
             Your delivery details above will be used for this saved-card payment.
           </p>
         </div>
       ) : (
         <>
-          <div className={styles.paymentElement}>
+          <div className={`${styles.paymentElement} whiteFrame`}>
             <PaymentElement
               onReady={() => setIsPaymentElementReady(true)}
               onChange={(event) => setHasPaymentMethodSelection(Boolean(event.value?.type))}
@@ -1464,7 +1464,7 @@ export default function CheckoutClient() {
       <div className={styles.columns}>
         <div className={styles.formColumn}>
           {items.length === 0 ? (
-            <div className={styles.emptyState}>
+            <div className={`${styles.emptyState} whiteFrame`}>
               <h1>Your basket is empty</h1>
               <p>Add some cookies to your basket before heading to checkout.</p>
               <Link href="/shop" className={styles.returnLink}>
@@ -1476,7 +1476,7 @@ export default function CheckoutClient() {
               <section className={styles.section}>
                 <h2>Contact</h2>
                 <div className={styles.fieldStack}>
-                  <label className={styles.field}>
+                  <label className={`${styles.field} whiteFrame`}>
                     <span>Email address</span>
                     <input
                       type="email"
@@ -1505,7 +1505,7 @@ export default function CheckoutClient() {
                       <p className={styles.savedPaymentHeading}>Saved addresses</p>
                       <div className={styles.savedPaymentList}>
                         {savedAddresses.map((address) => (
-                          <label key={address.id} className={styles.savedAddressOption}>
+                          <label key={address.id} className={`${styles.savedAddressOption} whiteFrame`}>
                             <div className={styles.paymentHeading}>
                               <input
                                 type="radio"
@@ -1522,7 +1522,7 @@ export default function CheckoutClient() {
                             </span>
                           </label>
                         ))}
-                        <label className={styles.savedAddressOption}>
+                        <label className={`${styles.savedAddressOption} whiteFrame`}>
                           <div className={styles.paymentHeading}>
                             <input
                               type="radio"
@@ -1541,7 +1541,7 @@ export default function CheckoutClient() {
                   ) : null}
 
                   {selectedSavedAddress ? (
-                    <div className={styles.savedAddressSummary}>
+                    <div className={`${styles.savedAddressSummary} whiteFrame`}>
                       <p className={styles.savedAddressSummaryTitle}>Using saved address</p>
                       <p className={styles.savedAddressSummaryText}>
                         {[selectedSavedAddress.firstName, selectedSavedAddress.lastName]
@@ -1590,7 +1590,7 @@ export default function CheckoutClient() {
                         </label>
                       </div>
 
-                      <label className={styles.field}>
+                      <label className={`${styles.field} whiteFrame`}>
                         <span>Address</span>
                         <input
                           type="text"
@@ -1607,12 +1607,12 @@ export default function CheckoutClient() {
                           }}
                         />
                         {showAddressSuggestions && addressSuggestions.length > 0 ? (
-                          <div className={styles.addressSuggestions} role="listbox" aria-label="Address suggestions">
+                          <div className={`${styles.addressSuggestions} whiteFrame`} role="listbox" aria-label="Address suggestions">
                             {addressSuggestions.map((suggestion) => (
                               <button
                                 key={`${suggestion.addressLine1}-${suggestion.postcode}`}
                                 type="button"
-                                className={styles.addressSuggestion}
+                                className={`${styles.addressSuggestion} whiteFrame`}
                                 onMouseDown={(event) => event.preventDefault()}
                                 onClick={() => applyAddressSuggestion(suggestion)}
                               >
@@ -1628,7 +1628,7 @@ export default function CheckoutClient() {
                       ) : null}
                       {addressSearchError ? <p className={styles.errorText}>{addressSearchError}</p> : null}
 
-                      <label className={styles.field}>
+                      <label className={`${styles.field} whiteFrame`}>
                         <span>Flat number (optional)</span>
                         <input
                           type="text"
@@ -1639,7 +1639,7 @@ export default function CheckoutClient() {
                       </label>
 
                       <div className={styles.twoUp}>
-                        <label className={styles.field}>
+                        <label className={`${styles.field} whiteFrame`}>
                           <span>City</span>
                           <input
                             type="text"
@@ -1693,7 +1693,7 @@ export default function CheckoutClient() {
 
               <section className={styles.section}>
                 <h2>Shipping method</h2>
-                <div className={styles.methodCard}>
+                <div className={`${styles.methodCard} whiteFrame`}>
                   <span>Standard</span>
                   <strong>{formatPriceFromCents(shippingCents)}</strong>
                 </div>
@@ -1701,13 +1701,13 @@ export default function CheckoutClient() {
 
               <section className={styles.section}>
                 <h2>Add tip</h2>
-                <div className={styles.tipCard}>
+                <div className={`${styles.tipCard} whiteFrame`}>
                   <div className={styles.tipCardHeader}>
                     <div className={styles.tipIntro}>
                       <span className={styles.tipEyebrow}>Optional tip</span>
                       <p className={styles.tipTitle}>Show your support for the team at Grown Cookies</p>
                     </div>
-                    <div className={styles.tipSummary}>
+                    <div className={`${styles.tipSummary} whiteFrame`}>
                       <span>{tipSelectionLabel}</span>
                       <strong>{formatPriceFromCents(tipCents)}</strong>
                     </div>
@@ -1740,7 +1740,7 @@ export default function CheckoutClient() {
                     </button>
                   </div>
 
-                  <div className={styles.customTipSection}>
+                  <div className={`${styles.customTipSection} whiteFrame`}>
                     <div className={styles.customTipHeader}>
                       <span>Custom tip</span>
                       <strong>{formatPriceFromCents(customTipPreviewCents)}</strong>

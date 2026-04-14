@@ -1,8 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import QuickAddButton from "@/components/quick-add-button";
 import SiteHeader from "@/components/site-header";
 import HomepagePromoStrip from "@/components/homepage-promo-strip";
+import ShopNowLink from "@/components/shop-now-link";
 import { getAllProducts } from "@/lib/products";
 import {
   getHomepageSectionSettings,
@@ -16,19 +16,8 @@ const flavourToneMap: Record<string, string> = {
   "double-chocolate-hazelnut": "hazelnutTone",
 };
 
-const flavourNoteMap: Record<string, string> = {
-  "matcha-white-chocolate": "white chocolate",
-  "red-velvet": "cocoa crumb",
-  "dark-choc-maldon-salt": "maldon salt",
-  "double-chocolate-hazelnut": "roasted hazelnut",
-};
-
 function getFlavourToneClass(slug: string) {
   return styles[flavourToneMap[slug] ?? "genericTone"];
-}
-
-function getFlavourNote(slug: string) {
-  return flavourNoteMap[slug] ?? "house favourite";
 }
 
 export default async function Home() {
@@ -56,9 +45,9 @@ export default async function Home() {
             </h1>
             <p className={styles.heroBody}>Cookies for Grown folks</p>
             <div className={styles.heroActions}>
-              <Link href="/shop" className={`${styles.primaryCta} ${styles.heroCta}`}>
+              <ShopNowLink className={`${styles.primaryCta} ${styles.heroCta}`}>
                 Shop Now 
-              </Link>
+              </ShopNowLink>
             </div>
           </div>
 
@@ -68,7 +57,7 @@ export default async function Home() {
               alt="Stacked artisan cookies held in hand"
               fill
               priority
-              sizes="(max-width: 820px) 100vw, 50vw"
+              sizes="(max-width: 820px) 44vw, 50vw"
               className={styles.heroImage}
             />
           </div>
@@ -76,13 +65,15 @@ export default async function Home() {
 
         <section id="flavours" className={styles.featured}>
           <div className={styles.featuredHeader}>
-            <h2 className={styles.featuredTitle}>Featured Products</h2>
+            <h2 className={`${styles.featuredTitle} ${styles.grainTitle}`} data-text="Featured Products">
+              Featured Products
+            </h2>
           </div>
           <div className={styles.flavourGrid}>
             {homepageProducts.map((product) => (
               <article
                 key={product.slug}
-                className={`${styles.flavourCard} ${getFlavourToneClass(product.slug)}`}
+                className={`${styles.flavourCard} whiteFrame ${getFlavourToneClass(product.slug)}`}
               >
                 <div className={styles.flavourImageWrap}>
                   <Link
@@ -100,7 +91,6 @@ export default async function Home() {
                       />
                     ) : null}
                   </Link>
-                  <QuickAddButton product={product} className={styles.featuredQuickAdd} />
                 </div>
 
                 <Link
@@ -108,9 +98,15 @@ export default async function Home() {
                   className={`${styles.flavourCopy} ${styles.flavourTileLink}`}
                   aria-label={`View featured product ${product.name}`}
                 >
-                  <p className={styles.flavourLabel}>{getFlavourNote(product.slug)}</p>
-                  <h2>{product.name}</h2>
+                  <h2 className={styles.grainTitle} data-text={product.name}>
+                    {product.name}
+                  </h2>
                 </Link>
+                <div className={styles.flavourFooter}>
+                  <Link href={`/shop/${product.slug}`} className={styles.featuredShopNow}>
+                    Shop Now
+                  </Link>
+                </div>
               </article>
             ))}
           </div>

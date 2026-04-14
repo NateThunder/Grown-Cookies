@@ -1,9 +1,28 @@
 .page {
   min-height: 100vh;
+  position: relative;
+  isolation: isolate;
   background: var(--public-gradient);
   color: var(--public-ink);
   font-family: var(--font-public-ui);
   line-height: 1.5;
+}
+
+.page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--public-film-grain-image);
+  background-repeat: repeat;
+  background-position: center;
+  background-size: cover;
+  opacity: var(--public-film-grain-opacity);
+  pointer-events: none;
+}
+
+.page > * {
+  position: relative;
+  z-index: 1;
 }
 
 .contactSection {
@@ -47,8 +66,8 @@
   padding: clamp(1.3rem, 3vw, 2rem);
   border: 1px solid var(--public-border);
   border-radius: var(--public-radius-xl);
-  background: var(--public-panel-gradient);
-  box-shadow: var(--public-shadow);
+  background: #f5bfd0;
+  box-shadow: none;
 }
 
 .formRow {
@@ -131,7 +150,7 @@
   min-width: 9rem;
   border: 0;
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--public-plum-deep), var(--public-plum));
+  background: #50146b;
   color: var(--public-cream);
   font-family: var(--font-public-ui);
   font-size: 0.98rem;

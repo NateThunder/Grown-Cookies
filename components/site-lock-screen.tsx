@@ -16,7 +16,7 @@ export default function SiteLockScreen({ returnPath }: SiteLockScreenProps) {
 
   return (
     <main className={styles.shell}>
-      <section className={styles.panel}>
+      <section className={`${styles.panel} whiteFrame`}>
         <div className={styles.lockBadge} aria-hidden="true">
           <FiLock />
         </div>

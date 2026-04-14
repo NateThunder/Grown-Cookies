@@ -1,9 +1,28 @@
 .shell {
   min-height: 100vh;
+  position: relative;
+  isolation: isolate;
   display: grid;
   place-items: center;
   padding: 1.5rem;
   background: #f7f1ee;
+}
+
+.shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--public-film-grain-image);
+  background-repeat: repeat;
+  background-position: center;
+  background-size: cover;
+  opacity: var(--public-film-grain-opacity);
+  pointer-events: none;
+}
+
+.shell > * {
+  position: relative;
+  z-index: 1;
 }
 
 .panel {

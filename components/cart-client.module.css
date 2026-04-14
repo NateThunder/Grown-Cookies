@@ -269,7 +269,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--public-plum-deep), var(--public-plum));
+  background: #5c2386;
   color: var(--public-cream) !important;
   text-decoration: none;
   font-family: var(--font-public-ui);

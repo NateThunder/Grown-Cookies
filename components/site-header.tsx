@@ -4,6 +4,7 @@ import MobileNav from "@/components/mobile-nav";
 import SearchModalTrigger from "@/components/search-modal-trigger";
 import BasketLink from "@/components/basket-link";
 import HeaderAccountLink from "@/components/header-account-link";
+import ShopNowLink from "@/components/shop-now-link";
 import styles from "./site-header.module.css";
 
 type NavRoute = "home" | "shop" | "contact" | "faqs";
@@ -20,6 +21,15 @@ const desktopNavItems: Array<{ href: string; label: string; activeRoutes?: NavRo
   { href: "/shop", label: "SHOP", activeRoutes: ["shop"] },
   { href: "/contact", label: "CONTACT US", activeRoutes: ["contact"] },
   { href: "/faqs", label: "FAQ's", activeRoutes: ["faqs"] },
+];
+
+const accountNavItems = [
+  { href: "/account#profile", label: "Profile" },
+  { href: "/account#security", label: "Security" },
+  { href: "/account#addresses", label: "Addresses" },
+  { href: "/account#payments", label: "Payments" },
+  { href: "/account#notifications", label: "Notifications" },
+  { href: "/account#orders", label: "Order history" },
 ];
 
 export default async function SiteHeader({
@@ -47,7 +57,7 @@ export default async function SiteHeader({
       >
         <div className={styles.headerInner}>
           <div className={styles.mobileLeftActions}>
-            <MobileNav items={mobileNavItems} />
+            <MobileNav items={mobileNavItems} accountItems={accountNavItems} />
             <div className={styles.mobileSearch}>
               <SearchModalTrigger products={products} />
             </div>
@@ -77,9 +87,9 @@ export default async function SiteHeader({
           </nav>
 
           <div className={styles.iconNav} aria-label="Actions">
-            <Link href="/shop" className={styles.shopNowLink}>
+            <ShopNowLink className={styles.shopNowLink}>
               Shop now
-            </Link>
+            </ShopNowLink>
             <div className={styles.utilityLinks}>
               <div className={styles.desktopSearch}>
                 <SearchModalTrigger products={products} />

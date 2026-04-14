@@ -69,7 +69,7 @@ export default function ContactOrderForm() {
   }
 
   return (
-    <form className={styles.contactForm} onSubmit={handleSubmit} autoComplete="on">
+    <form className={`${styles.contactForm} whiteFrame`} onSubmit={handleSubmit} autoComplete="on">
       <div className={styles.formRow}>
         <input
           type="text"

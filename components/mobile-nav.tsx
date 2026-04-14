@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiMenu, FiX } from "react-icons/fi";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import styles from "./site-header.module.css";
 
 type MobileNavItem = {
@@ -14,15 +15,42 @@ type MobileNavItem = {
 
 type MobileNavProps = {
   items: MobileNavItem[];
+  accountItems?: MobileNavItem[];
 };
 
-export default function MobileNav({ items }: MobileNavProps) {
+export default function MobileNav({ items, accountItems = [] }: MobileNavProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
+  const [isSignedIn, setIsSignedIn] = useState(false);
   const menuId = useId();
 
   useEffect(() => {
     setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+
+    if (!supabase) {
+      return;
+    }
+
+    void supabase.auth.getUser().then(({ data, error }) => {
+      if (!error) {
+        setIsSignedIn(Boolean(data.user));
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsSignedIn(Boolean(session?.user));
+      setIsOpen(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -82,6 +110,21 @@ export default function MobileNav({ items }: MobileNavProps) {
               {item.label}
             </Link>
           ))}
+          {isSignedIn && accountItems.length > 0 ? (
+            <div className={styles.mobileMenuAccountGroup}>
+              <span className={styles.mobileMenuAccountLabel}>My account</span>
+              {accountItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`${styles.mobileMenuLink} ${styles.mobileMenuAccountLink}`.trim()}
+                  onClick={() => setIsOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          ) : null}
         </nav>
       </aside>
     </>

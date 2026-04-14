@@ -1,7 +1,26 @@
 .page {
   min-height: 100vh;
+  position: relative;
+  isolation: isolate;
   background: var(--public-gradient);
   color: var(--public-ink);
+}
+
+.page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--public-film-grain-image);
+  background-repeat: repeat;
+  background-position: center;
+  background-size: cover;
+  opacity: var(--public-film-grain-opacity);
+  pointer-events: none;
+}
+
+.page > * {
+  position: relative;
+  z-index: 1;
 }
 
 .faqSection {

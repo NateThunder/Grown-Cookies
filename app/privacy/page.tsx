@@ -18,7 +18,7 @@ export default function PrivacyPage() {
           </p>
         </div>
 
-        <article className={styles.panel}>
+        <article className={`${styles.panel} whiteFrame`}>
           <div className={styles.section}>
             <h2>What we collect</h2>
             <p>

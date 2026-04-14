@@ -11,7 +11,7 @@ export default function FaqsPage() {
         <div className={styles.contentWrap}>
           <h1>FAQ&apos;s</h1>
 
-          <article className={styles.faqItem}>
+          <article className={`${styles.faqItem} whiteFrame`}>
             <h2>SHOP WITH CONFIDENCE</h2>
             <p>
               We guarantee that all of our products are beautiful and well made. As most of our
@@ -20,7 +20,7 @@ export default function FaqsPage() {
             </p>
           </article>
 
-          <article className={styles.faqItem}>
+          <article className={`${styles.faqItem} whiteFrame`}>
             <h2>STORING &amp; CONSUMING COOKIES</h2>
             <p>
               Our cookies can be stored in an air-tight container. Your cookies should keep for up
@@ -29,12 +29,12 @@ export default function FaqsPage() {
             </p>
           </article>
 
-          <article className={styles.faqItem}>
+          <article className={`${styles.faqItem} whiteFrame`}>
             <h2>PAYMENT METHODS</h2>
             <p>We accept Visa, MasterCard and American Express.</p>
           </article>
 
-          <article className={styles.faqItem}>
+          <article className={`${styles.faqItem} whiteFrame`}>
             <h2>I have entered an incorrect address what do I do now?</h2>
             <p>
               Simply reply to your order confirmation email and confirm. Once you double check if
@@ -45,7 +45,7 @@ export default function FaqsPage() {
             </p>
           </article>
 
-          <article className={styles.faqItem}>
+          <article className={`${styles.faqItem} whiteFrame`}>
             <h2>SHIPPING + DELIVERY</h2>
             <p>
               We will select the best carrier and method of shipping based on the size and weight
@@ -59,7 +59,7 @@ export default function FaqsPage() {
             </p>
           </article>
 
-          <article className={styles.faqItem}>
+          <article className={`${styles.faqItem} whiteFrame`}>
             <h2>RETURN</h2>
             <p>
               All cookies are baked to order and we do not accept returns. As all items are fresh
@@ -75,7 +75,7 @@ export default function FaqsPage() {
             </p>
           </article>
 
-          <article className={styles.faqItem}>
+          <article className={`${styles.faqItem} whiteFrame`}>
             <h2>DAMAGED GOODS</h2>
             <p>
               If in the event our items arrived damaged in transit, it is the customer&apos;s
@@ -84,7 +84,7 @@ export default function FaqsPage() {
             </p>
           </article>
 
-          <article className={styles.faqItem}>
+          <article className={`${styles.faqItem} whiteFrame`}>
             <h2>PRIVACY AND SECURITY</h2>
             <p>
               We are committed to respecting your privacy. We do not sell or disclose our customer

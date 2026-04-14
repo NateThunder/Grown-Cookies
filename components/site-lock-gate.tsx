@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import SiteLockScreen from "@/components/site-lock-screen";
 
 type SiteLockGateProps = {
@@ -15,9 +16,12 @@ export default function SiteLockGate({
   isUnlockedForAdmin,
 }: SiteLockGateProps) {
   const pathname = usePathname() ?? "/";
-  const searchParams = useSearchParams();
-  const currentPath = searchParams?.size ? `${pathname}?${searchParams.toString()}` : pathname;
+  const [currentPath, setCurrentPath] = useState(pathname);
   const shouldGatePublicRoute = enabled && !pathname.startsWith("/admin");
+
+  useEffect(() => {
+    setCurrentPath(`${window.location.pathname}${window.location.search}`);
+  }, [pathname]);
 
   if (shouldGatePublicRoute && !isUnlockedForAdmin) {
     return <SiteLockScreen returnPath={currentPath} />;

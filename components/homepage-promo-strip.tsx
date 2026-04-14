@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ShopProduct } from "@/lib/products";
 import type { HomepageSectionSettings } from "@/lib/store-settings";
+import ShopNowLink from "@/components/shop-now-link";
 import styles from "./homepage-promo-strip.module.css";
 
 type HomepagePromoStripProps = {
@@ -43,19 +44,56 @@ export default function HomepagePromoStrip({
   const cookieOfMonthHeading = localCookieOfMonthProduct?.name ?? "Cookie of the month";
   const cookieOfMonthHeadingClassName =
     localCookieOfMonthProduct?.slug === "dark-choc-maldon-salt" ? styles.singleLineHeading : undefined;
-  const cookieOfMonthBody = getCompactExcerpt(cookieOfMonthSetting.title, 132);
+  const cookieOfMonthBody = getCompactExcerpt(cookieOfMonthSetting.title, 280);
+  const cookieOfMonthImage = localCookieOfMonthProduct?.image ?? "/Double_Choc_Hazelnut/_DSC6200.jpg";
+  const cookieOfMonthImageAlt =
+    localCookieOfMonthProduct?.imageAlt ?? `${cookieOfMonthHeading} cookie stack`;
   const shopPromoParagraphs = [shopIntroSetting.title, shopIntroSetting.body].filter(
     (paragraph) => paragraph.trim().length > 0,
   );
   const brandStoryCaption = getCompactExcerpt(brandStorySetting.body, 156);
 
   return (
-    <section className={styles.section}>
+    <section className={styles.section} aria-labelledby="cookie-of-month-title">
       {showTopCta ? (
-        <Link href="/shop" className={styles.topCta}>
+        <ShopNowLink className={styles.topCta}>
           View flavours
-        </Link>
+        </ShopNowLink>
       ) : null}
+
+      <article className={styles.cookieMonth}>
+        <div className={styles.mediaPanel}>
+          <Image
+            src={cookieOfMonthImage}
+            alt={cookieOfMonthImageAlt}
+            fill
+            sizes="(max-width: 760px) 100vw, 38vw"
+            className={styles.cookieImage}
+          />
+        </div>
+
+        <div className={styles.copyPanel}>
+          <p className={styles.monthEyebrow}>Cookie of the Month</p>
+          <h2 id="cookie-of-month-title" className={cookieOfMonthHeadingClassName}>
+            {cookieOfMonthHeading}
+          </h2>
+          <p className={styles.monthBody}>{cookieOfMonthBody}</p>
+          <Link href={cookieOfMonthHref} className={styles.monthButton}>
+            {cookieOfMonthSetting.ctaLabel}
+          </Link>
+        </div>
+      </article>
+
+      <div className={styles.boxImageWrap}>
+        <Image
+          src="/grown cookie box.png"
+          alt="Open Grown Cookies box with assorted cookies"
+          width={916}
+          height={947}
+          sizes="(max-width: 760px) 88vw, 42vw"
+          className={styles.boxImage}
+        />
+      </div>
 
       <div className={styles.promo}>
         <Image
@@ -68,27 +106,22 @@ export default function HomepagePromoStrip({
         />
 
         <div className={styles.promo__card}>
-          <article className={`${styles.block} ${styles.promo__primary}`}>
-            <p className={styles.eyebrow}>Cookie of the month</p>
-            <h2 className={cookieOfMonthHeadingClassName}>{cookieOfMonthHeading}</h2>
-            <p className={styles.body}>{cookieOfMonthBody}</p>
-            <Link href={cookieOfMonthHref} className={`${styles.button} ${styles.buttonPrimary}`}>
-              {cookieOfMonthSetting.ctaLabel}
-            </Link>
-          </article>
-
-          <article className={`${styles.block} ${styles.secondaryPanel}`}>
-            <p className={styles.eyebrow}>{shopIntroSetting.eyebrow}</p>
-            <div className={styles.textGroup}>
-              {shopPromoParagraphs.map((paragraph) => (
-                <p key={paragraph} className={styles.body}>
-                  {paragraph}
-                </p>
-              ))}
+          <article className={`${styles.block} ${styles.shopPanel}`}>
+            <div className={styles.contentBox}>
+              <div className={styles.copyStack}>
+                <p className={styles.eyebrow}>{shopIntroSetting.eyebrow}</p>
+                <div className={styles.textGroup}>
+                  {shopPromoParagraphs.map((paragraph) => (
+                    <p key={paragraph} className={styles.body}>
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              </div>
+              <ShopNowLink className={`${styles.button} ${styles.buttonSecondary}`}>
+                {shopIntroSetting.ctaLabel}
+              </ShopNowLink>
             </div>
-            <Link href="/shop" className={`${styles.button} ${styles.buttonSecondary}`}>
-              {shopIntroSetting.ctaLabel}
-            </Link>
           </article>
         </div>
       </div>

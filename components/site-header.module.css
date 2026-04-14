@@ -39,6 +39,10 @@
   backdrop-filter: blur(10px);
 }
 
+.header:has(.accountDropdown) {
+  z-index: 1500;
+}
+
 .headerHero .headerInner {
   gap: clamp(1.5rem, 4vw, 4.5rem);
 }
@@ -261,7 +265,7 @@
   box-shadow: var(--public-shadow);
   display: grid;
   gap: 0.3rem;
-  z-index: 50;
+  z-index: 1510;
   backdrop-filter: blur(16px);
 }
 
@@ -275,7 +279,7 @@
   line-height: 1.45;
 }
 
-.accountDropdownLink,
+.accountDropdown .accountDropdownLink,
 .accountDropdownAction {
   display: flex;
   align-items: center;
@@ -288,6 +292,7 @@
   font-family: var(--font-public-ui);
   font-size: 0.88rem;
   font-weight: 700;
+  justify-content: flex-start;
   text-align: left;
   text-decoration: none;
   padding: 0.9rem 0.8rem;
@@ -389,6 +394,28 @@
   color: var(--public-plum-deep);
 }
 
+.mobileMenuAccountGroup {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.45rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid rgba(87, 31, 108, 0.08);
+}
+
+.mobileMenuAccountLabel {
+  padding: 0.4rem 0 0.35rem;
+  color: rgba(53, 20, 63, 0.62);
+  font-family: var(--font-public-ui);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mobileMenuAccountLink {
+  color: var(--public-plum-deep);
+}
+
 .announcement {
   width: 100%;
   text-align: center;
@@ -420,7 +447,7 @@
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 739px) {
   .header {
     padding: 0.9rem 1rem;
   }
@@ -485,4 +512,5 @@
   .desktopSearch {
     display: none;
   }
+
 }

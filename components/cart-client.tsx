@@ -124,11 +124,11 @@ export default function CartClient({
       {showTitle ? <h1>Your basket</h1> : null}
 
       {!hasHydratedBasket ? (
-        <div className={styles.loadingState}>
+        <div className={`${styles.loadingState} whiteFrame`}>
           <p>Loading your basket...</p>
         </div>
       ) : basketItems.length === 0 ? (
-        <div className={styles.emptyState}>
+        <div className={`${styles.emptyState} whiteFrame`}>
           <p>Your basket is empty</p>
           <Link href="/shop" className={styles.shopLink}>
             Continue shopping
@@ -139,13 +139,13 @@ export default function CartClient({
           {quoteError ? <p className={styles.itemPrice}>{quoteError}</p> : null}
 
           {isQuotePending ? (
-            <div className={styles.loadingState}>
+            <div className={`${styles.loadingState} whiteFrame`}>
               <p>Loading basket totals...</p>
             </div>
           ) : (
             <ul className={styles.itemList}>
               {lines.map((item) => (
-                <li key={item.slug} className={styles.item}>
+                <li key={item.slug} className={`${styles.item} whiteFrame`}>
                   <div
                     className={`${styles.itemImageWrap} ${
                       item.isGiftCard ? styles.itemImageWrapGiftCard : ""
@@ -218,7 +218,7 @@ export default function CartClient({
             </ul>
           )}
 
-          <section className={styles.summary}>
+          <section className={`${styles.summary} whiteFrame`}>
             <div className={styles.summaryFooter}>
               <p className={styles.summaryFooterRow}>
                 <span>Subtotal</span>
