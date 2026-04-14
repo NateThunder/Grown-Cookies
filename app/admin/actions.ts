@@ -13,6 +13,11 @@ import {
   setAdminProductHidden,
   updateAdminProduct,
 } from "@/lib/product-admin";
+import {
+  PRODUCT_IMAGE_VARIANT_FIELD_NAMES,
+  PRODUCT_IMAGE_VARIANT_KEYS,
+  type ProductImageVariantMap,
+} from "@/lib/product-image-variants";
 import { markAdminOrderDelivered } from "@/lib/admin-orders";
 import {
   getCookieOfMonthSectionSetting,
@@ -78,6 +83,16 @@ function getMoneyFieldInCents(formData: FormData, key: string) {
 function getImageFile(formData: FormData, key: string) {
   const value = formData.get(key);
   return value instanceof File && value.size > 0 ? value : null;
+}
+
+function getImageVariantFiles(formData: FormData) {
+  const imageVariantFiles: ProductImageVariantMap<File | null> = {};
+
+  for (const variant of PRODUCT_IMAGE_VARIANT_KEYS) {
+    imageVariantFiles[variant] = getImageFile(formData, PRODUCT_IMAGE_VARIANT_FIELD_NAMES[variant]);
+  }
+
+  return imageVariantFiles;
 }
 
 function getAdminReturnPath(value?: string) {
@@ -398,6 +413,7 @@ export async function createProductAction(formData: FormData) {
       featuredPosition: getNumberField(formData, "featuredPosition"),
       sortOrder: getNumberField(formData, "sortOrder"),
       imageFile: getImageFile(formData, "image"),
+      imageVariantFiles: getImageVariantFiles(formData),
       isGiftCard: formData.get("isGiftCard") === "on",
       hidden: formData.get("hidden") === "on",
     });
@@ -444,6 +460,7 @@ export async function updateProductAction(formData: FormData) {
       featuredPosition: getNumberField(formData, "featuredPosition"),
       sortOrder: getNumberField(formData, "sortOrder"),
       imageFile: getImageFile(formData, "image"),
+      imageVariantFiles: getImageVariantFiles(formData),
       isGiftCard: formData.get("isGiftCard") === "on",
       hidden: formData.get("hidden") === "on",
     });

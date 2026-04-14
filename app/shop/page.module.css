@@ -33,7 +33,7 @@
   margin: 0;
   color: var(--public-plum-deep);
   font-family: var(--font-public-display);
-  font-size: clamp(2.25rem, 4.9vw, 4.2rem);
+  font-size: clamp(1.8rem, 3.92vw, 3.36rem);
   font-weight: 700;
   line-height: 0.9;
 }

@@ -5,6 +5,7 @@ import GiftCardTile from "@/components/gift-card-tile";
 import ProductBasketControls from "@/components/product-basket-controls";
 import QuickAddButton from "@/components/quick-add-button";
 import { getAllProducts } from "@/lib/products";
+import { getProductImageForVariant, PRODUCT_IMAGE_VARIANTS } from "@/lib/product-image-variants";
 import SiteHeader from "@/components/site-header";
 import styles from "./page.module.css";
 
@@ -34,6 +35,10 @@ export default async function ProductPage({
     (item) => !item.isGiftCard && item.slug !== product.slug,
   );
   const relatedProducts = [...curatedProducts];
+  const productDetailImage = getProductImageForVariant(
+    product,
+    PRODUCT_IMAGE_VARIANTS.productDetail.key,
+  );
 
   for (const item of fallbackProducts) {
     if (!relatedProducts.some((existing) => existing.slug === item.slug)) {
@@ -54,10 +59,10 @@ export default async function ProductPage({
               src={product.image}
               alt={product.imageAlt ?? product.name}
             />
-          ) : product.image ? (
+          ) : productDetailImage ? (
             <div className={styles.heroImageWrap}>
               <Image
-                src={product.image}
+                src={productDetailImage}
                 alt={product.imageAlt ?? product.name}
                 fill
                 priority
@@ -98,37 +103,41 @@ export default async function ProductPage({
         <h2>You may also like</h2>
 
         <div className={styles.relatedGrid}>
-          {relatedProducts.map((item) => (
-            <article
-              key={item.slug}
-              className={`${styles.relatedCard} whiteFrame ${
-                item.isGiftCard ? styles.giftCardPositioned : ""
-              }`}
-            >
-              <div className={styles.relatedImageWrap}>
-                <Link href={`/shop/${item.slug}`} className={styles.relatedMediaLink}>
-                  {item.isGiftCard ? (
-                    <GiftCardTile
-                      className={styles.relatedGiftCardTile}
-                      src={item.image}
-                      alt={item.imageAlt ?? item.name}
-                    />
-                  ) : item.image ? (
-                    <Image
-                      src={item.image}
-                      alt={item.imageAlt ?? item.name}
-                      fill
-                      className={styles.relatedImage}
-                    />
-                  ) : null}
+          {relatedProducts.map((item) => {
+            const relatedImage = getProductImageForVariant(item, PRODUCT_IMAGE_VARIANTS.shopCard.key);
+
+            return (
+              <article
+                key={item.slug}
+                className={`${styles.relatedCard} whiteFrame ${
+                  item.isGiftCard ? styles.giftCardPositioned : ""
+                }`}
+              >
+                <div className={styles.relatedImageWrap}>
+                  <Link href={`/shop/${item.slug}`} className={styles.relatedMediaLink}>
+                    {item.isGiftCard ? (
+                      <GiftCardTile
+                        className={styles.relatedGiftCardTile}
+                        src={item.image}
+                        alt={item.imageAlt ?? item.name}
+                      />
+                    ) : relatedImage ? (
+                      <Image
+                        src={relatedImage}
+                        alt={item.imageAlt ?? item.name}
+                        fill
+                        className={styles.relatedImage}
+                      />
+                    ) : null}
+                  </Link>
+                  <QuickAddButton product={item} className={styles.relatedQuickAdd} />
+                </div>
+                <Link href={`/shop/${item.slug}`} className={styles.relatedContentLink}>
+                  <h3>{item.name}</h3>
                 </Link>
-                <QuickAddButton product={item} className={styles.relatedQuickAdd} />
-              </div>
-              <Link href={`/shop/${item.slug}`} className={styles.relatedContentLink}>
-                <h3>{item.name}</h3>
-              </Link>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       </section>
     </main>

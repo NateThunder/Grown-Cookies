@@ -3,6 +3,7 @@ import Link from "next/link";
 import QuickAddButton from "@/components/quick-add-button";
 import styles from "./page.module.css";
 import { getAllProducts, type ShopProduct } from "@/lib/products";
+import { getProductImageForVariant, PRODUCT_IMAGE_VARIANTS } from "@/lib/product-image-variants";
 import GiftCardTile from "@/components/gift-card-tile";
 import SiteHeader from "@/components/site-header";
 import ShopSortDropdown from "@/components/shop-sort-dropdown";
@@ -119,6 +120,10 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         <div className={styles.grid}>
           {sortedProducts.map((product, index) => {
             const preloadImage = index < 4;
+            const shopCardImage = getProductImageForVariant(
+              product,
+              PRODUCT_IMAGE_VARIANTS.shopCard.key,
+            );
 
             return (
               <article
@@ -136,9 +141,9 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
                         alt={product.imageAlt ?? product.name}
                         preload={preloadImage}
                       />
-                    ) : product.image ? (
+                    ) : shopCardImage ? (
                       <Image
-                        src={product.image}
+                        src={shopCardImage}
                         alt={product.imageAlt ?? product.name}
                         fill
                         preload={preloadImage}

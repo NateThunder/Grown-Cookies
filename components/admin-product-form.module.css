@@ -158,6 +158,125 @@
   line-height: 1.5;
 }
 
+.cropEditor {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.cropHeader {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.cropHeader h3 {
+  margin: 0;
+  color: #42172e;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: 1.18rem;
+}
+
+.cropHeader p {
+  margin: 0;
+  color: rgba(70, 43, 55, 0.72);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.cropTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.cropTab,
+.secondaryButton {
+  border: 1px solid rgba(118, 26, 108, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #42172e;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  padding: 0.58rem 0.72rem;
+}
+
+.cropTabActive {
+  background: #4d193f;
+  border-color: #4d193f;
+  color: #ffffff;
+}
+
+.cropCanvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: none;
+  cursor: grab;
+}
+
+.cropPreviewFrame {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  width: 100%;
+}
+
+.drawerForm .cropPreviewFrame,
+.modalForm .cropPreviewFrame {
+  min-height: 0;
+}
+
+.cropPreviewFrame .cropCanvas {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.cropControls label {
+  display: grid;
+  gap: 0.45rem;
+  color: #4b2337;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.cropControls input {
+  width: 100%;
+}
+
+.cropActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.cropStatus {
+  margin: 0;
+  color: rgba(70, 43, 55, 0.78);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.cropApplyButton {
+  border: 0;
+  border-radius: 8px;
+  background: #6c1d58;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  padding: 0.58rem 0.72rem;
+}
+
+.cropApplyButton:disabled {
+  cursor: progress;
+  opacity: 0.72;
+}
+
 .fieldsColumn {
   display: grid;
   gap: 1rem;

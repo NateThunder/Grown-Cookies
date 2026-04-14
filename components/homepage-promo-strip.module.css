@@ -120,7 +120,7 @@
   margin: 0;
   color: var(--public-plum-deep);
   font-family: var(--font-public-display);
-  font-size: clamp(1.25rem, 2.1vw, 1.95rem);
+  font-size: clamp(1rem, 1.68vw, 1.56rem);
   font-weight: 700;
   line-height: 1;
 }
@@ -130,7 +130,7 @@
   max-width: 12ch;
   color: #50146b;
   font-family: var(--font-public-display);
-  font-size: clamp(2.25rem, 4.7vw, 4.65rem);
+  font-size: clamp(1.8rem, 3.76vw, 3.72rem);
   line-height: 0.9;
   font-weight: 700;
   letter-spacing: 0;
@@ -139,7 +139,7 @@
 
 .copyPanel h2.singleLineHeading {
   max-width: 14ch;
-  font-size: clamp(2rem, 4vw, 3.8rem);
+  font-size: clamp(1.6rem, 3.2vw, 3.04rem);
   line-height: 0.95;
 }
 
@@ -518,11 +518,11 @@
   }
 
   .monthEyebrow {
-    font-size: 1.2rem;
+    font-size: 0.96rem;
   }
 
   .copyPanel h2 {
-    font-size: clamp(2rem, 10vw, 2.75rem);
+    font-size: clamp(1.6rem, 8vw, 2.2rem);
     line-height: 0.95;
   }
 
