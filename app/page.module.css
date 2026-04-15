@@ -98,7 +98,7 @@
   color: #fff8f1;
   font-family: var(--font-public-display);
   font-size: clamp(4.35rem, 8.6vw, 7.75rem);
-  line-height: 0.98;
+  line-height: 0.88;
   font-weight: 500;
   letter-spacing: 0;
   text-wrap: wrap;
@@ -673,7 +673,7 @@
 
   .heroTitle {
     font-size: clamp(3rem, 11vw, 4.2rem);
-    line-height: 0.98;
+    line-height: 0.88;
   }
 
   .heroBody {
@@ -752,7 +752,7 @@
 @media (max-width: 379px) {
   .heroTitle {
     font-size: clamp(2.2rem, 11.5vw, 3.2rem);
-    line-height: 0.98;
+    line-height: 0.88;
   }
 
   .heroBody {

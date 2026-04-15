@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { parseQuoteItems, parseQuoteTip } from "@/lib/checkout-quote";
+import { buildCheckoutQuote, parseQuoteItems, parseQuoteTip } from "@/lib/checkout-quote";
 import { getAuthenticatedSupabaseUser } from "@/lib/account-auth";
 import { consumeCheckoutAttempt } from "@/lib/checkout-attempt-throttle";
 import { ensureCustomerProfileForUser } from "@/lib/customer-profiles";
@@ -198,7 +198,9 @@ function getContactFromSources(
 function getDeliveryFromSources(
   paymentDelivery: CheckoutDeliveryPayload,
   fallbackDelivery: CheckoutDeliveryPayload,
+  options: { requiresDelivery?: boolean } = {},
 ): StripeCheckoutDeliveryInput {
+  const requiresDelivery = options.requiresDelivery !== false;
   const rawCountry =
     normalizeText(paymentDelivery?.country) || normalizeText(fallbackDelivery?.country);
   const rawFullName = normalizeText(paymentDelivery?.fullName) || normalizeText(fallbackDelivery?.fullName);
@@ -213,6 +215,10 @@ function getDeliveryFromSources(
     postcode: normalizeText(paymentDelivery?.postcode) || normalizeText(fallbackDelivery?.postcode),
     country: rawCountry ? requireSupportedCountry(rawCountry) : "",
   };
+
+  if (!requiresDelivery) {
+    return delivery;
+  }
 
   if (
     !rawFullName ||
@@ -254,6 +260,8 @@ export async function POST(request: Request) {
 
     const items = parseItems(body.items);
     const tip = parseQuoteTip(body.tip);
+    const quote = await buildCheckoutQuote({ items, tip });
+    const requiresDelivery = quote.lines.some((line) => !line.isGiftCard);
     const returnUrlBase = getRequestOrigin(request);
     const savePaymentMethod = body.savePaymentMethod === true;
     const stripe = getStripeClient();
@@ -263,12 +271,15 @@ export async function POST(request: Request) {
     const paymentDelivery = parseCheckoutDelivery(body.paymentDelivery);
     const authenticatedUserPromise = getAuthenticatedSupabaseUser(request);
     const contact = getContactFromSources(paymentContact, fallbackContact);
-    const delivery = getDeliveryFromSources(paymentDelivery, fallbackDelivery);
+    const delivery = getDeliveryFromSources(paymentDelivery, fallbackDelivery, {
+      requiresDelivery,
+    });
 
     logCheckoutServerEvent(attemptId, "confirm-payment.details", "resolved", {
       hasConfirmationToken: Boolean(confirmationTokenId),
       hasPaymentContact: Boolean(paymentContact.email || paymentContact.phone),
       hasPaymentDelivery: Boolean(paymentDelivery),
+      requiresDelivery,
       usingSavedPaymentMethod: Boolean(savedPaymentMethodId),
     });
 

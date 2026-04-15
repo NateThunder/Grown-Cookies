@@ -23,7 +23,7 @@ function getSearchParamValue(value: SearchParamValue) {
 }
 
 async function reconcileOrderConfirmationEmail(orderId: string | null, paymentIntentId: string | null) {
-  if (!orderId || !paymentIntentId || !isOrderNotificationEmailConfigured()) {
+  if (!orderId || !paymentIntentId) {
     return false;
   }
 

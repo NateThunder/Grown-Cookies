@@ -119,10 +119,24 @@ function getBasketFingerprint(items: BasketStoredItem[]) {
     .map((item) => ({
       slug: normalizeText(item.slug),
       quantity: Number.isFinite(item.quantity) ? item.quantity : 0,
+      giftCardAmountCents: Number.isFinite(item.giftCardAmountCents)
+        ? item.giftCardAmountCents
+        : 0,
     }))
     .filter((item) => item.slug && item.quantity > 0)
-    .sort((left, right) => left.slug.localeCompare(right.slug) || left.quantity - right.quantity)
-    .map((item) => `${item.slug}:${item.quantity}`)
+    .sort(
+      (left, right) =>
+        left.slug.localeCompare(right.slug) ||
+        (left.giftCardAmountCents ?? 0) - (right.giftCardAmountCents ?? 0) ||
+        left.quantity - right.quantity,
+    )
+    .map((item) => {
+      const giftCardAmountCents = item.giftCardAmountCents ?? 0;
+
+      return giftCardAmountCents > 0
+        ? `${item.slug}:${giftCardAmountCents}:1`
+        : `${item.slug}:${item.quantity}`;
+    })
     .join("|");
 }
 

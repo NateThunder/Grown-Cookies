@@ -91,6 +91,7 @@ export default function AdminProductForm({
             required={isCreateMode && uploadEnabled}
             disabled={!uploadEnabled}
             canCropCurrentImage={!isCreateMode && Boolean(product?.imageUrl)}
+            initialCropStates={product?.imageVariantCropStates}
           />
 
           <div className={styles.fieldsColumn}>
@@ -106,7 +107,7 @@ export default function AdminProductForm({
             </label>
 
             <label className={styles.field}>
-              <span>Price (GBP)</span>
+              <span>Price (£)</span>
               <input
                 type="number"
                 name="priceValue"

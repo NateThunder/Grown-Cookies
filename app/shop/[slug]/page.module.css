@@ -213,6 +213,7 @@
 }
 
 .relatedMediaLink {
+  position: relative;
   width: 100%;
   height: 100%;
 }
@@ -287,6 +288,14 @@
   font-size: 1.35rem;
   font-weight: 700;
   line-height: 1;
+}
+
+.relatedCard p {
+  margin: 0.4rem 0 0;
+  color: var(--public-ink);
+  font-family: var(--font-public-ui);
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
 @media (max-width: 980px) {

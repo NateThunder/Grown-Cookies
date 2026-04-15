@@ -2,9 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 import QuickAddButton from "@/components/quick-add-button";
 import styles from "./page.module.css";
+import { MIN_GIFT_CARD_AMOUNT_CENTS, formatGiftCardAmount } from "@/lib/gift-card-amounts";
 import { getAllProducts, type ShopProduct } from "@/lib/products";
 import { getProductImageForVariant, PRODUCT_IMAGE_VARIANTS } from "@/lib/product-image-variants";
-import GiftCardTile from "@/components/gift-card-tile";
 import SiteHeader from "@/components/site-header";
 import ShopSortDropdown from "@/components/shop-sort-dropdown";
 
@@ -40,6 +40,8 @@ const SORT_OPTIONS: SortOption[] = [
   { value: "created-descending", label: "Date, new to old" },
 ];
 
+const GIFT_CARD_FRAME_IMAGE = "/gift card frame.png";
+
 function getFirstValue(value: SearchParamValue) {
   return Array.isArray(value) ? value[0] : value;
 }
@@ -48,6 +50,10 @@ function parsePrice(price: string) {
   const normalized = price.replace(/[^0-9.]/g, "");
   const parsed = Number.parseFloat(normalized);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getSortablePrice(product: ShopProduct) {
+  return product.isGiftCard ? MIN_GIFT_CARD_AMOUNT_CENTS / 100 : parsePrice(product.price);
 }
 
 function parseDate(value?: string) {
@@ -69,9 +75,9 @@ function sortProducts(products: ShopProduct[], sort: ShopSortValue) {
       case "title-descending":
         return right.name.localeCompare(left.name);
       case "price-ascending":
-        return parsePrice(left.price) - parsePrice(right.price) || left.name.localeCompare(right.name);
+        return getSortablePrice(left) - getSortablePrice(right) || left.name.localeCompare(right.name);
       case "price-descending":
-        return parsePrice(right.price) - parsePrice(left.price) || left.name.localeCompare(right.name);
+        return getSortablePrice(right) - getSortablePrice(left) || left.name.localeCompare(right.name);
       case "created-ascending":
         return parseDate(left.createdAt) - parseDate(right.createdAt) || left.name.localeCompare(right.name);
       case "created-descending":
@@ -135,11 +141,13 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
                 <div className={styles.cardImageWrap}>
                   <Link href={`/shop/${product.slug}`} className={styles.cardMediaLink}>
                     {product.isGiftCard ? (
-                      <GiftCardTile
-                        className={styles.giftCardTile}
-                        src={product.image}
+                      <Image
+                        src={GIFT_CARD_FRAME_IMAGE}
                         alt={product.imageAlt ?? product.name}
+                        fill
                         preload={preloadImage}
+                        sizes="(max-width: 520px) 100vw, (max-width: 760px) 50vw, (max-width: 1080px) 33vw, 25vw"
+                        className={styles.cardImage}
                       />
                     ) : shopCardImage ? (
                       <Image
@@ -156,7 +164,11 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
                 </div>
                 <Link href={`/shop/${product.slug}`} className={styles.cardContentLink}>
                   <h3>{product.name}</h3>
-                  <p>{product.price}</p>
+                  <p>
+                    {product.isGiftCard
+                      ? `From ${formatGiftCardAmount(MIN_GIFT_CARD_AMOUNT_CENTS)}`
+                      : product.price}
+                  </p>
                 </Link>
               </article>
             );

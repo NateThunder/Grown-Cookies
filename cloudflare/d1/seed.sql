@@ -12,7 +12,7 @@ INSERT OR REPLACE INTO products (
   (
     'dark-choc-maldon-salt',
     'Dark Chocolate Maldon Salt',
-    'GBP 23.00',
+    '£23.00',
     'Indulge in the rich decadence of our Dark Choc & Maldon Salt Cookie. Bursting with delicious 70% dark chocolate and a touch of milk chocolate, this elevated treat is finished with Maldon salt for a deep, balanced bite.',
     'wheat, milk, eggs',
     0,
@@ -23,7 +23,7 @@ INSERT OR REPLACE INTO products (
   (
     'double-chocolate-hazelnut',
     'Double Chocolate & Hazelnut',
-    'GBP 23.00',
+    '£23.00',
     'Our Chocolate & Hazelnut Cookie is packed with milk and dark chocolate chips, plus roasted hazelnuts for a cookie that lands rich, smooth, and crunchy in every bite.',
     'wheat, milk, eggs, hazelnuts',
     0,
@@ -34,7 +34,7 @@ INSERT OR REPLACE INTO products (
   (
     'gift-card',
     'Gift Card',
-    'GBP 10.00',
+    '£10.00',
     'Send a Grown Cookies gift card and let them choose their own flavour favourites. Perfect for birthdays, celebrations, and thoughtful surprises.',
     '',
     1,
@@ -45,7 +45,7 @@ INSERT OR REPLACE INTO products (
   (
     'granola-raisin',
     'Crunchy Granola & Raisin',
-    'GBP 22.00',
+    '£22.00',
     'A hearty oat cookie loaded with toasted granola clusters, juicy raisins, cranberries, and seeds for a warm, nostalgic bite with plenty of texture.',
     'wheat, milk, eggs, almond',
     0,
@@ -56,7 +56,7 @@ INSERT OR REPLACE INTO products (
   (
     'matcha-white-chocolate',
     'Matcha White Chocolate',
-    'GBP 23.00',
+    '£23.00',
     'Ceremonial-grade matcha brings earthy depth while creamy white chocolate keeps every bite smooth, sweet, and vibrant.',
     'wheat, milk, eggs',
     0,
@@ -67,7 +67,7 @@ INSERT OR REPLACE INTO products (
   (
     'red-velvet',
     'Red Velvet',
-    'GBP 22.00',
+    '£22.00',
     'A rich red velvet cookie with real cocoa and creamy white chocolate chunks, baked for a bold dessert-style finish.',
     'wheat, milk, eggs',
     0,
@@ -78,7 +78,7 @@ INSERT OR REPLACE INTO products (
   (
     'double-choc-box',
     'Variety Box',
-    'GBP 24.00',
+    '£24.00',
     'Try the full range in one box. This six-cookie selection includes matcha white chocolate, crunchy granola and raisin, dark chocolate Maldon salt, red velvet, double chocolate hazelnut, and the cookie of the month.',
     'wheat, milk, eggs, almond, hazelnuts, soya',
     0,

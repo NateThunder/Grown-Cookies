@@ -7,7 +7,7 @@ import { addToBasket } from "@/lib/basket-storage";
 import type { ShopProduct } from "@/lib/products";
 
 type QuickAddButtonProps = {
-  product: Pick<ShopProduct, "slug" | "name">;
+  product: Pick<ShopProduct, "slug" | "name" | "isGiftCard">;
   className?: string;
   compact?: boolean;
 };
@@ -31,6 +31,11 @@ export default function QuickAddButton({
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
+
+    if (product.isGiftCard) {
+      window.location.assign(`/shop/${product.slug}`);
+      return;
+    }
 
     addToBasket(product.slug, 1);
     event.currentTarget.blur();

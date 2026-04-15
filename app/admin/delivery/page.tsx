@@ -83,7 +83,7 @@ export default async function DeliveryAdminPage({ searchParams }: DeliveryAdminP
                   <label className={styles.deliveryField}>
                     <span>Standard delivery fee</span>
                     <div className={styles.deliveryInputWrap}>
-                      <span>GBP</span>
+                      <span>£</span>
                       <input
                         name="deliveryCostValue"
                         type="text"

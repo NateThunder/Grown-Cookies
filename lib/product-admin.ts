@@ -6,6 +6,7 @@ import {
   PRIMARY_PRODUCT_IMAGE_VARIANT,
   PRODUCT_IMAGE_VARIANT_KEYS,
   PRODUCT_IMAGE_VARIANTS,
+  type ProductImageCropState,
   type ProductImageVariantMap,
 } from "./product-image-variants";
 
@@ -27,9 +28,21 @@ type AdminProductRow = {
   image_key: string | null;
   alt_text: string | null;
   homepage_polaroid_image_key: string | null;
+  homepage_polaroid_crop_pan_x: number | null;
+  homepage_polaroid_crop_pan_y: number | null;
+  homepage_polaroid_crop_zoom: number | null;
   cookie_month_image_key: string | null;
+  cookie_month_crop_pan_x: number | null;
+  cookie_month_crop_pan_y: number | null;
+  cookie_month_crop_zoom: number | null;
   shop_card_image_key: string | null;
+  shop_card_crop_pan_x: number | null;
+  shop_card_crop_pan_y: number | null;
+  shop_card_crop_zoom: number | null;
   product_detail_image_key: string | null;
+  product_detail_crop_pan_x: number | null;
+  product_detail_crop_pan_y: number | null;
+  product_detail_crop_zoom: number | null;
 };
 
 type ColumnInfo = {
@@ -54,6 +67,7 @@ export type AdminProduct = {
   imageUrl?: string;
   imageVariantKeys?: ProductImageVariantMap<string>;
   imageVariantUrls?: ProductImageVariantMap<string>;
+  imageVariantCropStates?: ProductImageVariantMap<ProductImageCropState>;
   imageAlt: string;
   isGiftCard: boolean;
   hidden: boolean;
@@ -70,6 +84,7 @@ export type AdminProductInput = {
   sortOrder: number;
   imageFile?: File | null;
   imageVariantFiles?: ProductImageVariantMap<File | null>;
+  imageVariantCropStates?: ProductImageVariantMap<ProductImageCropState>;
   isGiftCard?: boolean;
   hidden?: boolean;
 };
@@ -93,12 +108,36 @@ const ADMIN_PRODUCT_SELECT = `SELECT
   pi.alt_text,
   (SELECT image_key FROM product_image_variants WHERE product_id = p.id AND variant = 'homepage_polaroid' LIMIT 1)
     AS homepage_polaroid_image_key,
+  (SELECT crop_pan_x FROM product_image_variants WHERE product_id = p.id AND variant = 'homepage_polaroid' LIMIT 1)
+    AS homepage_polaroid_crop_pan_x,
+  (SELECT crop_pan_y FROM product_image_variants WHERE product_id = p.id AND variant = 'homepage_polaroid' LIMIT 1)
+    AS homepage_polaroid_crop_pan_y,
+  (SELECT crop_zoom FROM product_image_variants WHERE product_id = p.id AND variant = 'homepage_polaroid' LIMIT 1)
+    AS homepage_polaroid_crop_zoom,
   (SELECT image_key FROM product_image_variants WHERE product_id = p.id AND variant = 'cookie_month' LIMIT 1)
     AS cookie_month_image_key,
+  (SELECT crop_pan_x FROM product_image_variants WHERE product_id = p.id AND variant = 'cookie_month' LIMIT 1)
+    AS cookie_month_crop_pan_x,
+  (SELECT crop_pan_y FROM product_image_variants WHERE product_id = p.id AND variant = 'cookie_month' LIMIT 1)
+    AS cookie_month_crop_pan_y,
+  (SELECT crop_zoom FROM product_image_variants WHERE product_id = p.id AND variant = 'cookie_month' LIMIT 1)
+    AS cookie_month_crop_zoom,
   (SELECT image_key FROM product_image_variants WHERE product_id = p.id AND variant = 'shop_card' LIMIT 1)
     AS shop_card_image_key,
+  (SELECT crop_pan_x FROM product_image_variants WHERE product_id = p.id AND variant = 'shop_card' LIMIT 1)
+    AS shop_card_crop_pan_x,
+  (SELECT crop_pan_y FROM product_image_variants WHERE product_id = p.id AND variant = 'shop_card' LIMIT 1)
+    AS shop_card_crop_pan_y,
+  (SELECT crop_zoom FROM product_image_variants WHERE product_id = p.id AND variant = 'shop_card' LIMIT 1)
+    AS shop_card_crop_zoom,
   (SELECT image_key FROM product_image_variants WHERE product_id = p.id AND variant = 'product_detail' LIMIT 1)
-    AS product_detail_image_key
+    AS product_detail_image_key,
+  (SELECT crop_pan_x FROM product_image_variants WHERE product_id = p.id AND variant = 'product_detail' LIMIT 1)
+    AS product_detail_crop_pan_x,
+  (SELECT crop_pan_y FROM product_image_variants WHERE product_id = p.id AND variant = 'product_detail' LIMIT 1)
+    AS product_detail_crop_pan_y,
+  (SELECT crop_zoom FROM product_image_variants WHERE product_id = p.id AND variant = 'product_detail' LIMIT 1)
+    AS product_detail_crop_zoom
 FROM products p
 LEFT JOIN featured_products fp
   ON fp.product_slug = p.slug
@@ -175,12 +214,46 @@ async function ensureAdminSchema() {
            variant TEXT NOT NULL,
            image_key TEXT NOT NULL,
            alt_text TEXT,
+           crop_pan_x REAL NOT NULL DEFAULT 0,
+           crop_pan_y REAL NOT NULL DEFAULT 0,
+           crop_zoom REAL NOT NULL DEFAULT 1,
            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
            PRIMARY KEY (product_id, variant),
            FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
          )`,
       );
+
+      const imageVariantColumns = await queryCloudflareD1<ColumnInfo>(
+        "PRAGMA table_info(product_image_variants)",
+        [],
+        { cache: "no-store" },
+      );
+
+      for (const column of [
+        {
+          name: "crop_pan_x",
+          sql: "ALTER TABLE product_image_variants ADD COLUMN crop_pan_x REAL NOT NULL DEFAULT 0",
+        },
+        {
+          name: "crop_pan_y",
+          sql: "ALTER TABLE product_image_variants ADD COLUMN crop_pan_y REAL NOT NULL DEFAULT 0",
+        },
+        {
+          name: "crop_zoom",
+          sql: "ALTER TABLE product_image_variants ADD COLUMN crop_zoom REAL NOT NULL DEFAULT 1",
+        },
+      ]) {
+        if (!imageVariantColumns.some((existingColumn) => existingColumn.name === column.name)) {
+          try {
+            await executeCloudflareD1(column.sql);
+          } catch (error) {
+            if (!(error instanceof Error) || !/duplicate column name/i.test(error.message)) {
+              throw error;
+            }
+          }
+        }
+      }
 
       await executeCloudflareD1(
         `CREATE INDEX IF NOT EXISTS idx_product_image_variants_product_id
@@ -264,7 +337,14 @@ function formatPriceFromValue(value: string) {
     throw new Error("Enter a valid price.");
   }
 
-  return `GBP ${parsed.toFixed(2)}`;
+  return `£${parsed.toFixed(2)}`;
+}
+
+function formatProductPriceLabel(price: string) {
+  const normalized = price.trim();
+  const amount = normalized.replace(/^(?:GBP|£)\s*/i, "").trim();
+
+  return amount ? `£${amount}` : normalized;
 }
 
 function splitLegacyDescription(rawDescription: string, rawAllergens: string | null) {
@@ -309,6 +389,62 @@ function mapVariantImageKeys(row: AdminProductRow) {
   return Object.values(imageVariantKeys).some(Boolean) ? imageVariantKeys : undefined;
 }
 
+function getRowCropState(
+  row: AdminProductRow,
+  prefix: "homepage_polaroid" | "cookie_month" | "shop_card" | "product_detail",
+) {
+  const rawPanX = row[`${prefix}_crop_pan_x`];
+  const rawPanY = row[`${prefix}_crop_pan_y`];
+  const rawZoom = row[`${prefix}_crop_zoom`];
+
+  if (rawPanX === null || rawPanY === null || rawZoom === null) {
+    return undefined;
+  }
+
+  const panX = Number(rawPanX);
+  const panY = Number(rawPanY);
+  const zoom = Number(rawZoom);
+
+  if (!Number.isFinite(panX) || !Number.isFinite(panY) || !Number.isFinite(zoom)) {
+    return undefined;
+  }
+
+  return {
+    panX: Number(panX),
+    panY: Number(panY),
+    zoom: Number(zoom),
+  };
+}
+
+function mapVariantCropStates(row: AdminProductRow) {
+  const imageVariantCropStates: ProductImageVariantMap<ProductImageCropState> = {};
+  const homepagePolaroidCropState = getRowCropState(row, "homepage_polaroid");
+  const cookieMonthCropState = getRowCropState(row, "cookie_month");
+  const shopCardCropState = getRowCropState(row, "shop_card");
+  const productDetailCropState = getRowCropState(row, "product_detail");
+
+  if (homepagePolaroidCropState) {
+    imageVariantCropStates[PRODUCT_IMAGE_VARIANTS.homepagePolaroid.key] =
+      homepagePolaroidCropState;
+  }
+
+  if (cookieMonthCropState) {
+    imageVariantCropStates[PRODUCT_IMAGE_VARIANTS.cookieMonth.key] = cookieMonthCropState;
+  }
+
+  if (shopCardCropState) {
+    imageVariantCropStates[PRODUCT_IMAGE_VARIANTS.shopCard.key] = shopCardCropState;
+  }
+
+  if (productDetailCropState) {
+    imageVariantCropStates[PRODUCT_IMAGE_VARIANTS.productDetail.key] = productDetailCropState;
+  }
+
+  return Object.values(imageVariantCropStates).some(Boolean)
+    ? imageVariantCropStates
+    : undefined;
+}
+
 function mapVariantImageUrls(imageVariantKeys?: ProductImageVariantMap<string>) {
   if (!imageVariantKeys) {
     return undefined;
@@ -330,12 +466,13 @@ function mapVariantImageUrls(imageVariantKeys?: ProductImageVariantMap<string>) 
 function mapRowToAdminProduct(row: AdminProductRow): AdminProduct {
   const normalizedCopy = splitLegacyDescription(row.description, row.allergens);
   const imageVariantKeys = mapVariantImageKeys(row);
+  const imageVariantCropStates = mapVariantCropStates(row);
 
   return {
     id: row.id,
     slug: row.slug,
     name: row.name,
-    price: row.price,
+    price: formatProductPriceLabel(row.price),
     priceValue: parsePriceToValue(row.price),
     description: normalizedCopy.description,
     allergens: normalizedCopy.allergens,
@@ -349,6 +486,7 @@ function mapRowToAdminProduct(row: AdminProductRow): AdminProduct {
     imageUrl: buildProductImageUrl(row.image_key),
     imageVariantKeys,
     imageVariantUrls: mapVariantImageUrls(imageVariantKeys),
+    imageVariantCropStates,
     imageAlt: row.alt_text ?? `${row.name} product image`,
     isGiftCard: Boolean(row.is_gift_card),
     hidden: Boolean(row.hidden),
@@ -467,17 +605,31 @@ function hasImageVariantFiles(imageVariantFiles?: ProductImageVariantMap<File | 
   });
 }
 
+function normalizeCropValue(value: number, fallback: number) {
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeCropState(cropState?: ProductImageCropState) {
+  return {
+    panX: normalizeCropValue(cropState?.panX ?? 0, 0),
+    panY: normalizeCropValue(cropState?.panY ?? 0, 0),
+    zoom: Math.max(1, normalizeCropValue(cropState?.zoom ?? 1, 1)),
+  };
+}
+
 async function upsertProductImageVariants({
   productId,
   productSlug,
   productName,
   imageVariantFiles,
+  imageVariantCropStates,
   preUploadedKeys = {},
 }: {
   productId: number;
   productSlug: string;
   productName: string;
   imageVariantFiles?: ProductImageVariantMap<File | null>;
+  imageVariantCropStates?: ProductImageVariantMap<ProductImageCropState>;
   preUploadedKeys?: ProductImageVariantMap<string>;
 }) {
   const altText = `${productName} product image`;
@@ -492,6 +644,7 @@ async function upsertProductImageVariants({
 
     const imageKey =
       preUploadedKey ?? (await uploadProductImageToR2(productSlug, imageFile as File)).key;
+    const cropState = normalizeCropState(imageVariantCropStates?.[variant]);
 
     await executeCloudflareD1(
       `INSERT INTO product_image_variants (
@@ -499,14 +652,20 @@ async function upsertProductImageVariants({
          variant,
          image_key,
          alt_text,
+         crop_pan_x,
+         crop_pan_y,
+         crop_zoom,
          created_at,
          updated_at
-       ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
        ON CONFLICT(product_id, variant) DO UPDATE SET
          image_key = excluded.image_key,
          alt_text = excluded.alt_text,
+         crop_pan_x = excluded.crop_pan_x,
+         crop_pan_y = excluded.crop_pan_y,
+         crop_zoom = excluded.crop_zoom,
          updated_at = CURRENT_TIMESTAMP`,
-      [productId, variant, imageKey, altText],
+      [productId, variant, imageKey, altText, cropState.panX, cropState.panY, cropState.zoom],
     );
   }
 }
@@ -773,6 +932,7 @@ export async function createAdminProduct(input: AdminProductInput) {
         productSlug: slug,
         productName: name,
         imageVariantFiles: input.imageVariantFiles,
+        imageVariantCropStates: input.imageVariantCropStates,
         preUploadedKeys: primaryImageKey
           ? { [PRIMARY_PRODUCT_IMAGE_VARIANT]: primaryImageKey }
           : undefined,
@@ -863,6 +1023,7 @@ export async function updateAdminProduct(input: AdminProductInput) {
         productSlug: existingProduct.slug,
         productName: name,
         imageVariantFiles: input.imageVariantFiles,
+        imageVariantCropStates: input.imageVariantCropStates,
         preUploadedKeys: primaryImageKey
           ? { [PRIMARY_PRODUCT_IMAGE_VARIANT]: primaryImageKey }
           : undefined,

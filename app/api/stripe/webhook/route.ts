@@ -2,7 +2,6 @@ import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import {
   ensurePaidOrderEmails,
-  isOrderNotificationEmailConfigured,
 } from "@/lib/order-notifications";
 import {
   STRIPE_CHECKOUT_ORDER_STATUS,
@@ -78,7 +77,7 @@ export async function POST(request: Request) {
       if (event.type === "payment_intent.succeeded") {
         const orderPublicId = paymentIntent.metadata?.orderId ?? "";
 
-        if (orderPublicId && isOrderNotificationEmailConfigured()) {
+        if (orderPublicId) {
           try {
             await ensurePaidOrderEmails(orderPublicId);
           } catch (error) {

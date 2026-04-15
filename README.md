@@ -2,9 +2,13 @@
 
 A custom Next.js storefront for Grown Cookies with product discovery, basket and Stripe checkout, customer accounts, and a lightweight admin studio.
 
-![Homepage screenshot](docs/screenshots/homepage.png)
+![Grown Cookies homepage](<public/growncookies.co.uk_ (1).png>)
 
 *Homepage hero and featured products from the current storefront UI.*
+
+Grown Cookies is a website for a cookie store built to feel warm, easy to use, and enjoyable to browse. The aim is to make the product feel tempting from the first screen, with an interactive UI that encourages people to click, explore flavours, add items to their basket, and complete checkout without friction.
+
+The site focuses on pretty, responsive UI design that supports the buying journey rather than getting in the way of it. It uses Next.js, React, TypeScript, Supabase, Stripe, Cloudflare D1, and Cloudflare R2 to combine a polished storefront with practical ecommerce features.
 
 ## Highlights
 

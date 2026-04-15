@@ -238,6 +238,19 @@
   font-weight: 700;
 }
 
+.giftCardRemoveButton {
+  min-height: 2.6rem;
+  border: 1px solid rgba(87, 31, 108, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--public-ink);
+  cursor: pointer;
+  font-family: var(--font-public-ui);
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 0 1rem;
+}
+
 .summary {
   margin-top: auto;
   padding: 1.2rem;

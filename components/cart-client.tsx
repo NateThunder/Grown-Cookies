@@ -7,10 +7,11 @@ import {
   BASKET_UPDATED_EVENT,
   clearBasket,
   getBasket,
-  removeFromBasket,
-  setBasketQuantity,
+  removeBasketLine,
+  setBasketLineQuantity,
 } from "@/lib/basket-storage";
 import { formatPriceFromCents, type BasketQuote, type BasketStoredItem } from "@/lib/basket";
+import { formatGiftCardAmount } from "@/lib/gift-card-amounts";
 import GiftCardTile from "@/components/gift-card-tile";
 import styles from "@/components/cart-client.module.css";
 
@@ -100,13 +101,13 @@ export default function CartClient({
     };
   }, [basketItems]);
 
-  const handleQuantityChange = (slug: string, nextQuantity: number) => {
-    setBasketQuantity(slug, nextQuantity);
+  const handleQuantityChange = (lineId: string, nextQuantity: number) => {
+    setBasketLineQuantity(lineId, nextQuantity);
     setBasketItems(getBasket());
   };
 
-  const handleRemove = (slug: string) => {
-    removeFromBasket(slug);
+  const handleRemove = (lineId: string) => {
+    removeBasketLine(lineId);
     setBasketItems(getBasket());
   };
 
@@ -145,7 +146,7 @@ export default function CartClient({
           ) : (
             <ul className={styles.itemList}>
               {lines.map((item) => (
-                <li key={item.slug} className={`${styles.item} whiteFrame`}>
+                <li key={item.lineId} className={`${styles.item} whiteFrame`}>
                   <div
                     className={`${styles.itemImageWrap} ${
                       item.isGiftCard ? styles.itemImageWrapGiftCard : ""
@@ -175,42 +176,55 @@ export default function CartClient({
                     <div className={styles.itemCopy}>
                       <h2>{item.name}</h2>
                       <p className={styles.itemPrice}>
-                        {formatPriceFromCents(item.unitPriceCents)}
+                        {item.isGiftCard
+                          ? `Gift card value: ${formatGiftCardAmount(item.unitPriceCents)}`
+                          : formatPriceFromCents(item.unitPriceCents)}
                       </p>
                     </div>
 
                     <div className={styles.itemActions}>
-                      <div className={styles.controlGroup}>
+                      {item.isGiftCard ? (
                         <button
                           type="button"
-                          className={`${styles.controlButton} ${styles.quantityButton}`.trim()}
-                          aria-label={`Decrease ${item.name}`}
-                          disabled={item.quantity <= 1}
-                          onClick={() => handleQuantityChange(item.slug, item.quantity - 1)}
-                        >
-                          -
-                        </button>
-
-                        <span className={styles.controlValue}>{item.quantity}</span>
-
-                        <button
-                          type="button"
-                          className={`${styles.controlButton} ${styles.quantityButton}`.trim()}
-                          aria-label={`Increase ${item.name}`}
-                          onClick={() => handleQuantityChange(item.slug, item.quantity + 1)}
-                        >
-                          +
-                        </button>
-
-                        <button
-                          type="button"
-                          className={`${styles.controlButton} ${styles.removeButton}`.trim()}
+                          className={styles.giftCardRemoveButton}
                           aria-label={`Remove ${item.name}`}
-                          onClick={() => handleRemove(item.slug)}
+                          onClick={() => handleRemove(item.lineId)}
                         >
                           Remove
                         </button>
-                      </div>
+                      ) : (
+                        <div className={styles.controlGroup}>
+                          <button
+                            type="button"
+                            className={`${styles.controlButton} ${styles.quantityButton}`.trim()}
+                            aria-label={`Decrease ${item.name}`}
+                            disabled={item.quantity <= 1}
+                            onClick={() => handleQuantityChange(item.lineId, item.quantity - 1)}
+                          >
+                            -
+                          </button>
+
+                          <span className={styles.controlValue}>{item.quantity}</span>
+
+                          <button
+                            type="button"
+                            className={`${styles.controlButton} ${styles.quantityButton}`.trim()}
+                            aria-label={`Increase ${item.name}`}
+                            onClick={() => handleQuantityChange(item.lineId, item.quantity + 1)}
+                          >
+                            +
+                          </button>
+
+                          <button
+                            type="button"
+                            className={`${styles.controlButton} ${styles.removeButton}`.trim()}
+                            aria-label={`Remove ${item.name}`}
+                            onClick={() => handleRemove(item.lineId)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </li>

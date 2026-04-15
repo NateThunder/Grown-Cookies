@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { FiSearch, FiX } from "react-icons/fi";
+import { MIN_GIFT_CARD_AMOUNT_CENTS, formatGiftCardAmount } from "@/lib/gift-card-amounts";
 import type { ShopProduct } from "@/lib/products";
 import GiftCardTile from "./gift-card-tile";
 import QuickAddButton from "./quick-add-button";
@@ -181,6 +182,9 @@ function ProductCard({
   onSelect: (product: ShopProduct) => void;
 }) {
   const productName = getSearchProductName(product);
+  const priceLabel = product.isGiftCard
+    ? `From ${formatGiftCardAmount(MIN_GIFT_CARD_AMOUNT_CENTS)}`
+    : product.price;
 
   return (
     <article className={`${styles.card} whiteFrame ${product.isGiftCard ? styles.giftCardPositioned : ""}`}>
@@ -214,7 +218,7 @@ function ProductCard({
         onClick={() => onSelect(product)}
       >
         <p className={styles.name}>{productName}</p>
-        <p className={styles.price}>{product.price}</p>
+        <p className={styles.price}>{priceLabel}</p>
       </Link>
     </article>
   );

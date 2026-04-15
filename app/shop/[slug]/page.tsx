@@ -4,10 +4,13 @@ import { notFound } from "next/navigation";
 import GiftCardTile from "@/components/gift-card-tile";
 import ProductBasketControls from "@/components/product-basket-controls";
 import QuickAddButton from "@/components/quick-add-button";
+import { MIN_GIFT_CARD_AMOUNT_CENTS, formatGiftCardAmount } from "@/lib/gift-card-amounts";
 import { getAllProducts } from "@/lib/products";
 import { getProductImageForVariant, PRODUCT_IMAGE_VARIANTS } from "@/lib/product-image-variants";
 import SiteHeader from "@/components/site-header";
 import styles from "./page.module.css";
+
+const GIFT_CARD_FRAME_IMAGE = "/gift card frame.png";
 
 export async function generateStaticParams() {
   const products = await getAllProducts();
@@ -39,6 +42,9 @@ export default async function ProductPage({
     product,
     PRODUCT_IMAGE_VARIANTS.productDetail.key,
   );
+  const productPrice = product.isGiftCard
+    ? `From ${formatGiftCardAmount(MIN_GIFT_CARD_AMOUNT_CENTS)}`
+    : product.price;
 
   for (const item of fallbackProducts) {
     if (!relatedProducts.some((existing) => existing.slug === item.slug)) {
@@ -74,19 +80,24 @@ export default async function ProductPage({
 
         <div className={`${styles.infoColumn} whiteFrame`}>
           <h1>{product.name}</h1>
-          <p className={styles.price}>{product.price}</p>
+          <p className={styles.price}>{productPrice}</p>
 
           <hr className={styles.divider} />
 
-          <p className={styles.optionLabel}>Box Size</p>
-          <button type="button" className={styles.optionButton}>
-            6 Cookies
-          </button>
+          {product.isGiftCard ? null : (
+            <>
+              <p className={styles.optionLabel}>Box Size</p>
+              <button type="button" className={styles.optionButton}>
+                6 Cookies
+              </button>
+            </>
+          )}
 
           <ProductBasketControls
             product={{
               slug: product.slug,
               name: product.name,
+              isGiftCard: product.isGiftCard,
             }}
           />
 
@@ -105,6 +116,9 @@ export default async function ProductPage({
         <div className={styles.relatedGrid}>
           {relatedProducts.map((item) => {
             const relatedImage = getProductImageForVariant(item, PRODUCT_IMAGE_VARIANTS.shopCard.key);
+            const relatedPrice = item.isGiftCard
+              ? `From ${formatGiftCardAmount(MIN_GIFT_CARD_AMOUNT_CENTS)}`
+              : item.price;
 
             return (
               <article
@@ -116,16 +130,19 @@ export default async function ProductPage({
                 <div className={styles.relatedImageWrap}>
                   <Link href={`/shop/${item.slug}`} className={styles.relatedMediaLink}>
                     {item.isGiftCard ? (
-                      <GiftCardTile
-                        className={styles.relatedGiftCardTile}
-                        src={item.image}
+                      <Image
+                        src={GIFT_CARD_FRAME_IMAGE}
                         alt={item.imageAlt ?? item.name}
+                        fill
+                        sizes="(max-width: 520px) 100vw, (max-width: 980px) 50vw, 25vw"
+                        className={styles.relatedImage}
                       />
                     ) : relatedImage ? (
                       <Image
                         src={relatedImage}
                         alt={item.imageAlt ?? item.name}
                         fill
+                        sizes="(max-width: 520px) 100vw, (max-width: 980px) 50vw, 25vw"
                         className={styles.relatedImage}
                       />
                     ) : null}
@@ -134,6 +151,7 @@ export default async function ProductPage({
                 </div>
                 <Link href={`/shop/${item.slug}`} className={styles.relatedContentLink}>
                   <h3>{item.name}</h3>
+                  <p>{relatedPrice}</p>
                 </Link>
               </article>
             );
