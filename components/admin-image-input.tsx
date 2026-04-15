@@ -15,7 +15,9 @@ import {
   PRODUCT_IMAGE_VARIANT_FIELD_NAMES,
   PRODUCT_IMAGE_VARIANT_OPTIONS,
   PRODUCT_IMAGE_VARIANTS,
+  type ProductImageCropState,
   type ProductImageVariant,
+  type ProductImageVariantMap,
 } from "@/lib/product-image-variants";
 import styles from "./admin-product-form.module.css";
 
@@ -27,6 +29,7 @@ type AdminImageInputProps = {
   required?: boolean;
   disabled?: boolean;
   canCropCurrentImage?: boolean;
+  initialCropStates?: ProductImageVariantMap<ProductImageCropState>;
 };
 
 type CropState = {
@@ -57,9 +60,16 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-function createInitialCropStates(): CropStates {
+function createInitialCropStates(
+  initialCropStates?: ProductImageVariantMap<ProductImageCropState>,
+): CropStates {
   return variantOptions.reduce((states, variant) => {
-    states[variant.key] = { panX: 0, panY: 0, zoom: 1 };
+    const initialCropState = initialCropStates?.[variant.key];
+    states[variant.key] = {
+      panX: initialCropState ? clamp(initialCropState.panX, -1, 1) : 0,
+      panY: initialCropState ? clamp(initialCropState.panY, -1, 1) : 0,
+      zoom: initialCropState ? clamp(initialCropState.zoom, MIN_ZOOM, MAX_ZOOM) : 1,
+    };
     return states;
   }, {} as CropStates);
 }
@@ -162,6 +172,7 @@ export default function AdminImageInput({
   required = false,
   disabled = false,
   canCropCurrentImage = false,
+  initialCropStates,
 }: AdminImageInputProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -170,7 +181,7 @@ export default function AdminImageInput({
   const sourceImageRef = useRef<HTMLImageElement | null>(null);
   const sourceObjectUrlRef = useRef<string | null>(null);
   const cropSourceKindRef = useRef<CropSourceKind | null>(null);
-  const cropStatesRef = useRef<CropStates>(createInitialCropStates());
+  const cropStatesRef = useRef<CropStates>(createInitialCropStates(initialCropStates));
   const cropsAppliedRef = useRef(false);
   const cropDirtyRef = useRef(false);
   const dragStateRef = useRef<DragState | null>(null);
@@ -247,10 +258,10 @@ export default function AdminImageInput({
   const resetCropStates = useCallback(() => {
     revokeCropPreviewUrls(cropStatesRef.current);
 
-    const nextCropStates = createInitialCropStates();
+    const nextCropStates = createInitialCropStates(initialCropStates);
     cropStatesRef.current = nextCropStates;
     setCropStatesState(nextCropStates);
-  }, []);
+  }, [initialCropStates]);
 
   const clearCropSource = useCallback(() => {
     releaseSourceObjectUrl();
@@ -421,6 +432,25 @@ export default function AdminImageInput({
 
       formData.delete("image");
 
+      formData.set(
+        "imageVariantCropStates",
+        JSON.stringify(
+          Object.fromEntries(
+            variantOptions.map((variant) => {
+              const cropState = currentCropStates[variant.key];
+              return [
+                variant.key,
+                {
+                  panX: cropState.panX,
+                  panY: cropState.panY,
+                  zoom: cropState.zoom,
+                },
+              ];
+            }),
+          ),
+        ),
+      );
+
       if (cropSourceKindRef.current === "upload" && primaryFile) {
         formData.append("image", primaryFile, primaryFile.name);
       }
@@ -451,7 +481,10 @@ export default function AdminImageInput({
     const nextFile = event.currentTarget.files?.[0] ?? null;
 
     releaseSourceObjectUrl();
-    resetCropStates();
+    revokeCropPreviewUrls(cropStatesRef.current);
+    const nextCropStates = createInitialCropStates();
+    cropStatesRef.current = nextCropStates;
+    setCropStatesState(nextCropStates);
     sourceImageRef.current = null;
     setSourceReady(false);
     setSourceLoadFailed(false);

@@ -38,6 +38,12 @@ export type ProductImageVariant =
 
 export type ProductImageVariantMap<T = string> = Partial<Record<ProductImageVariant, T>>;
 
+export type ProductImageCropState = {
+  panX: number;
+  panY: number;
+  zoom: number;
+};
+
 export const PRODUCT_IMAGE_VARIANT_OPTIONS = Object.values(PRODUCT_IMAGE_VARIANTS);
 
 export const PRODUCT_IMAGE_VARIANT_KEYS = PRODUCT_IMAGE_VARIANT_OPTIONS.map(

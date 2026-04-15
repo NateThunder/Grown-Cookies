@@ -25,6 +25,7 @@ import {
   type BasketStoredItem,
   type BasketTipInput,
 } from "@/lib/basket";
+import { formatGiftCardAmount } from "@/lib/gift-card-amounts";
 import GiftCardTile from "@/components/gift-card-tile";
 import type { CustomerAddress, CustomerProfile } from "@/lib/customer-profiles";
 import type { SavedPaymentMethod } from "@/lib/saved-payment-methods";
@@ -298,9 +299,17 @@ function buildRedirectUrl(params: {
   return `/checkout/success?${searchParams.toString()}`;
 }
 
-function validateManualCheckoutDetails(contact: ContactDetails, delivery: DeliveryDetails) {
+function validateManualCheckoutDetails(
+  contact: ContactDetails,
+  delivery: DeliveryDetails,
+  requiresDelivery: boolean,
+) {
   if (!normalizeText(contact.email)) {
     return "Enter a contact email address.";
+  }
+
+  if (!requiresDelivery) {
+    return "";
   }
 
   const requiredDeliveryValues = [
@@ -375,6 +384,19 @@ function buildManualBillingDetails(contact: ContactDetails, delivery: DeliveryDe
   return billingDetails;
 }
 
+function buildDigitalBillingDetails(contact: ContactDetails) {
+  const billingDetails = {
+    email: normalizeText(contact.email) || undefined,
+    phone: normalizeText(contact.phone) || undefined,
+  };
+
+  if (!billingDetails.email && !billingDetails.phone) {
+    return undefined;
+  }
+
+  return billingDetails;
+}
+
 function buildExpressBillingDetails(
   event: StripeExpressCheckoutElementConfirmEvent,
   contact: ContactDetails,
@@ -430,7 +452,11 @@ function buildExpressShipping(
 
 function buildExpressLineItems(quote: BasketQuote) {
   const lineItems = quote.lines.map((line) => ({
-    name: line.quantity > 1 ? `${line.name} x${line.quantity}` : line.name,
+    name: line.isGiftCard
+      ? `${line.name} ${formatGiftCardAmount(line.unitPriceCents)}`
+      : line.quantity > 1
+        ? `${line.name} x${line.quantity}`
+        : line.name,
     amount: line.lineTotalCents,
   }));
 
@@ -441,15 +467,21 @@ function buildExpressLineItems(quote: BasketQuote) {
     });
   }
 
-  lineItems.push({
-    name: "Standard shipping",
-    amount: quote.shippingCents,
-  });
+  if (quote.shippingCents > 0) {
+    lineItems.push({
+      name: "Standard shipping",
+      amount: quote.shippingCents,
+    });
+  }
 
   return lineItems;
 }
 
 function buildExpressShippingRates(shippingCents: number) {
+  if (shippingCents <= 0) {
+    return [];
+  }
+
   return [
     {
       id: "standard-shipping",
@@ -524,6 +556,7 @@ function PaymentElementForm({
   savePaymentMethod,
   onSavePaymentMethodChange,
   quote,
+  isDigitalOnly,
 }: {
   items: BasketStoredItem[];
   tip: BasketTipInput;
@@ -537,6 +570,7 @@ function PaymentElementForm({
   savePaymentMethod: boolean;
   onSavePaymentMethodChange: (value: boolean) => void;
   quote: BasketQuote;
+  isDigitalOnly: boolean;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -738,7 +772,7 @@ function PaymentElementForm({
   const handleManualSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const validationError = validateManualCheckoutDetails(contact, delivery);
+    const validationError = validateManualCheckoutDetails(contact, delivery, !isDigitalOnly);
     if (validationError) {
       setLocalError(validationError);
       return;
@@ -811,9 +845,11 @@ function PaymentElementForm({
               elements,
               params: {
                 payment_method_data: {
-                  billing_details: buildManualBillingDetails(contact, delivery),
+                  billing_details: isDigitalOnly
+                    ? buildDigitalBillingDetails(contact)
+                    : buildManualBillingDetails(contact, delivery),
                 },
-                shipping: buildManualShipping(delivery, contact.phone),
+                shipping: isDigitalOnly ? undefined : buildManualShipping(delivery, contact.phone),
               },
             }),
             STRIPE_PREPARE_TIMEOUT_MS,
@@ -834,7 +870,7 @@ function PaymentElementForm({
         confirmationTokenId: confirmationResult.confirmationToken.id,
         flow: "manual_card",
         paymentContact: buildCheckoutContactPayload(contact),
-        paymentDelivery: buildCheckoutDeliveryPayload(delivery),
+        paymentDelivery: isDigitalOnly ? undefined : buildCheckoutDeliveryPayload(delivery),
         savePaymentMethod: isAuthenticated && savePaymentMethod,
       });
     } catch (error) {
@@ -855,7 +891,7 @@ function PaymentElementForm({
       return;
     }
 
-    if (event.shippingAddress && !isSupportedCountryCode(event.shippingAddress.address.country)) {
+    if (!isDigitalOnly && event.shippingAddress && !isSupportedCountryCode(event.shippingAddress.address.country)) {
       const message = "We only deliver to the United Kingdom, United States, and Canada.";
       setLocalError(message);
       event.paymentFailed({
@@ -899,7 +935,7 @@ function PaymentElementForm({
                 payment_method_data: {
                   billing_details: buildExpressBillingDetails(event, contact, delivery),
                 },
-                shipping: buildExpressShipping(event, contact),
+                shipping: isDigitalOnly ? undefined : buildExpressShipping(event, contact),
               },
             }),
             STRIPE_PREPARE_TIMEOUT_MS,
@@ -920,7 +956,7 @@ function PaymentElementForm({
         confirmationTokenId: confirmationResult.confirmationToken.id,
         flow: "express",
         paymentContact: buildExpressContactPayload(event, contact),
-        paymentDelivery: buildExpressDeliveryPayload(event, delivery),
+        paymentDelivery: isDigitalOnly ? undefined : buildExpressDeliveryPayload(event, delivery),
         savePaymentMethod: isAuthenticated && savePaymentMethod,
       });
     } catch (error) {
@@ -1006,7 +1042,7 @@ function PaymentElementForm({
               amazonPay: "never",
             },
             phoneNumberRequired: false,
-            shippingAddressRequired: true,
+            shippingAddressRequired: !isDigitalOnly,
             lineItems: expressLineItems,
             shippingRates: expressShippingRates,
           }}
@@ -1050,7 +1086,9 @@ function PaymentElementForm({
       {usingSavedPaymentMethod ? (
         <div className={`${styles.savedPaymentSummary} whiteFrame`}>
           <p className={styles.sectionNote}>
-            Your delivery details above will be used for this saved-card payment.
+            {isDigitalOnly
+              ? "Your gift card code will be sent to your contact email."
+              : "Your delivery details above will be used for this saved-card payment."}
           </p>
         </div>
       ) : (
@@ -1454,6 +1492,8 @@ export default function CheckoutClient() {
   };
 
   const lines = quote?.lines ?? [];
+  const isGiftCardBasket = items.length > 0 && items.every((item) => item.slug === "gift-card");
+  const isDigitalOnly = lines.length > 0 ? lines.every((item) => item.isGiftCard) : isGiftCardBasket;
   const shippingCents = quote?.shippingCents ?? 0;
   const tipCents = quote?.tipCents ?? 0;
   const totalCents = quote?.totalCents ?? 0;
@@ -1497,7 +1537,8 @@ export default function CheckoutClient() {
                 </div>
               </section>
 
-              <section className={styles.section}>
+              {isDigitalOnly ? null : (
+                <section className={styles.section}>
                 <h2>Delivery</h2>
                 <div className={styles.fieldStack}>
                   {isAuthenticated && hasSavedAddresses ? (
@@ -1689,15 +1730,26 @@ export default function CheckoutClient() {
                     </>
                   )}
                 </div>
-              </section>
+                </section>
+              )}
 
-              <section className={styles.section}>
-                <h2>Shipping method</h2>
-                <div className={`${styles.methodCard} whiteFrame`}>
-                  <span>Standard</span>
-                  <strong>{formatPriceFromCents(shippingCents)}</strong>
-                </div>
-              </section>
+              {isDigitalOnly ? (
+                <section className={styles.section}>
+                  <h2>Digital delivery</h2>
+                  <div className={`${styles.methodCard} whiteFrame`}>
+                    <span>Gift card code</span>
+                    <strong>Email</strong>
+                  </div>
+                </section>
+              ) : (
+                <section className={styles.section}>
+                  <h2>Shipping method</h2>
+                  <div className={`${styles.methodCard} whiteFrame`}>
+                    <span>Standard</span>
+                    <strong>{formatPriceFromCents(shippingCents)}</strong>
+                  </div>
+                </section>
+              )}
 
               <section className={styles.section}>
                 <h2>Add tip</h2>
@@ -1808,6 +1860,7 @@ export default function CheckoutClient() {
                       savePaymentMethod={savePaymentMethod}
                       onSavePaymentMethodChange={setSavePaymentMethod}
                       quote={quote}
+                      isDigitalOnly={isDigitalOnly}
                     />
                   </Elements>
                 ) : null}
@@ -1828,7 +1881,7 @@ export default function CheckoutClient() {
             <ul className={styles.summaryItems}>
               {lines.map((item) => (
                 <li
-                  key={item.slug}
+                  key={item.lineId}
                   className={`${styles.summaryItem} ${item.isGiftCard ? styles.summaryItemGiftCard : ""}`}
                 >
                   <div
@@ -1858,13 +1911,17 @@ export default function CheckoutClient() {
                         <span className={styles.summaryPlaceholder}>No image</span>
                       </div>
                     )}
-                    <span className={styles.quantityBadge}>{item.quantity}</span>
+                    {item.isGiftCard ? null : (
+                      <span className={styles.quantityBadge}>{item.quantity}</span>
+                    )}
                   </div>
 
                   <div className={styles.summaryCopy}>
                     <p>{item.name}</p>
                     <span>
-                      {item.quantity} {item.quantity === 1 ? "cookie" : "cookies"}
+                      {item.isGiftCard
+                        ? `Gift card value: ${formatGiftCardAmount(item.unitPriceCents)}`
+                        : `${item.quantity} ${item.quantity === 1 ? "cookie" : "cookies"}`}
                     </span>
                   </div>
 
@@ -1875,16 +1932,16 @@ export default function CheckoutClient() {
 
             <dl className={styles.totals}>
               <div>
-                <dt>Delivery fee</dt>
-                <dd>{formatPriceFromCents(shippingCents)}</dd>
+                <dt>{isDigitalOnly ? "Digital delivery" : "Delivery fee"}</dt>
+                <dd>{isDigitalOnly ? "Email" : formatPriceFromCents(shippingCents)}</dd>
               </div>
             </dl>
 
             <div className={styles.totalRow}>
               <span>Total price</span>
               <div>
-                <small>GBP</small>
-                <strong>{formatPriceFromCents(totalCents).replace("GBP ", "")}</strong>
+                <small>£</small>
+                <strong>{formatPriceFromCents(totalCents).replace("£", "")}</strong>
               </div>
             </div>
           </div>

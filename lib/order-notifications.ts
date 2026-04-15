@@ -1,4 +1,5 @@
 import { executeCloudflareD1, queryCloudflareD1 } from "@/lib/cloudflare-d1";
+import { issueGiftCardsForPaidOrder } from "@/lib/gift-cards";
 import {
   getZohoOrderNotificationRecipient,
   getZohoOrderNotificationSender,
@@ -30,10 +31,13 @@ type OrderNotificationOrderRow = {
 };
 
 type OrderNotificationItemRow = {
+  product_slug: string;
   product_name: string;
   quantity: number;
   unit_price_cents: number;
   line_total_cents: number;
+  is_gift_card: number | null;
+  gift_card_code: string | null;
 };
 
 function normalizeText(value: unknown) {
@@ -69,6 +73,62 @@ function buildAddressLines(order: OrderNotificationOrderRow) {
     normalizeText(order.postcode),
     normalizeText(order.country),
   ].filter(Boolean);
+}
+
+function isGiftCardItem(item: OrderNotificationItemRow) {
+  return Boolean(item.is_gift_card) || normalizeText(item.product_slug) === "gift-card";
+}
+
+function getOrderDeliveryLabel(
+  order: OrderNotificationOrderRow,
+  items: OrderNotificationItemRow[],
+) {
+  const addressLines = buildAddressLines(order);
+  const hasOnlyGiftCards = items.length > 0 && items.every(isGiftCardItem);
+
+  if (hasOnlyGiftCards) {
+    return {
+      heading: "Delivery",
+      lines: ["Digital delivery by email"],
+    };
+  }
+
+  return {
+    heading: "Delivery address",
+    lines: addressLines.length > 0 ? addressLines : ["Not provided"],
+  };
+}
+
+function formatOrderItemText(item: OrderNotificationItemRow, currency: string) {
+  const quantity = Number.isFinite(item.quantity) ? item.quantity : 0;
+  const unitPrice = formatMoney(item.unit_price_cents, currency);
+  const lineTotal = formatMoney(item.line_total_cents, currency);
+
+  if (isGiftCardItem(item)) {
+    const giftCardCode = normalizeText(item.gift_card_code);
+    return giftCardCode
+      ? `${item.product_name} - ${lineTotal} - Gift card code: ${giftCardCode}`
+      : `${item.product_name} - ${lineTotal}`;
+  }
+
+  return `${quantity} x ${item.product_name} - ${unitPrice} each - ${lineTotal}`;
+}
+
+function formatOrderItemHtml(item: OrderNotificationItemRow, currency: string) {
+  const quantity = Number.isFinite(item.quantity) ? item.quantity : 0;
+  const lineTotal = escapeHtml(formatMoney(item.line_total_cents, currency));
+
+  if (isGiftCardItem(item)) {
+    const giftCardCode = normalizeText(item.gift_card_code);
+    const codeLine = giftCardCode
+      ? `<br /><strong>Gift card code: ${escapeHtml(giftCardCode)}</strong>`
+      : "";
+    return `<li>${escapeHtml(item.product_name)}<br /><span>Value: ${lineTotal}</span>${codeLine}</li>`;
+  }
+
+  const name = escapeHtml(`${quantity} x ${item.product_name}`);
+  const unitPrice = escapeHtml(formatMoney(item.unit_price_cents, currency));
+  return `<li>${name}<br /><span>Unit price: ${unitPrice}</span><br /><strong>Line total: ${lineTotal}</strong></li>`;
 }
 
 function formatOrderDateTime(value: string) {
@@ -172,13 +232,6 @@ async function sendPaidOrderCustomerEmailIfNeeded(order: OrderNotificationOrderR
 }
 
 export async function ensurePaidOrderEmails(orderPublicId: string) {
-  if (!isOrderNotificationEmailConfigured()) {
-    console.info("[orders.email] Skipped paid emails because email env is incomplete.", {
-      orderPublicId,
-    });
-    return { skipped: true as const, notificationSent: false, customerSent: false };
-  }
-
   const order = await getOrderForNotification(orderPublicId);
   if (!order) {
     throw new Error(`Order ${orderPublicId} was not found for paid email delivery.`);
@@ -186,6 +239,15 @@ export async function ensurePaidOrderEmails(orderPublicId: string) {
 
   if (normalizeText(order.status).toLowerCase() !== "paid") {
     return { skipped: false as const, notificationSent: false, customerSent: false };
+  }
+
+  await issueGiftCardsForPaidOrder(orderPublicId);
+
+  if (!isOrderNotificationEmailConfigured()) {
+    console.info("[orders.email] Skipped paid emails because email env is incomplete.", {
+      orderPublicId,
+    });
+    return { skipped: true as const, notificationSent: false, customerSent: false };
   }
 
   const [notificationSent, customerSent] = await Promise.all([
@@ -199,12 +261,17 @@ export async function ensurePaidOrderEmails(orderPublicId: string) {
 async function getOrderItemsForNotification(orderPublicId: string) {
   return queryCloudflareD1<OrderNotificationItemRow>(
     `SELECT
+       item.product_slug,
        item.product_name,
        item.quantity,
        item.unit_price_cents,
-       item.line_total_cents
+       item.line_total_cents,
+       product.is_gift_card,
+       card.code AS gift_card_code
      FROM order_items item
      INNER JOIN orders ord ON ord.id = item.order_id
+     LEFT JOIN products product ON product.slug = item.product_slug
+     LEFT JOIN gift_cards card ON card.order_item_id = item.id
      WHERE ord.public_id = ?
      ORDER BY item.id ASC`,
     [orderPublicId],
@@ -214,11 +281,8 @@ async function getOrderItemsForNotification(orderPublicId: string) {
 
 function buildOrderNotificationEmail(order: OrderNotificationOrderRow, items: OrderNotificationItemRow[]) {
   const customerName = [order.first_name, order.last_name].map(normalizeText).filter(Boolean).join(" ");
-  const addressLines = buildAddressLines(order);
-  const itemLines = items.map((item) => {
-    const quantity = Number.isFinite(item.quantity) ? item.quantity : 0;
-    return `${quantity} x ${item.product_name} - ${formatMoney(item.line_total_cents, order.currency)}`;
-  });
+  const delivery = getOrderDeliveryLabel(order, items);
+  const itemLines = items.map((item) => formatOrderItemText(item, order.currency));
   const textSections = [
     `New paid order: ${order.public_id}`,
     "",
@@ -226,8 +290,8 @@ function buildOrderNotificationEmail(order: OrderNotificationOrderRow, items: Or
     `Email: ${order.email}`,
     `Phone: ${normalizeText(order.phone) || "Not provided"}`,
     "",
-    "Delivery address:",
-    ...(addressLines.length > 0 ? addressLines : ["Not provided"]),
+    `${delivery.heading}:`,
+    ...delivery.lines,
     "",
     "Items:",
     ...(itemLines.length > 0 ? itemLines : ["No order lines found"]),
@@ -241,14 +305,9 @@ function buildOrderNotificationEmail(order: OrderNotificationOrderRow, items: Or
   ];
 
   const htmlItems = items
-    .map((item) => {
-      const quantity = Number.isFinite(item.quantity) ? item.quantity : 0;
-      return `<li>${escapeHtml(`${quantity} x ${item.product_name}`)} <strong>${escapeHtml(
-        formatMoney(item.line_total_cents, order.currency),
-      )}</strong></li>`;
-    })
+    .map((item) => formatOrderItemHtml(item, order.currency))
     .join("");
-  const htmlAddress = (addressLines.length > 0 ? addressLines : ["Not provided"])
+  const htmlAddress = delivery.lines
     .map((line) => escapeHtml(line))
     .join("<br />");
 
@@ -259,7 +318,7 @@ function buildOrderNotificationEmail(order: OrderNotificationOrderRow, items: Or
     `<p><strong>Name:</strong> ${escapeHtml(customerName || "Not provided")}<br />`,
     `<strong>Email:</strong> ${escapeHtml(order.email)}<br />`,
     `<strong>Phone:</strong> ${escapeHtml(normalizeText(order.phone) || "Not provided")}</p>`,
-    "<h2>Delivery address</h2>",
+    `<h2>${escapeHtml(delivery.heading)}</h2>`,
     `<p>${htmlAddress}</p>`,
     "<h2>Items</h2>",
     `<ul>${htmlItems || "<li>No order lines found</li>"}</ul>`,
@@ -280,27 +339,25 @@ function buildOrderNotificationEmail(order: OrderNotificationOrderRow, items: Or
 
 function buildPaidOrderCustomerEmail(order: OrderNotificationOrderRow, items: OrderNotificationItemRow[]) {
   const customerName = [order.first_name, order.last_name].map(normalizeText).filter(Boolean).join(" ");
-  const addressLines = buildAddressLines(order);
+  const delivery = getOrderDeliveryLabel(order, items);
+  const hasOnlyGiftCards = items.length > 0 && items.every(isGiftCardItem);
   const placedAtLabel = formatOrderDateTime(order.created_at);
-  const itemLines = items.map((item) => {
-    const quantity = Number.isFinite(item.quantity) ? item.quantity : 0;
-    const unitPrice = formatMoney(item.unit_price_cents, order.currency);
-    const lineTotal = formatMoney(item.line_total_cents, order.currency);
-    return `${quantity} x ${item.product_name} - ${unitPrice} each - ${lineTotal}`;
-  });
+  const itemLines = items.map((item) => formatOrderItemText(item, order.currency));
 
   const textSections = [
     `Thanks for your order ${order.public_id}`,
     "",
     `Hello ${customerName || "there"},`,
     "",
-    "Your payment has been confirmed and we are preparing your order.",
+    hasOnlyGiftCards
+      ? "Your payment has been confirmed and your gift card is ready to use."
+      : "Your payment has been confirmed and we are preparing your order.",
     "",
     `Order placed: ${placedAtLabel}`,
     `Order number: ${order.public_id}`,
     "",
-    "Delivery details:",
-    ...(addressLines.length > 0 ? addressLines : ["Not provided"]),
+    `${delivery.heading}:`,
+    ...delivery.lines,
     "",
     "Items:",
     ...(itemLines.length > 0 ? itemLines : ["No order lines found"]),
@@ -310,30 +367,28 @@ function buildPaidOrderCustomerEmail(order: OrderNotificationOrderRow, items: Or
     `Tip: ${formatMoney(order.tip_cents, order.currency)}`,
     `Total: ${formatMoney(order.total_cents, order.currency)}`,
     "",
-    "We will email you again when your order has been delivered.",
+    hasOnlyGiftCards
+      ? "Use the gift card code above at checkout."
+      : "We will email you again when your order has been delivered.",
   ];
 
   const htmlItems = items
-    .map((item) => {
-      const quantity = Number.isFinite(item.quantity) ? item.quantity : 0;
-      const name = escapeHtml(`${quantity} x ${item.product_name}`);
-      const unitPrice = escapeHtml(formatMoney(item.unit_price_cents, order.currency));
-      const lineTotal = escapeHtml(formatMoney(item.line_total_cents, order.currency));
-      return `<li>${name}<br /><span>Unit price: ${unitPrice}</span><br /><strong>Line total: ${lineTotal}</strong></li>`;
-    })
+    .map((item) => formatOrderItemHtml(item, order.currency))
     .join("");
-  const htmlAddress = (addressLines.length > 0 ? addressLines : ["Not provided"])
+  const htmlAddress = delivery.lines
     .map((line) => escapeHtml(line))
     .join("<br />");
 
   const html = [
     `<h1>Thanks for your order ${escapeHtml(order.public_id)}</h1>`,
     `<p>Hello ${escapeHtml(customerName || "there")},</p>`,
-    "<p>Your payment has been confirmed and we are preparing your order.</p>",
+    hasOnlyGiftCards
+      ? "<p>Your payment has been confirmed and your gift card is ready to use.</p>"
+      : "<p>Your payment has been confirmed and we are preparing your order.</p>",
     "<h2>Order details</h2>",
     `<p><strong>Order placed:</strong> ${escapeHtml(placedAtLabel)}<br />`,
     `<strong>Order number:</strong> ${escapeHtml(order.public_id)}</p>`,
-    "<h2>Delivery details</h2>",
+    `<h2>${escapeHtml(delivery.heading)}</h2>`,
     `<p>${htmlAddress}</p>`,
     "<h2>Items</h2>",
     `<ul>${htmlItems || "<li>No order lines found</li>"}</ul>`,
@@ -342,7 +397,9 @@ function buildPaidOrderCustomerEmail(order: OrderNotificationOrderRow, items: Or
     `<strong>Shipping:</strong> ${escapeHtml(formatMoney(order.shipping_cents, order.currency))}<br />`,
     `<strong>Tip:</strong> ${escapeHtml(formatMoney(order.tip_cents, order.currency))}<br />`,
     `<strong>Total:</strong> ${escapeHtml(formatMoney(order.total_cents, order.currency))}</p>`,
-    "<p>We will email you again when your order has been delivered.</p>",
+    hasOnlyGiftCards
+      ? "<p>Use the gift card code above at checkout.</p>"
+      : "<p>We will email you again when your order has been delivered.</p>",
   ].join("");
 
   return {

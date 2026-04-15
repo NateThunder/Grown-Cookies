@@ -103,6 +103,9 @@ async function ensureFeaturedProductsSchema() {
        variant TEXT NOT NULL,
        image_key TEXT NOT NULL,
        alt_text TEXT,
+       crop_pan_x REAL NOT NULL DEFAULT 0,
+       crop_pan_y REAL NOT NULL DEFAULT 0,
+       crop_zoom REAL NOT NULL DEFAULT 1,
        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
        PRIMARY KEY (product_id, variant),
@@ -137,7 +140,7 @@ const FALLBACK_PRODUCTS: StaticProductRecord[] = [
   {
     slug: "dark-choc-maldon-salt",
     name: "Dark Choc & Maldon Salt",
-    price: "GBP 22.00",
+    price: "£22.00",
     imageKey: "Dark_Choc-_Salt/_DSC6327.jpg",
     imageAlt: "Dark Choc & Maldon Salt cookie",
     description:
@@ -155,7 +158,7 @@ const FALLBACK_PRODUCTS: StaticProductRecord[] = [
   {
     slug: "double-chocolate-hazelnut",
     name: "Double Choc & Hazelnut",
-    price: "GBP 22.00",
+    price: "£22.00",
     imageKey: "Double_Choc_Hazelnut/_DSC6200.jpg",
     imageAlt: "Double Choc & Hazelnut cookie",
     description:
@@ -168,7 +171,7 @@ const FALLBACK_PRODUCTS: StaticProductRecord[] = [
   {
     slug: "gift-card",
     name: "Gift Card",
-    price: "GBP 10.00",
+    price: "£10.00",
     imageKey: "products/gift-card/1773484475889-growncookies-1024-transparent-cropped.png",
     imageAlt: "Grown Cookies gift card",
     isGiftCard: true,
@@ -182,7 +185,7 @@ const FALLBACK_PRODUCTS: StaticProductRecord[] = [
   {
     slug: "granola-raisin",
     name: "Granola Raisin",
-    price: "GBP 22.00",
+    price: "£22.00",
     imageKey: "Crunchy_Granola/_DSC6127.jpg",
     imageAlt: "Granola Raisin cookie",
     description:
@@ -195,7 +198,7 @@ const FALLBACK_PRODUCTS: StaticProductRecord[] = [
   {
     slug: "matcha-white-chocolate",
     name: "Matcha White Chocolate",
-    price: "GBP 22.00",
+    price: "£22.00",
     imageKey: "Matcha/_DSC6441.jpg",
     imageAlt: "Matcha White Chocolate cookie",
     description:
@@ -208,7 +211,7 @@ const FALLBACK_PRODUCTS: StaticProductRecord[] = [
   {
     slug: "red-velvet",
     name: "Red Velvet",
-    price: "GBP 22.00",
+    price: "£22.00",
     imageKey: "Red_Velvet/_DSC6161.jpg",
     imageAlt: "Red Velvet cookie",
     description:
@@ -221,7 +224,7 @@ const FALLBACK_PRODUCTS: StaticProductRecord[] = [
   {
     slug: "double-choc-box",
     name: "Double Choc Box",
-    price: "GBP 22.00",
+    price: "£22.00",
     imageKey: "Box_Shots/_DSC6145.jpg",
     imageAlt: "Double Choc Box",
     description:
@@ -268,11 +271,18 @@ function splitLegacyDescription(rawDescription: string, rawAllergens: string | n
   return { description, allergens };
 }
 
+function formatProductPriceLabel(price: string) {
+  const normalized = price.trim();
+  const amount = normalized.replace(/^(?:GBP|£)\s*/i, "").trim();
+
+  return amount ? `£${amount}` : normalized;
+}
+
 function mapStaticProduct(record: StaticProductRecord): ShopProduct {
   return {
     slug: record.slug,
     name: record.name,
-    price: record.price,
+    price: formatProductPriceLabel(record.price),
     description: record.description,
     allergens: record.allergens,
     featured: record.featured,
@@ -318,7 +328,7 @@ function mapRowToProduct(row: ProductRow): ShopProduct {
   return {
     slug: row.slug,
     name: row.name,
-    price: row.price,
+    price: formatProductPriceLabel(row.price),
     description: normalizedCopy.description,
     allergens: normalizedCopy.allergens,
     featured: row.featured_position !== null,

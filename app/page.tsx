@@ -10,6 +10,8 @@ import {
 import { getProductImageForVariant, PRODUCT_IMAGE_VARIANTS } from "@/lib/product-image-variants";
 import styles from "./page.module.css";
 
+const GIFT_CARD_FRAME_IMAGE = "/gift card frame.png";
+
 const flavourToneMap: Record<string, string> = {
   "matcha-white-chocolate": "matchaTone",
   "red-velvet": "redTone",
@@ -26,10 +28,9 @@ export default async function Home() {
     getAllProducts(),
     getHomepageSectionSettings(),
   ]);
-  const shoppableProducts = products.filter((product) => !product.isGiftCard);
-  const featuredProducts = shoppableProducts.filter((product) => product.featured);
+  const featuredProducts = products.filter((product) => product.featured);
   const homepageProducts =
-    featuredProducts.length >= 3 ? featuredProducts.slice(0, 3) : shoppableProducts.slice(0, 3);
+    featuredProducts.length >= 3 ? featuredProducts.slice(0, 3) : products.slice(0, 3);
 
   return (
     <main className={`${styles.page} ${styles.pageWidthWide}`}>
@@ -76,6 +77,7 @@ export default async function Home() {
                 product,
                 PRODUCT_IMAGE_VARIANTS.homepagePolaroid.key,
               );
+              const displayImage = product.isGiftCard ? GIFT_CARD_FRAME_IMAGE : homepageImage;
 
               return (
                 <article
@@ -88,9 +90,9 @@ export default async function Home() {
                       className={styles.flavourTileLink}
                       aria-label={`View featured product ${product.name}`}
                     >
-                      {homepageImage ? (
+                      {displayImage ? (
                         <Image
-                          src={homepageImage}
+                          src={displayImage}
                           alt={product.imageAlt ?? product.name}
                           fill
                           sizes="(max-width: 620px) 100vw, (max-width: 980px) 50vw, 33vw"

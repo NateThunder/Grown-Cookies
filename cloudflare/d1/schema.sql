@@ -118,6 +118,9 @@ CREATE TABLE IF NOT EXISTS product_image_variants (
   variant TEXT NOT NULL,
   image_key TEXT NOT NULL,
   alt_text TEXT,
+  crop_pan_x REAL NOT NULL DEFAULT 0,
+  crop_pan_y REAL NOT NULL DEFAULT 0,
+  crop_zoom REAL NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (product_id, variant),
@@ -136,6 +139,18 @@ CREATE TABLE IF NOT EXISTS checkout_payment_attempts (
   scope TEXT NOT NULL,
   identifier_hash TEXT NOT NULL,
   attempted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS gift_cards (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code TEXT NOT NULL UNIQUE,
+  initial_amount_pence INTEGER NOT NULL CHECK (initial_amount_pence > 0),
+  balance_pence INTEGER NOT NULL CHECK (
+    balance_pence >= 0
+    AND balance_pence <= initial_amount_pence
+  ),
+  order_item_id INTEGER,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_products_slug
@@ -192,3 +207,7 @@ CREATE INDEX IF NOT EXISTS idx_customer_addresses_profile_id
 CREATE UNIQUE INDEX IF NOT EXISTS idx_customer_addresses_default_profile
   ON customer_addresses(customer_profile_id)
   WHERE is_default = 1;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_gift_cards_order_item
+  ON gift_cards(order_item_id)
+  WHERE order_item_id IS NOT NULL;

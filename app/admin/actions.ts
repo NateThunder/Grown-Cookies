@@ -16,6 +16,7 @@ import {
 import {
   PRODUCT_IMAGE_VARIANT_FIELD_NAMES,
   PRODUCT_IMAGE_VARIANT_KEYS,
+  type ProductImageCropState,
   type ProductImageVariantMap,
 } from "@/lib/product-image-variants";
 import { markAdminOrderDelivered } from "@/lib/admin-orders";
@@ -93,6 +94,47 @@ function getImageVariantFiles(formData: FormData) {
   }
 
   return imageVariantFiles;
+}
+
+function getImageVariantCropStates(formData: FormData) {
+  const rawValue = getTextField(formData, "imageVariantCropStates").trim();
+  const imageVariantCropStates: ProductImageVariantMap<ProductImageCropState> = {};
+
+  if (!rawValue) {
+    return imageVariantCropStates;
+  }
+
+  let parsedValue: unknown;
+
+  try {
+    parsedValue = JSON.parse(rawValue);
+  } catch {
+    return imageVariantCropStates;
+  }
+
+  if (!parsedValue || typeof parsedValue !== "object") {
+    return imageVariantCropStates;
+  }
+
+  for (const variant of PRODUCT_IMAGE_VARIANT_KEYS) {
+    const cropState = (parsedValue as Record<string, unknown>)[variant];
+
+    if (!cropState || typeof cropState !== "object") {
+      continue;
+    }
+
+    const panX = Number((cropState as Record<string, unknown>).panX);
+    const panY = Number((cropState as Record<string, unknown>).panY);
+    const zoom = Number((cropState as Record<string, unknown>).zoom);
+
+    if (!Number.isFinite(panX) || !Number.isFinite(panY) || !Number.isFinite(zoom)) {
+      continue;
+    }
+
+    imageVariantCropStates[variant] = { panX, panY, zoom };
+  }
+
+  return imageVariantCropStates;
 }
 
 function getAdminReturnPath(value?: string) {
@@ -414,6 +456,7 @@ export async function createProductAction(formData: FormData) {
       sortOrder: getNumberField(formData, "sortOrder"),
       imageFile: getImageFile(formData, "image"),
       imageVariantFiles: getImageVariantFiles(formData),
+      imageVariantCropStates: getImageVariantCropStates(formData),
       isGiftCard: formData.get("isGiftCard") === "on",
       hidden: formData.get("hidden") === "on",
     });
@@ -461,6 +504,7 @@ export async function updateProductAction(formData: FormData) {
       sortOrder: getNumberField(formData, "sortOrder"),
       imageFile: getImageFile(formData, "image"),
       imageVariantFiles: getImageVariantFiles(formData),
+      imageVariantCropStates: getImageVariantCropStates(formData),
       isGiftCard: formData.get("isGiftCard") === "on",
       hidden: formData.get("hidden") === "on",
     });

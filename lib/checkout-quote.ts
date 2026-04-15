@@ -8,6 +8,7 @@ import {
   type BasketTipInput,
   type BasketTipPercent,
 } from "@/lib/basket";
+import { validateGiftCardAmountCents } from "@/lib/gift-card-amounts";
 import { getAllProducts } from "@/lib/products";
 import { getDeliveryCostCents } from "@/lib/store-settings";
 
@@ -103,28 +104,69 @@ export async function buildCheckoutQuote({
     throw new Error("Your basket is empty.");
   }
 
-  const parsedItems = new Map<string, number>();
+  const [products, deliveryShippingCents] = await Promise.all([
+    getAllProducts(),
+    getDeliveryCostCents(),
+  ]);
+  const productMap = new Map(products.map((product) => [product.slug, product]));
+  const lines: BasketQuoteLine[] = [];
+  const standardItems = new Map<string, { lineId: string; quantity: number }>();
 
   for (const item of items) {
     const slug = normalizeText(item.slug);
+    const rawLineId = normalizeText(item.lineId);
+    const lineId = rawLineId || slug;
     const quantity = Math.floor(Number(item.quantity));
+    const hasGiftCardAmount = item.giftCardAmountCents !== undefined;
 
     if (!slug || !Number.isFinite(quantity) || quantity <= 0) {
       throw new Error("Invalid basket item.");
     }
 
-    parsedItems.set(slug, (parsedItems.get(slug) ?? 0) + quantity);
+    const product = productMap.get(slug);
+
+    if (!product) {
+      throw new Error("Your basket contains invalid products.");
+    }
+
+    if (product.isGiftCard) {
+      if (!hasGiftCardAmount) {
+        throw new Error("Select a gift card amount before checkout.");
+      }
+
+      const validation = validateGiftCardAmountCents(item.giftCardAmountCents);
+
+      if (validation.error) {
+        throw new Error(validation.error);
+      }
+
+      lines.push({
+        lineId: rawLineId || `${slug}:${validation.amountCents}:${lines.length}`,
+        slug,
+        name: product.name,
+        image: product.image,
+        imageAlt: product.imageAlt,
+        isGiftCard: true,
+        giftCardAmountCents: validation.amountCents,
+        unitPriceCents: validation.amountCents,
+        quantity: 1,
+        lineTotalCents: validation.amountCents,
+      });
+      continue;
+    }
+
+    if (hasGiftCardAmount) {
+      throw new Error("Gift card amount is only valid for gift card products.");
+    }
+
+    const existing = standardItems.get(slug);
+    standardItems.set(slug, {
+      lineId: existing?.lineId ?? lineId,
+      quantity: (existing?.quantity ?? 0) + quantity,
+    });
   }
 
-  if (parsedItems.size === 0) {
-    throw new Error("Your basket is empty.");
-  }
-
-  const [products, shippingCents] = await Promise.all([getAllProducts(), getDeliveryCostCents()]);
-  const productMap = new Map(products.map((product) => [product.slug, product]));
-  const lines: BasketQuoteLine[] = [];
-
-  for (const [slug, quantity] of parsedItems) {
+  for (const [slug, item] of standardItems) {
     const product = productMap.get(slug);
 
     if (!product) {
@@ -132,20 +174,21 @@ export async function buildCheckoutQuote({
     }
 
     const unitPriceCents = parsePriceToMinorUnits(product.price);
-    const lineTotalCents = unitPriceCents * quantity;
+    const lineTotalCents = unitPriceCents * item.quantity;
 
     if (!Number.isFinite(unitPriceCents) || lineTotalCents < 0) {
       throw new Error("Invalid product price.");
     }
 
     lines.push({
+      lineId: item.lineId,
       slug,
       name: product.name,
       image: product.image,
       imageAlt: product.imageAlt,
-      isGiftCard: Boolean(product.isGiftCard),
+      isGiftCard: false,
       unitPriceCents,
-      quantity,
+      quantity: item.quantity,
       lineTotalCents,
     });
   }
@@ -155,6 +198,8 @@ export async function buildCheckoutQuote({
   }
 
   const subtotalCents = lines.reduce((sum, line) => sum + line.lineTotalCents, 0);
+  const hasPhysicalProducts = lines.some((line) => !line.isGiftCard);
+  const shippingCents = hasPhysicalProducts ? deliveryShippingCents : 0;
   const tipCents = getTipCents(subtotalCents, tip);
 
   return {
