@@ -1,8 +1,11 @@
 import SiteHeader from "@/components/site-header";
 import ContactOrderForm from "@/components/contact-order-form";
+import { getContactTurnstileSiteKey } from "@/lib/contact-turnstile";
 import styles from "./page.module.css";
 
 export default function ContactPage() {
+  const turnstileSiteKey = getContactTurnstileSiteKey();
+
   return (
     <main className={styles.page}>
       <SiteHeader activeRoute="contact" variant="hero" showAnnouncement={false} />
@@ -23,7 +26,7 @@ export default function ContactPage() {
           </p>
         </div>
 
-        <ContactOrderForm />
+        <ContactOrderForm turnstileSiteKey={turnstileSiteKey} />
       </section>
     </main>
   );

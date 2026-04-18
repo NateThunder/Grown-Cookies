@@ -369,8 +369,14 @@
 
 .primaryButton {
   border: 0;
-  background: linear-gradient(135deg, var(--public-plum-deep), var(--public-plum));
+  min-height: 2.5rem;
+  padding: 0 1.45rem;
+  background: var(--public-plum-deep);
   color: var(--public-cream);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .secondaryButton {

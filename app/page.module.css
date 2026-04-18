@@ -173,9 +173,14 @@
 }
 
 .secondaryCta {
+  min-height: 2.5rem;
+  padding: 0 1.45rem;
   background: var(--public-plum-deep);
   color: var(--public-cream);
-  box-shadow: 0 10px 24px rgba(75, 20, 95, 0.16);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  box-shadow: none;
 }
 
 .tertiaryCta {
@@ -185,7 +190,6 @@
 }
 
 .primaryCta:hover,
-.secondaryCta:hover,
 .tertiaryCta:hover {
   transform: translateY(-2px);
 }

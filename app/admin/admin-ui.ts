@@ -2,7 +2,13 @@ export type SearchParamValue = string | string[] | undefined;
 
 export type AdminView = "all" | "featured";
 
-export type AdminSidebarSection = "products" | "featured" | "homepage" | "orders" | "delivery";
+export type AdminSidebarSection =
+  | "products"
+  | "featured"
+  | "homepage"
+  | "orders"
+  | "delivery"
+  | "analytics";
 
 export type AdminFlashState = {
   notice?: string;
@@ -71,6 +77,12 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     href: "/admin/delivery",
     label: "Delivery costs",
     matches: (pathname) => pathname === "/admin/delivery",
+  },
+  {
+    id: "analytics",
+    href: "/admin/analytics",
+    label: "Analytics",
+    matches: (pathname) => pathname === "/admin/analytics",
   },
 ];
 

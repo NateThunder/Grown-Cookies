@@ -23,6 +23,14 @@ const SUPPORTED_COUNTRIES = {
   CA: "Canada",
 } as const;
 
+const DEFAULT_CHECKOUT_RETURN_ORIGINS = [
+  "https://growncookies.co.uk",
+  "https://www.growncookies.co.uk",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://[::1]:3000",
+] as const;
+
 type CheckoutContactPayload = {
   email: string;
   phone: string;
@@ -112,12 +120,61 @@ function parseItems(raw: unknown) {
   return parseQuoteItems(raw);
 }
 
-function getRequestOrigin(request: Request) {
+function normalizeCheckoutReturnOrigin(value: unknown) {
+  const raw = normalizeText(value);
+  if (!raw) {
+    return "";
+  }
+
   try {
-    return new URL(request.url).origin.replace(/\/+$/, "");
+    const url = new URL(raw);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return "";
+    }
+
+    return url.origin.replace(/\/+$/, "");
   } catch {
+    return "";
+  }
+}
+
+function parseCheckoutReturnOrigins(value: unknown) {
+  return normalizeText(value)
+    .split(",")
+    .map((origin) => normalizeCheckoutReturnOrigin(origin))
+    .filter(Boolean);
+}
+
+function getCheckoutReturnOriginAllowlist() {
+  return new Set([
+    ...DEFAULT_CHECKOUT_RETURN_ORIGINS,
+    ...parseCheckoutReturnOrigins(process.env.NEXT_PUBLIC_SITE_URL),
+    ...parseCheckoutReturnOrigins(process.env.CHECKOUT_RETURN_ALLOWED_ORIGINS),
+  ]);
+}
+
+function getRequestOrigin(request: Request) {
+  const requestOrigin = normalizeCheckoutReturnOrigin(request.url);
+  if (!requestOrigin) {
     throw new Error("Return URL is invalid.");
   }
+
+  return requestOrigin;
+}
+
+function getCheckoutReturnOrigin(request: Request) {
+  const requestOrigin = getRequestOrigin(request);
+  if (!getCheckoutReturnOriginAllowlist().has(requestOrigin)) {
+    throw new Error("Checkout return URL origin is not allowed.");
+  }
+
+  return requestOrigin;
+}
+
+function buildCheckoutSuccessReturnUrl(returnUrlBase: string, orderPublicId: string) {
+  const returnUrl = new URL("/checkout/success", returnUrlBase);
+  returnUrl.searchParams.set("orderId", orderPublicId);
+  return returnUrl.toString();
 }
 
 function parseCheckoutContact(raw: unknown): CheckoutContactPayload {
@@ -262,7 +319,7 @@ export async function POST(request: Request) {
     const tip = parseQuoteTip(body.tip);
     const quote = await buildCheckoutQuote({ items, tip });
     const requiresDelivery = quote.lines.some((line) => !line.isGiftCard);
-    const returnUrlBase = getRequestOrigin(request);
+    const returnUrlBase = getCheckoutReturnOrigin(request);
     const savePaymentMethod = body.savePaymentMethod === true;
     const stripe = getStripeClient();
     const fallbackContact = parseCheckoutContact(body.contact);
@@ -399,7 +456,7 @@ export async function POST(request: Request) {
               : undefined,
           payment_method: shouldUseSavedPaymentMethod ? savedPaymentMethodId : undefined,
           payment_method_types: shouldUseSavedPaymentMethod ? ["card"] : undefined,
-          return_url: `${returnUrlBase}/checkout/success?orderId=${draft.orderPublicId}`,
+          return_url: buildCheckoutSuccessReturnUrl(returnUrlBase, draft.orderPublicId),
         }),
       {
         amount: draft.totalCents,

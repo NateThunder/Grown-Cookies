@@ -42,8 +42,10 @@ export default function PrivacyPage() {
             <h2>Sharing</h2>
             <p>
               We only share data with service providers needed to operate the
-              store, such as payment, hosting, authentication, analytics, and
-              delivery platforms. We do not sell your personal information.
+              store, such as payment, analytics, and delivery platforms. We use
+              Supabase for account authentication and Cloudflare services for
+              other store data, hosting, and related operational data. We do not
+              sell your personal information.
             </p>
           </div>
 

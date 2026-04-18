@@ -69,6 +69,7 @@ function getContentSecurityPolicy() {
   const frameSrc = new Set([
     "'self'",
     "https://billing.stripe.com",
+    "https://challenges.cloudflare.com",
     "https://checkout.stripe.com",
     "https://hooks.stripe.com",
     "https://js.stripe.com",
@@ -82,6 +83,7 @@ function getContentSecurityPolicy() {
   const scriptSrc = new Set([
     "'self'",
     "'unsafe-inline'",
+    "https://challenges.cloudflare.com",
     "https://js.stripe.com",
     "https://www.googletagmanager.com",
   ]);

@@ -55,9 +55,14 @@
 }
 
 .button[aria-pressed="true"] {
-  border-color: #761a6c;
-  background: #761a6c;
-  color: #ffffff;
+  border-color: transparent;
+  background: var(--public-plum-deep);
+  color: var(--public-cream);
+  font-family: var(--font-public-ui);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .button:hover {

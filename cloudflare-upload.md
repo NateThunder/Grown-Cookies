@@ -13,7 +13,7 @@ npx wrangler whoami
 Recommended flow:
 
 1. Prefer user auth with `npx wrangler login` and avoid brittle API token permission edge cases.
-2. If you use `CLOUDFLARE_API_TOKEN`, ensure it has:
+2. If you use `CLOUDFLARE_API_TOKEN`, keep it in your local shell or CI secret store only. Do not put it in `.env.worker`, and do not upload it to the Worker runtime. Ensure it has:
    - `User > User Details > Read`
    - `User > Memberships > Read`
    - `Account > Account Settings > Read`
@@ -27,10 +27,17 @@ Recommended flow:
 From repo root:
 
 ```bash
-npx wrangler secret bulk .env.local
+npx wrangler secret bulk .env.worker
 ```
 
-This uploads the runtime values the worker expects from `.env.local`. Re-run it whenever Cloudflare-facing secrets change locally.
+This uploads only the runtime values the worker expects from `.env.worker`. Re-run it whenever Worker-facing secrets change.
+
+Do not bulk upload `.env.local`; that file may contain local-only or deploy-only values. In particular, `.env.worker` must not contain:
+
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_D1_DATABASE_ID`
+
+D1 access at runtime uses the `DB` binding configured in `wrangler.toml`, not the Cloudflare REST API.
 
 ## 3) Build and deploy to Cloudflare Workers
 
@@ -88,7 +95,7 @@ npx wrangler d1 migrations apply grown-cookies --remote
 
 ```bash
 npx wrangler whoami
-npx wrangler secret bulk .env.local
+npx wrangler secret bulk .env.worker
 npm run cloudflare:build
 npm run cloudflare:deploy
 ```
@@ -104,13 +111,13 @@ If the worker deploy succeeds but `npm run cloudflare:deploy:domain` fails, depl
 
 ## 5) Environment variables
 
-Set required env values on the Cloudflare Worker for runtime features. The quickest local bootstrap is `npx wrangler secret bulk .env.local`, but you can also set them in the dashboard:
+Set required env values on the Cloudflare Worker for runtime features. The quickest local bootstrap is `npx wrangler secret bulk .env.worker`, but you can also set them in the dashboard.
+
+Runtime Worker secrets:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `CLOUDFLARE_ACCOUNT_ID`
-- `CLOUDFLARE_D1_DATABASE_ID`
-- `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_R2_BUCKET_NAME`
 - `CLOUDFLARE_R2_PUBLIC_BASE_URL`
 - `CLOUDFLARE_R2_JURISDICTION`
@@ -119,9 +126,13 @@ Set required env values on the Cloudflare Worker for runtime features. The quick
 - `STRIPE_SECRET_KEY`
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `STRIPE_WEBHOOK_SECRET`
+- `CHECKOUT_RETURN_ALLOWED_ORIGINS` (optional comma-separated checkout return origin allowlist for previews/custom domains)
 - `RESEND_API_KEY` (required for order notification emails)
 - `ORDER_NOTIFICATION_FROM` (required for order notification emails; use a verified sender)
 - `ORDER_NOTIFICATION_TO` (optional; defaults to `orders@growncookies.co.uk`)
+- `TURNSTILE_SITE_KEY` (required for contact-form abuse protection)
+- `TURNSTILE_SECRET_KEY` (required for contact-form abuse protection)
+- `CONTACT_THROTTLE_SECRET` (required for stable hashed contact-form throttle identifiers)
 - `ZOHO_CLIENT_ID` (required for Zoho Mail contact-form delivery)
 - `ZOHO_CLIENT_SECRET` (required for Zoho Mail contact-form delivery)
 - `ZOHO_REFRESH_TOKEN` (required for Zoho Mail contact-form delivery)
@@ -129,20 +140,43 @@ Set required env values on the Cloudflare Worker for runtime features. The quick
 - `CONTACT_FORM_FROM` (optional; defaults to `CONTACT_FORM_TO` or `orders@growncookies.co.uk`)
 - `CONTACT_FORM_TO` (optional; defaults to `orders@growncookies.co.uk`)
 
-## 5a) Zoho Mail for contact form
+Deploy-only local or CI values:
 
-The contact form now sends mail through the Zoho Mail API instead of the Cloudflare `send_email` binding.
+- `CLOUDFLARE_API_TOKEN` (optional alternative to `npx wrangler login`; never upload as a Worker secret)
+
+Runtime D1 access does not need `CLOUDFLARE_D1_DATABASE_ID`; the database id lives in `wrangler.toml` as the `DB` binding.
+
+## 5a) Remove old runtime deploy token
+
+If `.env.local` was previously bulk-uploaded, remove deploy-only Cloudflare values from the live Worker and rotate the token after the new runtime secret boundary is in place:
+
+```bash
+npx wrangler secret list
+npx wrangler secret delete CLOUDFLARE_API_TOKEN
+npx wrangler secret delete CLOUDFLARE_D1_DATABASE_ID
+```
+
+Only run the delete commands for secrets that are present in the list.
+
+Then rotate the old Cloudflare API token in the Cloudflare dashboard. Keep any replacement token only in your local shell or CI provider, not in Worker runtime secrets.
+
+## 5b) Zoho Mail for contact form
+
+The contact form now verifies Cloudflare Turnstile, applies a D1-backed IP/email throttle, and sends mail through the Zoho Mail API instead of the Cloudflare `send_email` binding.
 
 Before relying on it in production, make sure you have:
 
-1. A Zoho Mail OAuth client with `ZOHO_CLIENT_ID` and `ZOHO_CLIENT_SECRET`.
-2. A valid `ZOHO_REFRESH_TOKEN` for the sending mailbox.
-3. The Zoho mailbox account id in `ZOHO_ACCOUNT_ID`.
-4. `CONTACT_FORM_FROM` set to a mailbox or alias Zoho is allowed to send from, if you do not want to use the default.
+1. A Cloudflare Turnstile widget with `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`.
+2. `CONTACT_THROTTLE_SECRET` set to a long random server-only value.
+3. The `contact_form_attempts` D1 migration applied with `npm run cloudflare:d1:migrate`.
+4. A Zoho Mail OAuth client with `ZOHO_CLIENT_ID` and `ZOHO_CLIENT_SECRET`.
+5. A valid `ZOHO_REFRESH_TOKEN` for the sending mailbox.
+6. The Zoho mailbox account id in `ZOHO_ACCOUNT_ID`.
+7. `CONTACT_FORM_FROM` set to a mailbox or alias Zoho is allowed to send from, if you do not want to use the default.
 
 The route uses the same `CONTACT_FORM_TO` recipient override as before. If Zoho is unavailable, the app falls back to Resend when that is configured.
 
-`next dev` can exercise the real send path as long as the Zoho or Resend secrets are present locally.
+`next dev` uses Cloudflare's Turnstile test keys when real Turnstile keys are missing, and can exercise the real send path as long as the Zoho or Resend secrets are present locally.
 
 ```bash
 npm run dev

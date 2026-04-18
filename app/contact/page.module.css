@@ -150,15 +150,18 @@
   min-width: 9rem;
   border: 0;
   border-radius: 999px;
-  background: #50146b;
+  min-height: 2.5rem;
+  background: var(--public-plum-deep);
   color: var(--public-cream);
   font-family: var(--font-public-ui);
-  font-size: 0.98rem;
-  font-weight: 700;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   line-height: 1;
-  padding: 1rem 1.5rem;
+  padding: 0 1.45rem;
   cursor: pointer;
-  box-shadow: var(--public-pill-shadow);
+  box-shadow: none;
 }
 
 @media (max-width: 700px) {

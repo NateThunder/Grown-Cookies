@@ -40,7 +40,7 @@ const SORT_OPTIONS: SortOption[] = [
   { value: "created-descending", label: "Date, new to old" },
 ];
 
-const GIFT_CARD_FRAME_IMAGE = "/gift card frame.png";
+const GIFT_CARD_FRAME_IMAGE = "/gift card frame no crumbs.png";
 
 function getFirstValue(value: SearchParamValue) {
   return Array.isArray(value) ? value[0] : value;

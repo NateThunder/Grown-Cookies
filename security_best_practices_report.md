@@ -1,96 +1,110 @@
 # Security Best Practices Report
 
-Date: 2026-03-30
+Date: 2026-04-18
 
 ## Executive summary
 
-The storefront is not trivially broken. The deployed site currently serves a CSP, clickjacking protection, `nosniff`, HTTPS-only transport, and the Stripe webhook verifies signatures over the raw request body. Account APIs also avoid cookie-authenticated JSON calls by requiring bearer tokens, which materially reduces CSRF exposure.
+As of 18 April 2026, the live root page at `https://growncookies.co.uk/` is still serving a "Coming soon" page rather than the full storefront. The live response already carries the expected core headers from the repo: CSP, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and `Referrer-Policy: strict-origin-when-cross-origin`, and `X-Powered-By` is not exposed.
 
-The main remaining risk area is checkout abuse rather than a simple "free money" bug. The public payment-confirmation route can be called without any visible application-layer rate limit, captcha, or velocity control, and it creates pending orders plus Stripe PaymentIntents on each request. That makes the checkout path a realistic target for card-testing pressure, bot spam, and operational noise unless Stripe Radar or upstream edge controls are doing the heavy lifting outside this repository.
+The biggest remaining launch risks are not a trivial remote takeover of the public storefront. They are operational and blast-radius issues: the public contact form can be abused to send mail without any visible anti-automation control, and the current CSP still permits inline scripts. There is also one admin-only mutation route that uses cookie auth outside the safer Server Action flow. The Cloudflare deploy-token runtime issue has been remediated in repo code/docs, but the live Worker still needs dashboard cleanup and token rotation if the old secret was uploaded.
 
 ## High severity
 
-### GC-001: No visible anti-automation or velocity controls on the public payment-confirmation endpoint
+### GC-001: Deploy-scoped Cloudflare credentials were configured for runtime worker use
 
-Impact: Attackers can repeatedly hit checkout to generate payment attempts, pending orders, and processor load, which is the exact pattern used in card-testing and payment abuse campaigns.
+Status: Remediated in repo code and deployment docs. Operational cleanup is still required in Cloudflare if the old Worker secret exists.
 
-Evidence:
+Original impact: If the worker ever suffers any server-side secret disclosure or code-execution issue, the compromise scope expands from "this app" to Cloudflare account-level mutation rights.
 
-- [`app/api/stripe/confirm-payment/route.ts:197`](E:\Websites\grown-cookies\app\api\stripe\confirm-payment\route.ts#L197) exposes a public `POST` handler.
-- [`app/api/stripe/confirm-payment/route.ts:223`](E:\Websites\grown-cookies\app\api\stripe\confirm-payment\route.ts#L223) treats authentication as optional for guest checkout.
-- [`app/api/stripe/confirm-payment/route.ts:253`](E:\Websites\grown-cookies\app\api\stripe\confirm-payment\route.ts#L253) creates a pending order before payment confirmation completes.
-- [`app/api/stripe/confirm-payment/route.ts:267`](E:\Websites\grown-cookies\app\api\stripe\confirm-payment\route.ts#L267) creates and confirms a Stripe PaymentIntent.
-- [`lib/stripe-checkout.ts:126`](E:\Websites\grown-cookies\lib\stripe-checkout.ts#L126) persists every pending order into D1.
-- The repo contains login throttling for admin access in [`lib/admin-login-throttle.ts:1`](E:\Websites\grown-cookies\lib\admin-login-throttle.ts#L1), but there is no equivalent throttle, rate limiter, or abuse gate on checkout.
+Remediation evidence:
 
-Why this matters:
+- `E:\Websites\grown-cookies\lib\cloudflare-d1.ts` now uses only the Worker `DB` binding and throws when the binding is unavailable.
+- `E:\Websites\grown-cookies\cloudflare-upload.md` now uploads runtime secrets from `.env.worker`, excludes deploy-only Cloudflare credentials from Worker runtime, and documents cleanup.
+- `E:\Websites\grown-cookies\README.md` now documents Cloudflare deploy credentials as local/CI-only values.
 
-- This is the control gap most relevant to "stolen cards" and card-testing concerns.
-- Even if Stripe declines many abusive attempts, the app still pays the cost of request processing, order creation, and noisy operational data.
-- Stripe Radar or Netlify/WAF protections may already help, but that protection is not visible in this codebase and must be verified separately.
+Remaining operational steps:
 
-Recommended fix:
-
-- Add edge and app-level throttling on `/api/stripe/confirm-payment` keyed by IP, device/session, and optionally basket fingerprint.
-- Add velocity checks for repeated attempts across different cards, emails, or shipping data.
-- Consider captcha/challenge only after suspicious patterns, not for all users.
-- Alert on unusual bursts of failed PaymentIntents and high pending-order creation rates.
+1. Delete `CLOUDFLARE_API_TOKEN` from the live Worker if present.
+2. Delete `CLOUDFLARE_D1_DATABASE_ID` from the live Worker if it was previously bulk-uploaded as a secret.
+3. Rotate any Cloudflare API token that was previously loaded into the live Worker.
 
 ## Medium severity
 
-### GC-002: Checkout return URL is accepted from client input without an origin allowlist
+### GC-002: Public contact form has no visible anti-abuse control
 
-Impact: A malicious caller can supply an arbitrary HTTPS origin as the Stripe `return_url`, creating an open-redirect style phishing vector after 3DS or other redirect-based payment steps.
-
-Evidence:
-
-- [`app/api/stripe/confirm-payment/route.ts:49`](E:\Websites\grown-cookies\app\api\stripe\confirm-payment\route.ts#L49) only checks that `returnUrlBase` starts with `http://` or `https://`.
-- [`app/api/stripe/confirm-payment/route.ts:218`](E:\Websites\grown-cookies\app\api\stripe\confirm-payment\route.ts#L218) accepts the user-supplied value.
-- [`app/api/stripe/confirm-payment/route.ts:283`](E:\Websites\grown-cookies\app\api\stripe\confirm-payment\route.ts#L283) sends it directly to Stripe as `return_url`.
-- The client currently sends `window.location.origin` from [`components/checkout-client.tsx:389`](E:\Websites\grown-cookies\components\checkout-client.tsx#L389), but the server does not enforce that same constraint.
-
-Recommended fix:
-
-- Replace client-provided base URLs with a server-side allowlist, for example a single canonical production origin plus approved local/dev origins.
-- Reject any `returnUrlBase` that is not an exact allowed origin.
-
-### GC-003: CSP still allows inline scripts
-
-Impact: The site has a CSP, but `script-src 'unsafe-inline'` weakens its value as an XSS mitigation layer.
+Impact: Anyone can automate submissions to flood your inbox, consume Zoho/Resend quota, and create operational noise before launch.
 
 Evidence:
 
-- [`next.config.ts:77`](E:\Websites\grown-cookies\next.config.ts#L77) adds `'unsafe-inline'` to `script-src`.
-- The live site currently returns `Content-Security-Policy: ... script-src 'self' 'unsafe-inline' https://js.stripe.com ...` on `https://growncookies.netlify.app/` as of 2026-03-30.
+- `E:\Websites\grown-cookies\app\api\contact\route.ts:40` exposes an unauthenticated public `POST` handler.
+- `E:\Websites\grown-cookies\app\api\contact\route.ts:86` sends through Zoho when configured.
+- `E:\Websites\grown-cookies\app\api\contact\route.ts:131` sends through Resend as fallback.
+- There is input validation, but there is no rate limit, captcha, honeypot field, or origin check anywhere in this route.
 
 Recommended fix:
 
-- Move toward a nonce-based CSP for first-party inline scripts where feasible.
-- Keep Stripe on an explicit allowlist, but remove `'unsafe-inline'` once the app no longer depends on it.
+1. Add Cloudflare Turnstile to the contact form.
+2. Add an app-side throttle keyed by IP and email address, similar to the existing checkout and admin-login throttles.
+3. Add a honeypot field and reject obvious bot submissions before sending mail.
+4. Log and alert on repeated failures or bursts so abuse is visible before launch day.
+
+### GC-003: CSP still permits inline scripts
+
+Impact: The site has a CSP, but `script-src 'unsafe-inline'` materially weakens CSP as an XSS containment layer.
+
+Evidence:
+
+- `E:\Websites\grown-cookies\next.config.ts:82` adds `'unsafe-inline'` to `script-src`.
+- `E:\Websites\grown-cookies\next.config.ts:116` emits that script policy on every route.
+- A live header check on 2026-04-18 confirmed the deployed site is still returning `script-src 'self' 'unsafe-inline' ...`.
+
+Recommended fix:
+
+1. Move the consent/bootstrap inline script to a nonce-based or external script flow.
+2. Remove `'unsafe-inline'` from `script-src` first; `style-src 'unsafe-inline'` can be handled separately if needed.
+3. Add CSP reporting in a non-production or report-only environment while tightening the policy.
 
 ## Low severity
 
-### GC-004: Framework fingerprinting via `X-Powered-By`
+### GC-004: Admin gift-card creation route bypasses Server Action origin protections
 
-Impact: This is minor information leakage, but it gives scanners and opportunistic attackers exact framework context.
+Impact: This is an admin-only issue, and the current `SameSite=Lax` cookie reduces classic off-site CSRF risk, but the route still performs a state-changing action from a cookie-authenticated Route Handler without explicit origin or CSRF checks.
 
 Evidence:
 
-- The live site currently returns `X-Powered-By: Next.js` on `https://growncookies.netlify.app/` and `https://growncookies.netlify.app/admin` as of 2026-03-30.
+- `E:\Websites\grown-cookies\app\api\admin\gift-cards\route.ts:10` authenticates purely from the admin cookie.
+- `E:\Websites\grown-cookies\app\api\admin\gift-cards\route.ts:30` exposes a state-changing `POST` handler.
+- `E:\Websites\grown-cookies\app\api\admin\gift-cards\route.ts:43` creates a gift card after only the cookie-based auth check.
 
 Recommended fix:
 
-- Disable `X-Powered-By` in production unless you have a reason to keep it.
+1. Prefer a Server Action for this admin mutation so it inherits Next.js origin protections.
+2. If it stays a Route Handler, add an explicit Origin check and a CSRF token/header requirement.
+3. Keep the admin cookie `SameSite=Lax` or stricter.
+
+### GC-005: Checkout return URL is derived from request origin instead of a strict allowlist
+
+Impact: If the worker is reachable on an unexpected hostname, redirect-based payment flows can send customers back to an unreviewed origin.
+
+Evidence:
+
+- `E:\Websites\grown-cookies\app\api\stripe\confirm-payment\route.ts:115` derives the return origin from `request.url`.
+- `E:\Websites\grown-cookies\app\api\stripe\confirm-payment\route.ts:402` sends that derived value directly to Stripe as `return_url`.
+
+Recommended fix:
+
+1. Replace request-derived origins with a small allowlist of known origins such as production, preview, and localhost.
+2. Fail closed when the incoming origin is not on that allowlist.
 
 ## Positive findings
 
-- The live site returns `Content-Security-Policy`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, and HSTS.
-- Admin auth cookies are set `HttpOnly`, `SameSite=Lax`, and `Secure` in production in [`app/admin/actions.ts:217`](E:\Websites\grown-cookies\app\admin\actions.ts#L217).
-- The Stripe webhook requires `stripe-signature` and verifies the signature using the raw request body in [`app/api/stripe/webhook/route.ts:27`](E:\Websites\grown-cookies\app\api\stripe\webhook\route.ts#L27).
-- Account APIs use bearer-token auth instead of cookie-authenticated JSON requests in [`lib/account-auth.ts:4`](E:\Websites\grown-cookies\lib\account-auth.ts#L4), which avoids the highest-risk CSRF pattern for those endpoints.
+- `E:\Websites\grown-cookies\app\api\stripe\confirm-payment\route.ts:286` uses a checkout attempt throttle before payment creation.
+- `E:\Websites\grown-cookies\next.config.ts:137` disables `X-Powered-By`, and the live site no longer exposes it.
+- `.env.local` is not tracked in git, and `E:\Websites\grown-cookies\.gitignore` ignores `.env*` files.
+- The live site currently serves a holding page, which reduces the exposed public surface while you finish hardening work.
 
 ## Scope notes
 
-- This review covered repository code and runtime header checks against [growncookies.netlify.app](https://growncookies.netlify.app/) on 2026-03-30.
-- I did not perform intrusive testing, payment fraud attempts, credential attacks, or external service configuration inspection.
-- Stripe Radar rules, Netlify WAF/rate limiting, Supabase dashboard policies, and Cloudflare edge controls may reduce some of the above risks, but those protections are not visible from this repository alone.
+- This review covered repository code in `E:\Websites\grown-cookies` and read-only checks against `https://growncookies.co.uk/` on 2026-04-18.
+- I did not perform intrusive testing, credential attacks, payment abuse attempts, or destructive actions against the live deployment.
+- Cloudflare dashboard settings, Stripe Radar rules, Supabase dashboard policies, and email-provider abuse controls were not visible from this repo and still need separate verification.
