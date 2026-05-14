@@ -70,7 +70,9 @@ export default function AdminSidebar() {
           <Link
             key={item.id}
             href={item.href}
-            className={`${styles.navItem} ${activeSection === item.id ? styles.navItemActive : ""}`.trim()}
+            className={`${styles.navItem} ${item.id === "launch" ? styles.navItemLaunch : ""} ${
+              activeSection === item.id ? styles.navItemActive : ""
+            }`.trim()}
             onClick={() => setIsMenuOpen(false)}
           >
             {item.label}

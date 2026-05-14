@@ -4,11 +4,6 @@ import {
   consumeContactAttempt,
 } from "@/lib/contact-attempt-throttle";
 import {
-  CONTACT_TURNSTILE_VERIFICATION_MESSAGE,
-  ContactTurnstileError,
-  verifyContactTurnstileToken,
-} from "@/lib/contact-turnstile";
-import {
   getContactFormRecipient,
   getDefaultOrdersEmailRecipient,
   isProductionEnvironment,
@@ -27,7 +22,6 @@ type ContactFormPayload = {
   phone?: unknown;
   subject?: unknown;
   message?: unknown;
-  turnstileToken?: unknown;
 };
 
 function normalizeText(value: unknown) {
@@ -55,7 +49,6 @@ export async function POST(request: Request) {
     const phone = normalizeText(body.phone);
     const subject = normalizeText(body.subject) || "Order enquiry";
     const message = normalizeText(body.message);
-    const turnstileToken = normalizeText(body.turnstileToken);
 
     if (!name) {
       return NextResponse.json({ error: "Enter your name." }, { status: 400 });
@@ -69,31 +62,6 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Enter a message with at least 10 characters." },
         { status: 400 },
-      );
-    }
-
-    try {
-      await verifyContactTurnstileToken({
-        request,
-        token: turnstileToken,
-      });
-    } catch (error) {
-      if (error instanceof ContactTurnstileError && error.kind === "verification") {
-        console.info("Contact Turnstile verification failed.", {
-          errorCodes: error.errorCodes,
-        });
-
-        return NextResponse.json(
-          { error: CONTACT_TURNSTILE_VERIFICATION_MESSAGE },
-          { status: 400 },
-        );
-      }
-
-      console.error("Contact Turnstile validation unavailable.", error);
-
-      return NextResponse.json(
-        { error: CONTACT_FALLBACK_MESSAGE },
-        { status: 500 },
       );
     }
 

@@ -669,6 +669,50 @@ export default function AdminImageInput({
         )}
       </div>
 
+      {showCropControls ? (
+        <>
+          <div className={styles.cropControls}>
+            <label>
+              <span>Zoom</span>
+              <input
+                type="range"
+                min={MIN_ZOOM}
+                max={MAX_ZOOM}
+                step="0.01"
+                value={activeCropState.zoom}
+                onChange={(event) => {
+                  const nextZoom = Number.parseFloat(event.currentTarget.value);
+                  updateActiveCropState((cropState) => ({
+                    ...cropState,
+                    zoom: clamp(nextZoom, MIN_ZOOM, MAX_ZOOM),
+                  }));
+                }}
+                disabled={!sourceReady}
+              />
+            </label>
+          </div>
+
+          <div className={styles.cropActions}>
+            <button type="button" className={styles.secondaryButton} onClick={resetActiveCrop}>
+              Reset crop
+            </button>
+            {cropSourceKind === "upload" ? (
+              <button type="button" className={styles.secondaryButton} onClick={clearSelectedImage}>
+                Cancel image
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className={styles.cropApplyButton}
+              onClick={applyCrops}
+              disabled={!sourceReady}
+            >
+              Use crops
+            </button>
+          </div>
+        </>
+      ) : null}
+
       <label className={styles.filePicker}>
         <span>{disabled ? "Uploads unavailable" : "Choose a new image"}</span>
         <input
@@ -718,46 +762,6 @@ export default function AdminImageInput({
                 {variant.label}
               </button>
             ))}
-          </div>
-
-          <div className={styles.cropControls}>
-            <label>
-              <span>Zoom</span>
-              <input
-                type="range"
-                min={MIN_ZOOM}
-                max={MAX_ZOOM}
-                step="0.01"
-                value={activeCropState.zoom}
-                onChange={(event) => {
-                  const nextZoom = Number.parseFloat(event.currentTarget.value);
-                  updateActiveCropState((cropState) => ({
-                    ...cropState,
-                    zoom: clamp(nextZoom, MIN_ZOOM, MAX_ZOOM),
-                  }));
-                }}
-                disabled={!sourceReady}
-              />
-            </label>
-          </div>
-
-          <div className={styles.cropActions}>
-            <button type="button" className={styles.secondaryButton} onClick={resetActiveCrop}>
-              Reset crop
-            </button>
-            {cropSourceKind === "upload" ? (
-              <button type="button" className={styles.secondaryButton} onClick={clearSelectedImage}>
-                Cancel image
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className={styles.cropApplyButton}
-              onClick={applyCrops}
-              disabled={!sourceReady}
-            >
-              Use crops
-            </button>
           </div>
         </div>
       ) : null}

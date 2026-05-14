@@ -65,6 +65,9 @@ export default function PrivacyPage() {
             <p>
               You can request access, correction, or deletion of your personal
               data by contacting us through the <Link href="/contact">contact page</Link>.
+              If you join our mailing list, you can also ask to be removed at
+              any time and we will delete your email address from the mailing
+              list.
             </p>
           </div>
         </article>

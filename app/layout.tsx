@@ -6,6 +6,7 @@ import Script from "next/script";
 import { FaTiktok } from "react-icons/fa6";
 import { FiInstagram } from "react-icons/fi";
 import CookieConsentBanner from "@/components/cookie-consent-banner";
+import MailingListSignupForm from "@/components/mailing-list-signup-form";
 import SiteLockGate from "@/components/site-lock-gate";
 import { COOKIE_CONSENT_STORAGE_KEY } from "@/lib/cookie-consent";
 import { isSiteLockEnabled } from "@/lib/site-lock";
@@ -158,20 +159,7 @@ export default async function RootLayout({
                       <p>Get exclusive offers, new flavour drops, and fresh-baked updates.</p>
                     </div>
 
-                    <form className="site-footer-form" aria-label="Newsletter signup">
-                      <label htmlFor="footer-email" className="sr-only">
-                        Email address
-                      </label>
-                      <input
-                        id="footer-email"
-                        type="email"
-                        placeholder="Email address"
-                        className="site-footer-input"
-                      />
-                      <button type="submit" className="site-footer-button">
-                        Sign up
-                      </button>
-                    </form>
+                    <MailingListSignupForm />
                   </div>
 
                   <div className="site-footer-bottom-row">
@@ -185,7 +173,10 @@ export default async function RootLayout({
                       </span>
                     </p>
                     <div className="site-footer-links">
-                      <Link href="/privacy">Privacy Policy</Link>
+                      <div className="site-footer-legal-links">
+                        <Link href="/privacy">Privacy Policy</Link>
+                        <Link href="/terms">Terms of Service</Link>
+                      </div>
                       <div className="site-footer-social">
                         <Link href="#" aria-label="Instagram">
                           <FiInstagram />

@@ -192,6 +192,18 @@
   border-color: rgba(255, 221, 184, 0.28);
 }
 
+.navItemLaunch {
+  margin-top: 0.35rem;
+  background: #b32636;
+  border-color: #d64551;
+  color: #fffaf5;
+}
+
+.navItemLaunch.navItemActive {
+  background: #d33143;
+  border-color: #f06470;
+}
+
 .sidebarNav .navItem,
 .sidebarNav .navItemActive {
   min-height: 3.9rem;
@@ -659,7 +671,7 @@
 }
 
 .analyticsTwoColumn {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .analyticsThreeColumn {
@@ -668,6 +680,24 @@
 
 .analyticsTable {
   min-width: 42rem;
+}
+
+.dailyTrendScroll {
+  max-height: 26rem;
+  overflow: auto;
+}
+
+.trafficPagesScroll {
+  max-height: 26rem;
+  overflow: auto;
+}
+
+.dailyTrendScroll .table thead th,
+.trafficPagesScroll .table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #ffffff;
 }
 
 .analyticsEmptyState {
@@ -723,6 +753,47 @@
   width: 100%;
   border-collapse: collapse;
   min-width: 60rem;
+}
+
+.mailingListScroll {
+  max-height: 35.5rem;
+  overflow: auto;
+}
+
+.mailingListTable {
+  min-width: 44rem;
+}
+
+.mailingListTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #ffffff;
+}
+
+.mailingListTable tbody td {
+  white-space: nowrap;
+}
+
+.mailingListDeleteForm {
+  display: inline-flex;
+  justify-content: flex-end;
+}
+
+.mailingListDeleteButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.5rem;
+  padding: 0.62rem 0.85rem;
+  border: 1px solid rgba(183, 62, 81, 0.24);
+  border-radius: 999px;
+  background: rgba(183, 62, 81, 0.12);
+  color: #9d2941;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .table thead th {
@@ -1307,6 +1378,11 @@
 
   .analyticsTable {
     min-width: 36rem;
+  }
+
+  .dailyTrendScroll,
+  .trafficPagesScroll {
+    max-height: 22rem;
   }
 
   .modalBackdrop {

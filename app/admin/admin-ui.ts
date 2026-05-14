@@ -8,7 +8,9 @@ export type AdminSidebarSection =
   | "homepage"
   | "orders"
   | "delivery"
-  | "analytics";
+  | "mailing-list"
+  | "analytics"
+  | "launch";
 
 export type AdminFlashState = {
   notice?: string;
@@ -63,7 +65,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   {
     id: "homepage",
     href: "/admin/homepage",
-    label: "Home page",
+    label: "Cookie of the Month",
     matches: (pathname) => pathname === "/admin/homepage",
   },
   {
@@ -83,6 +85,18 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     href: "/admin/analytics",
     label: "Analytics",
     matches: (pathname) => pathname === "/admin/analytics",
+  },
+  {
+    id: "mailing-list",
+    href: "/admin/mailing-list",
+    label: "Mailing list",
+    matches: (pathname) => pathname === "/admin/mailing-list",
+  },
+  {
+    id: "launch",
+    href: "/admin/launch",
+    label: "Launch",
+    matches: (pathname) => pathname === "/admin/launch",
   },
 ];
 

@@ -381,7 +381,7 @@ export default async function AnalyticsAdminPage({ searchParams }: AnalyticsAdmi
                 Completed orders include paid and delivered checkout records.
               </p>
             </div>
-            <div className={styles.tableScroll}>
+            <div className={`${styles.tableScroll} ${styles.dailyTrendScroll}`.trim()}>
               <table className={`${styles.table} ${styles.analyticsTable}`.trim()}>
                 <thead>
                   <tr>
@@ -420,7 +420,7 @@ export default async function AnalyticsAdminPage({ searchParams }: AnalyticsAdmi
                 </div>
               </div>
               {traffic && traffic.topPages.length > 0 ? (
-                <div className={styles.tableScroll}>
+                <div className={`${styles.tableScroll} ${styles.trafficPagesScroll}`.trim()}>
                   <table className={`${styles.table} ${styles.analyticsTable}`.trim()}>
                     <thead>
                       <tr>
