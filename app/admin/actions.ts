@@ -20,6 +20,7 @@ import {
   type ProductImageVariantMap,
 } from "@/lib/product-image-variants";
 import { markAdminOrderDelivered } from "@/lib/admin-orders";
+import { deleteMailingListSubscriber } from "@/lib/mailing-list";
 import {
   getCookieOfMonthSectionSetting,
   updateBrandStorySectionSetting,
@@ -185,6 +186,24 @@ async function requireAdminSession() {
     cookieStore.delete(ADMIN_AUTH_COOKIE);
     throw new Error("Your admin session expired. Sign in again.");
   }
+}
+
+function revalidateSiteLockViews() {
+  revalidateTag("store-settings-site-lock", "max");
+  revalidatePath("/", "layout");
+  revalidatePath("/admin/homepage");
+  revalidatePath("/admin/launch");
+}
+
+async function setSiteLockEnabledForAdmin(enabled: boolean) {
+  await requireAdminSession();
+  await updateSiteLockEnabled(enabled);
+  revalidateSiteLockViews();
+
+  return {
+    ok: true as const,
+    enabled,
+  };
 }
 
 export async function adminLoginAction(formData: FormData) {
@@ -414,14 +433,9 @@ export async function updateSiteLockAction(formData: FormData) {
   try {
     const returnView = getTextField(formData, "returnView");
     const returnPath = getTextField(formData, "returnPath");
-    await requireAdminSession();
-
     const enabled = getTextField(formData, "siteLockEnabled") === "1";
 
-    await updateSiteLockEnabled(enabled);
-    revalidateTag("store-settings-site-lock", "max");
-    revalidatePath("/", "layout");
-    revalidatePath("/admin/homepage");
+    await setSiteLockEnabledForAdmin(enabled);
 
     redirectToAdmin({
       returnPath,
@@ -438,6 +452,28 @@ export async function updateSiteLockAction(formData: FormData) {
       error: error instanceof Error ? error.message : "The site lock could not be updated.",
       returnView: getTextField(formData, "returnView"),
     });
+  }
+}
+
+export async function launchSiteAction() {
+  try {
+    return await setSiteLockEnabledForAdmin(false);
+  } catch (error) {
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "The site could not be launched.",
+    };
+  }
+}
+
+export async function relockSiteAction() {
+  try {
+    return await setSiteLockEnabledForAdmin(true);
+  } catch (error) {
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "The site lock could not be enabled.",
+    };
   }
 }
 
@@ -635,6 +671,39 @@ export async function deleteProductAction(formData: FormData) {
           ? error.message
           : "The product could not be deleted.",
       returnView: getTextField(formData, "returnView"),
+    });
+  }
+}
+
+export async function deleteMailingListSubscriberAction(formData: FormData) {
+  const returnPath = getTextField(formData, "returnPath") || "/admin/mailing-list";
+
+  try {
+    const subscriberId = Number.parseInt(getTextField(formData, "subscriberId"), 10);
+
+    if (!Number.isFinite(subscriberId)) {
+      throw new Error("The subscriber record could not be found.");
+    }
+
+    await requireAdminSession();
+    await deleteMailingListSubscriber(subscriberId);
+    revalidatePath("/admin/mailing-list");
+
+    redirectToAdmin({
+      returnPath,
+      notice: "Subscriber deleted.",
+    });
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    redirectToAdmin({
+      returnPath,
+      error:
+        error instanceof Error
+          ? error.message
+          : "The subscriber could not be deleted.",
     });
   }
 }

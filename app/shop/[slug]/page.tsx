@@ -10,7 +10,7 @@ import { getProductImageForVariant, PRODUCT_IMAGE_VARIANTS } from "@/lib/product
 import SiteHeader from "@/components/site-header";
 import styles from "./page.module.css";
 
-const GIFT_CARD_FRAME_IMAGE = "/gift card frame.png";
+const GIFT_CARD_FRAME_IMAGE = "/gift card frame no crumbs.png";
 
 export async function generateStaticParams() {
   const products = await getAllProducts();

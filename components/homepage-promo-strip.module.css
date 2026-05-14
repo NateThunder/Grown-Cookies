@@ -172,17 +172,16 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 2.6rem;
+  min-height: 2.5rem;
   margin-top: 0.35rem;
-  padding: 0 1.5rem;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: var(--public-plum);
-  color: #fffafc;
+  padding: 0 1.45rem;
+  border-radius: 999px;
+  background: var(--public-plum-deep);
+  color: var(--public-cream);
   font-family: var(--font-public-ui);
-  font-size: 0.74rem;
+  font-size: 0.76rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   text-decoration: none;
 }
@@ -382,9 +381,16 @@
   text-decoration: none;
 }
 
-.buttonSecondary {
-  background: var(--public-plum);
-  color: #fffafc;
+.buttonSecondary,
+.promo .button.buttonSecondary {
+  min-height: 2.5rem;
+  padding: 0 1.45rem;
+  border-radius: 999px;
+  background: var(--public-plum-deep);
+  color: var(--public-cream);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
 }
 
 .caption {
@@ -409,7 +415,7 @@
 
   .cookieMonth::after {
     top: auto;
-    bottom: calc(100% - clamp(16rem, 58vw, 24rem));
+    bottom: calc(100% - clamp(16rem, 58vw, 24rem) - clamp(3.5rem, 12vw, 5.5rem));
     left: 0;
     width: 100%;
     height: clamp(3.5rem, 12vw, 5.5rem);
@@ -422,7 +428,7 @@
   }
 
   .copyPanel::before {
-    inset: calc(-1 * clamp(3.5rem, 12vw, 5.5rem)) 0 0;
+    inset: 0;
     background:
       radial-gradient(circle at 50% 0%, rgba(255, 201, 218, 0.45) 0%, rgba(255, 201, 218, 0) 36%),
       linear-gradient(180deg, rgba(250, 148, 176, 0) 0%, #fa94b0 30%, #fa99b7 62%, #f9a2bd 100%);
@@ -632,5 +638,149 @@
     padding-inline: 1.15rem;
     font-size: 0.68rem;
     letter-spacing: 0.08em;
+  }
+}
+
+/* Our shop refresh */
+.promo {
+  width: min(1040px, calc(100% - 2rem));
+  min-height: 0;
+  aspect-ratio: auto;
+  margin-top: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.promo__card {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: auto;
+  min-height: 10.45rem;
+  margin: 0;
+  outline: 0.65rem solid #fff8f1;
+  border-radius: 8px;
+  background: #FA95B2;
+}
+
+.block {
+  padding: 1.5rem 1.8rem;
+}
+
+.shopPanel {
+  padding-left: 1.8rem;
+}
+
+.shopPanel .contentBox {
+  gap: 1.2rem;
+}
+
+.eyebrow {
+  color: #50146b;
+  font-family: var(--font-h1--family);
+  font-size: clamp(1.35rem, 2.4vw, 2.05rem);
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 0.96;
+  word-spacing: var(--font-h1--word-spacing, -0.32em);
+  text-transform: none;
+}
+
+.benefitGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.9rem;
+  width: 100%;
+}
+
+.benefitItem {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.66rem;
+  margin: 0;
+  color: var(--public-ink-soft);
+  font-family: var(--font-public-ui);
+  font-size: clamp(0.82rem, 0.91vw, 0.96rem);
+  line-height: 1.28;
+}
+
+.benefitIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.34rem;
+  color: #50146b;
+  font-size: 0;
+  line-height: 1;
+}
+
+.benefitIcon::before {
+  content: "";
+  width: 1rem;
+  height: 1rem;
+  background: currentColor;
+  mask: url("/cookie icon.PNG") center / contain no-repeat;
+  -webkit-mask: url("/cookie icon.PNG") center / contain no-repeat;
+}
+
+.button {
+  min-height: 2.45rem;
+  border-radius: 8px;
+  font-size: 0.74rem;
+}
+
+@media (max-width: 620px) {
+  .promo {
+    width: var(--homepage-panel-width);
+    padding-bottom: 0;
+    margin-top: 0.75rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .promo::after {
+    display: none;
+  }
+
+  .promo__card {
+    min-height: 0;
+    outline-width: 0.35rem;
+  }
+
+  .block,
+  .shopPanel {
+    padding: 1.2rem 1.08rem;
+    text-align: left;
+  }
+
+  .shopPanel .contentBox {
+    width: 100%;
+    align-items: flex-start;
+    gap: 1.08rem;
+  }
+
+  .eyebrow {
+    font-size: 1.45rem;
+  }
+
+  .benefitGrid {
+    grid-template-columns: 1fr;
+    gap: 0.78rem;
+  }
+
+  .benefitItem {
+    font-size: 0.86rem;
+    line-height: 1.26;
+  }
+
+  .benefitIcon {
+    width: 1.65rem;
+    text-align: center;
+  }
+
+  .promo .button {
+    align-self: flex-start;
+    min-height: 2.22rem;
+    padding-inline: 1.14rem;
+    font-size: 0.67rem;
   }
 }

@@ -79,10 +79,16 @@
 }
 
 .primaryButton {
-  border: 1px solid var(--public-plum);
-  background: var(--public-plum);
+  min-height: 2.5rem;
+  border: 1px solid transparent;
+  background: var(--public-plum-deep);
   color: var(--public-cream);
-  padding: 0.72rem 0.96rem;
+  padding: 0 1.45rem;
+  font-family: var(--font-public-ui);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .primaryButton:hover,

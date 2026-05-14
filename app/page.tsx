@@ -10,7 +10,7 @@ import {
 import { getProductImageForVariant, PRODUCT_IMAGE_VARIANTS } from "@/lib/product-image-variants";
 import styles from "./page.module.css";
 
-const GIFT_CARD_FRAME_IMAGE = "/gift card frame.png";
+const GIFT_CARD_FRAME_IMAGE = "/gift card frame no crumbs.png";
 
 const flavourToneMap: Record<string, string> = {
   "matcha-white-chocolate": "matchaTone",

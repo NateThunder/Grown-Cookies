@@ -54,13 +54,19 @@ Create `.env.local` with the services this app depends on:
 
 - Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`
 - Admin security: `ADMIN_LOGIN_THROTTLE_SECRET`
-- Checkout security: `CHECKOUT_THROTTLE_SECRET`
+- Checkout security: `CHECKOUT_THROTTLE_SECRET`, optional `CHECKOUT_RETURN_ALLOWED_ORIGINS`
 - Stripe: `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`
+- Google Analytics: optional browser tracking `NEXT_PUBLIC_GA_MEASUREMENT_ID`; optional admin reporting `GOOGLE_ANALYTICS_PROPERTY_ID`, `GOOGLE_ANALYTICS_CLIENT_EMAIL`, `GOOGLE_ANALYTICS_PRIVATE_KEY`
 - Order email notifications: `RESEND_API_KEY`, `ORDER_NOTIFICATION_FROM`, optional `ORDER_NOTIFICATION_TO`
-- Contact/order enquiry form: `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN`, `ZOHO_ACCOUNT_ID`, optional `CONTACT_FORM_FROM`, optional `CONTACT_FORM_TO`
-- Cloudflare: account/D1/R2 values used by the admin, catalog, and deploy flows
+- Contact/order enquiry form: `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `CONTACT_THROTTLE_SECRET`, `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN`, `ZOHO_ACCOUNT_ID`, optional `CONTACT_FORM_FROM`, optional `CONTACT_FORM_TO`
+- Cloudflare runtime: `CLOUDFLARE_ACCOUNT_ID` and R2 values used by admin media upload/delete. D1 uses the `DB` binding in `wrangler.toml`, not runtime account API credentials.
+- Cloudflare deploy: keep `CLOUDFLARE_API_TOKEN`, if used, in your local shell or CI secrets only. Do not put it in `.env.local` or upload it to the Worker runtime.
 
 Do not commit `.env.local` or real credentials.
+
+Set `NEXT_PUBLIC_GA_MEASUREMENT_ID` to your Google Analytics 4 measurement ID, for example `G-XXXXXXXXXX`, to enable the analytics consent banner and GA loader. Google Analytics starts with Consent Mode denied and only loads after the visitor chooses "Allow analytics"; the privacy page lets visitors change that choice later.
+
+The admin analytics dashboard uses Google Analytics Data API read access separately from the browser tracking ID. Set `GOOGLE_ANALYTICS_PROPERTY_ID` to the numeric GA4 property ID, then create a Google service account with Viewer access to that GA4 property and set `GOOGLE_ANALYTICS_CLIENT_EMAIL` and `GOOGLE_ANALYTICS_PRIVATE_KEY` from its key file. Store `GOOGLE_ANALYTICS_PRIVATE_KEY` as a single-line secret with escaped `\n` line breaks.
 
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` is expected to be public in the browser bundle for Supabase Auth. This app uses Supabase for authentication only; storefront and admin data access in this repo is handled through server-side routes and Cloudflare services, not direct browser table queries.
 
@@ -73,6 +79,10 @@ Admin access is controlled from Supabase user `app_metadata`, not from an enviro
 Admin sign-in applies a temporary cooldown after repeated failed attempts and stores only hashed email/IP identifiers in D1. Set `ADMIN_LOGIN_THROTTLE_SECRET` to a long random server-only value before deploying so those hashes are salted consistently across instances.
 
 Checkout payment confirmation now applies a D1-backed attempt throttle before order creation and PaymentIntent creation. Set `CHECKOUT_THROTTLE_SECRET` to a long random server-only value before deploying so hashed checkout identifiers stay stable across instances. If you intentionally want one shared salt, the checkout throttle falls back to `ADMIN_LOGIN_THROTTLE_SECRET`, but a dedicated value is preferred.
+
+Stripe return URLs only use allowlisted origins. Production domains and the default local dev origins are allowed by default; set `CHECKOUT_RETURN_ALLOWED_ORIGINS` to a comma-separated list when checkout needs to work from Cloudflare previews or another custom origin.
+
+Contact form submissions require Cloudflare Turnstile validation and a D1-backed IP/email throttle before any Zoho or Resend email is sent. Set `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, and `CONTACT_THROTTLE_SECRET` before production deploys. Local development uses Cloudflare's official Turnstile test keys when real keys are absent, but production fails closed if Turnstile is not configured.
 
 Enable Supabase MFA for every admin user in the Supabase dashboard. This repo now hardens the login surface with throttling and browser security headers, but MFA still needs to be enforced in Supabase itself.
 
@@ -98,17 +108,19 @@ To deploy the production worker and attach the live domains in one command, use:
 npm run cloudflare:deploy:domain
 ```
 
-Before the first worker deploy, upload runtime secrets from your local environment:
+Before the first worker deploy, upload runtime secrets from a Worker-only env file:
 
 ```bash
-npx wrangler secret bulk .env.local
+npx wrangler secret bulk .env.worker
 ```
+
+Do not bulk upload `.env.local`. The Worker runtime must not receive deploy-only values such as `CLOUDFLARE_API_TOKEN`, and D1 does not need `CLOUDFLARE_D1_DATABASE_ID` as a runtime secret. Use `npm run cloudflare:preview` or Wrangler D1 commands for D1-backed local work instead of querying remote D1 from plain `next dev`.
 
 Before deploying, verify Wrangler auth and token scope requirements in [`cloudflare-upload.md`](cloudflare-upload.md). That guide is the source of truth for authentication, Workers deploy commands, custom-domain attachment, environment variables, and Stripe webhook setup.
 
 Production order notifications are sent after `payment_intent.succeeded` through the Stripe webhook. Configure a verified sender in Resend with `ORDER_NOTIFICATION_FROM`, set `RESEND_API_KEY`, and optionally override the recipient with `ORDER_NOTIFICATION_TO`. If `ORDER_NOTIFICATION_TO` is unset, notifications default to `orders@growncookies.co.uk`.
 
-The `/contact` page now submits server-side and sends through the Zoho Mail API when the Zoho contact-form secrets are set. Configure `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN`, and `ZOHO_ACCOUNT_ID`, then set `CONTACT_FORM_FROM` if you want a specific Zoho mailbox or alias as the sender. `CONTACT_FORM_TO` remains optional and defaults to `orders@growncookies.co.uk`. If Zoho is unavailable, the route falls back to the existing Resend setup when that is configured.
+The `/contact` page now submits server-side, verifies Cloudflare Turnstile, applies the D1 contact throttle, and then sends through the Zoho Mail API when the Zoho contact-form secrets are set. Configure `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `CONTACT_THROTTLE_SECRET`, `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN`, and `ZOHO_ACCOUNT_ID`, then set `CONTACT_FORM_FROM` if you want a specific Zoho mailbox or alias as the sender. `CONTACT_FORM_TO` remains optional and defaults to `orders@growncookies.co.uk`. If Zoho is unavailable, the route falls back to the existing Resend setup when that is configured.
 
 Local `next dev` can send real contact-form email when either the Zoho Mail API secrets or the Resend fallback secrets are configured.
 

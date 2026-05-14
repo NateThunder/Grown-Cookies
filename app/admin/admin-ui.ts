@@ -2,7 +2,15 @@ export type SearchParamValue = string | string[] | undefined;
 
 export type AdminView = "all" | "featured";
 
-export type AdminSidebarSection = "products" | "featured" | "homepage" | "orders" | "delivery";
+export type AdminSidebarSection =
+  | "products"
+  | "featured"
+  | "homepage"
+  | "orders"
+  | "delivery"
+  | "mailing-list"
+  | "analytics"
+  | "launch";
 
 export type AdminFlashState = {
   notice?: string;
@@ -57,7 +65,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   {
     id: "homepage",
     href: "/admin/homepage",
-    label: "Home page",
+    label: "Cookie of the Month",
     matches: (pathname) => pathname === "/admin/homepage",
   },
   {
@@ -71,6 +79,24 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     href: "/admin/delivery",
     label: "Delivery costs",
     matches: (pathname) => pathname === "/admin/delivery",
+  },
+  {
+    id: "analytics",
+    href: "/admin/analytics",
+    label: "Analytics",
+    matches: (pathname) => pathname === "/admin/analytics",
+  },
+  {
+    id: "mailing-list",
+    href: "/admin/mailing-list",
+    label: "Mailing list",
+    matches: (pathname) => pathname === "/admin/mailing-list",
+  },
+  {
+    id: "launch",
+    href: "/admin/launch",
+    label: "Launch",
+    matches: (pathname) => pathname === "/admin/launch",
   },
 ];
 

@@ -28,7 +28,10 @@ declare global {
     DB?: D1Database;
     CONTACT_FORM_FROM?: string;
     CONTACT_FORM_TO?: string;
+    CONTACT_THROTTLE_SECRET?: string;
     ORDER_NOTIFICATION_FROM?: string;
+    TURNSTILE_SITE_KEY?: string;
+    TURNSTILE_SECRET_KEY?: string;
     ZOHO_CLIENT_ID?: string;
     ZOHO_CLIENT_SECRET?: string;
     ZOHO_REFRESH_TOKEN?: string;

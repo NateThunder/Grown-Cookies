@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import {
+  ContactAttemptThrottleError,
+  consumeContactAttempt,
+} from "@/lib/contact-attempt-throttle";
+import {
   getContactFormRecipient,
   getDefaultOrdersEmailRecipient,
   isProductionEnvironment,
@@ -59,6 +63,27 @@ export async function POST(request: Request) {
         { error: "Enter a message with at least 10 characters." },
         { status: 400 },
       );
+    }
+
+    try {
+      await consumeContactAttempt({
+        request,
+        email,
+      });
+    } catch (error) {
+      if (error instanceof ContactAttemptThrottleError) {
+        return NextResponse.json(
+          { error: error.message },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(error.retryAfterSeconds),
+            },
+          },
+        );
+      }
+
+      throw error;
     }
 
     const recipient = getContactFormRecipient();

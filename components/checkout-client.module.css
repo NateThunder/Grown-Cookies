@@ -727,14 +727,18 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 48px;
+  min-height: 2.5rem;
   margin-top: 14px;
+  padding: 0 1.45rem;
   border: 0;
   border-radius: 999px;
   color: var(--public-cream);
-  font-family: var(--font-body--family);
-  font-size: 0.88rem;
-  font-weight: 700;
+  font-family: var(--font-public-ui);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
 }
 
 .payButton {
@@ -742,7 +746,7 @@
 }
 
 .returnLink {
-  background: linear-gradient(135deg, var(--public-plum-deep), var(--public-plum));
+  background: var(--public-plum-deep);
 }
 
 .summaryColumn {

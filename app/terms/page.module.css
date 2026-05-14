@@ -1,0 +1,89 @@
+.page {
+  min-height: 100vh;
+  position: relative;
+  isolation: isolate;
+  background: var(--public-gradient);
+  color: var(--public-ink);
+}
+
+.page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--public-film-grain-image);
+  background-repeat: repeat;
+  background-position: center;
+  background-size: cover;
+  opacity: var(--public-film-grain-opacity);
+  pointer-events: none;
+}
+
+.page > * {
+  position: relative;
+  z-index: 1;
+}
+
+.termsSection {
+  max-width: 58rem;
+  margin: 0 auto;
+  padding: clamp(2.5rem, 6vw, 5rem) var(--public-page-padding) clamp(4rem, 8vw, 6rem);
+}
+
+.contentWrap h1 {
+  margin: 0;
+  color: var(--public-plum-deep);
+  font-family: var(--font-public-display);
+  font-size: clamp(1.68rem, 3.36vw, 3.04rem);
+  line-height: 0.92;
+  font-weight: 700;
+}
+
+.groupHeading {
+  margin: 2rem 0 0;
+  color: rgba(75, 20, 95, 0.78);
+  font-family: var(--font-public-ui);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.termsItem {
+  margin-top: 1.2rem;
+  padding: clamp(1.3rem, 3vw, 1.8rem);
+  border: 1px solid var(--public-border);
+  border-radius: var(--public-radius-lg);
+  background: var(--public-panel-gradient);
+  box-shadow: var(--public-shadow-soft);
+}
+
+.termsItem h2 {
+  margin: 0;
+  color: var(--public-plum-deep);
+  font-family: var(--font-public-display);
+  font-size: clamp(0.96rem, 1.68vw, 1.44rem);
+  line-height: 0.98;
+  font-weight: 700;
+  text-transform: none;
+}
+
+.termsItem p {
+  margin: 1rem 0 0;
+  max-width: 100%;
+  color: var(--public-ink-soft);
+  font-family: var(--font-public-ui);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.termsItem p a {
+  color: var(--public-plum-deep);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+@media (max-width: 640px) {
+  .termsSection {
+    padding-inline: 1rem;
+  }
+}

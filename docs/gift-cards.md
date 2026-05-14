@@ -6,7 +6,7 @@ Apply the D1 migration before using the endpoint:
 npm run cloudflare:d1:migrate
 ```
 
-Use `cloudflare-upload.md` for the repo's Cloudflare token requirements.
+Use `cloudflare-upload.md` for the repo's Cloudflare deployment and runtime-secret split. Gift card storage uses the Worker `DB` binding; no Cloudflare deploy token should be present in runtime secrets.
 
 Create a gift card from an authenticated admin session:
 

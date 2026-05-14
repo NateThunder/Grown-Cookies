@@ -71,8 +71,15 @@
 }
 
 .button {
-  background: #2e1b4f;
-  color: #ffffff;
+  min-height: 2.5rem;
+  border-radius: 999px;
+  background: var(--public-plum-deep);
+  color: var(--public-cream);
+  font-family: var(--font-public-ui);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .secondaryButton {

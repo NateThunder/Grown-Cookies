@@ -3,6 +3,8 @@
 name = "grown-cookies"
 main = ".open-next/worker.js"
 account_id = "6576c9273dcfbd71e207877e61dff475"
+workers_dev = true
+preview_urls = true
 compatibility_date = "2026-04-04"
 compatibility_flags = ["nodejs_compat"]
 

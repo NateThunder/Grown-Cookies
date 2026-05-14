@@ -6,6 +6,14 @@ import { getProductImageForVariant, PRODUCT_IMAGE_VARIANTS } from "@/lib/product
 import ShopNowLink from "@/components/shop-now-link";
 import styles from "./homepage-promo-strip.module.css";
 
+const SHOP_BENEFITS = [
+  "Handcrafted cookies for every occasion",
+  "From classic favourites to limited-edition flavours",
+  "Perfect for gifting, parties, and corporate events",
+  "Baked fresh for maximum flavour",
+  "A crowd-pleaser at any gathering",
+];
+
 type HomepagePromoStripProps = {
   homepageSettings: HomepageSectionSettings;
   products: ShopProduct[];
@@ -53,9 +61,6 @@ export default function HomepagePromoStrip({
   const resolvedCookieOfMonthImage = cookieOfMonthImage ?? "/Double_Choc_Hazelnut/_DSC6200.jpg";
   const cookieOfMonthImageAlt =
     localCookieOfMonthProduct?.imageAlt ?? `${cookieOfMonthHeading} cookie stack`;
-  const shopPromoParagraphs = [shopIntroSetting.title, shopIntroSetting.body].filter(
-    (paragraph) => paragraph.trim().length > 0,
-  );
   const brandStoryCaption = getCompactExcerpt(brandStorySetting.body, 156);
 
   return (
@@ -89,36 +94,19 @@ export default function HomepagePromoStrip({
         </div>
       </article>
 
-      <div className={styles.boxImageWrap}>
-        <Image
-          src="/grown cookie box.png"
-          alt="Open Grown Cookies box with assorted cookies"
-          width={916}
-          height={947}
-          sizes="(max-width: 760px) 88vw, 42vw"
-          className={styles.boxImage}
-        />
-      </div>
-
       <div className={styles.promo}>
-        <Image
-          src="/grown cookie box.png"
-          alt="Open Grown Cookies box with assorted cookies"
-          width={916}
-          height={947}
-          sizes="(max-width: 980px) 100vw, 28vw"
-          className={styles.promo__image}
-        />
-
         <div className={styles.promo__card}>
           <article className={`${styles.block} ${styles.shopPanel}`}>
             <div className={styles.contentBox}>
               <div className={styles.copyStack}>
                 <p className={styles.eyebrow}>{shopIntroSetting.eyebrow}</p>
-                <div className={styles.textGroup}>
-                  {shopPromoParagraphs.map((paragraph) => (
-                    <p key={paragraph} className={styles.body}>
-                      {paragraph}
+                <div className={styles.benefitGrid} aria-label="Shop highlights">
+                  {SHOP_BENEFITS.map((benefit) => (
+                    <p key={benefit} className={styles.benefitItem}>
+                      <span className={styles.benefitIcon} aria-hidden="true">
+                        •
+                      </span>
+                      <span>{benefit}</span>
                     </p>
                   ))}
                 </div>

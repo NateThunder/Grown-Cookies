@@ -181,17 +181,14 @@
 
 .submit {
   border-radius: 999px;
-  background: #761A6C;
-  font-family: var(--font-heading--family);
-  font-size: 0.95rem;
-  letter-spacing: 0.08em;
+  min-height: 2.5rem;
+  background: var(--public-plum-deep);
+  font-family: var(--font-public-ui);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  padding: 15px 22px;
-}
-
-.submit:hover,
-.submit:focus-visible {
-  transform: translateY(-1px);
+  padding: 0 1.45rem;
 }
 
 .submit:disabled {

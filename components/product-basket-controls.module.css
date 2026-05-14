@@ -34,8 +34,8 @@
 }
 
 .giftCardAmountButtonActive {
-  border-color: var(--public-plum);
-  background: var(--public-plum);
+  border-color: var(--public-plum-deep);
+  background: var(--public-plum-deep);
   color: var(--public-cream);
 }
 
@@ -99,18 +99,21 @@
 .addToCart {
   border: 0;
   border-radius: 999px;
-  min-height: 3.55rem;
-  background: var(--public-plum);
+  min-height: 2.5rem;
+  padding: 0 1.45rem;
+  background: var(--public-plum-deep);
   color: var(--public-cream);
   font-family: var(--font-public-ui);
-  font-size: 0.98rem;
-  font-weight: 700;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.55rem;
   cursor: pointer;
-  box-shadow: var(--public-pill-shadow);
+  box-shadow: none;
 }
 
 .wrapper > .addToCart {

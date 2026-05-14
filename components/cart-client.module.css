@@ -278,22 +278,20 @@
 
 .checkoutButton {
   display: inline-flex;
-  min-height: 3.4rem;
+  min-height: 2.5rem;
+  padding: 0 1.45rem;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: #5c2386;
+  background: var(--public-plum-deep);
   color: var(--public-cream) !important;
   text-decoration: none;
   font-family: var(--font-public-ui);
-  font-size: 0.98rem;
-  font-weight: 700;
-  transition: transform var(--public-transition), box-shadow var(--public-transition);
-  box-shadow: var(--public-pill-shadow);
-}
-
-.checkoutButton:hover {
-  transform: translateY(-2px);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  box-shadow: none;
 }
 
 .checkoutButton:visited {

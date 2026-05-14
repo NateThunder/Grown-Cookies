@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import styles from "@/app/contact/page.module.css";
 
 type SubmissionStatus = "idle" | "submitting" | "success" | "error";
+
 const CONTACT_FALLBACK_MESSAGE =
   "The enquiry form is temporarily unavailable. Please email orders@growncookies.co.uk directly.";
 
@@ -69,64 +70,68 @@ export default function ContactOrderForm() {
   }
 
   return (
-    <form className={`${styles.contactForm} whiteFrame`} onSubmit={handleSubmit} autoComplete="on">
-      <div className={styles.formRow}>
-        <input
-          type="text"
-          name="name"
-          placeholder="Name"
-          aria-label="Name"
-          className={styles.input}
-          autoComplete="name"
-          required
-        />
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          aria-label="Email"
-          className={styles.input}
-          autoComplete="email"
-          inputMode="email"
-          required
-        />
-      </div>
+      <form className={`${styles.contactForm} whiteFrame`} onSubmit={handleSubmit} autoComplete="on">
+        <div className={styles.formRow}>
+          <input
+            type="text"
+            name="name"
+            placeholder="Name"
+            aria-label="Name"
+            className={styles.input}
+            autoComplete="name"
+            required
+          />
+          <input
+            type="email"
+            name="email"
+            placeholder="Email"
+            aria-label="Email"
+            className={styles.input}
+            autoComplete="email"
+            inputMode="email"
+            required
+          />
+        </div>
 
-      <div className={styles.formRow}>
-        <input
-          type="tel"
-          name="phone"
-          placeholder="Phone"
-          aria-label="Phone"
-          className={styles.input}
-          autoComplete="tel"
-          inputMode="tel"
-        />
-        <input
-          type="text"
-          name="subject"
-          placeholder="Order type or subject"
-          aria-label="Order type or subject"
-          className={styles.input}
+        <div className={styles.formRow}>
+          <input
+            type="tel"
+            name="phone"
+            placeholder="Phone"
+            aria-label="Phone"
+            className={styles.input}
+            autoComplete="tel"
+            inputMode="tel"
+          />
+          <input
+            type="text"
+            name="subject"
+            placeholder="Order type or subject"
+            aria-label="Order type or subject"
+            className={styles.input}
+            autoComplete="off"
+          />
+        </div>
+
+        <textarea
+          name="message"
+          placeholder="Tell us what you need, quantities, dates, flavours, delivery details, or event notes."
+          aria-label="Message"
+          className={styles.textarea}
           autoComplete="off"
+          required
         />
-      </div>
 
-      <textarea
-        name="message"
-        placeholder="Tell us what you need, quantities, dates, flavours, delivery details, or event notes."
-        aria-label="Message"
-        className={styles.textarea}
-        autoComplete="off"
-        required
-      />
+        {status === "error" ? <p className={styles.formError}>{errorMessage}</p> : null}
+        {status === "success" ? <p className={styles.formSuccess}>{successMessage}</p> : null}
 
-      {status === "error" ? <p className={styles.formError}>{errorMessage}</p> : null}
-      {status === "success" ? <p className={styles.formSuccess}>{successMessage}</p> : null}
-
-      <button type="submit" className={styles.submitButton} disabled={status === "submitting"}>
-        {status === "submitting" ? "Sending..." : "Send enquiry"}
-      </button>
-    </form>
+        <button
+          type="submit"
+          className={styles.submitButton}
+          disabled={status === "submitting"}
+        >
+          {status === "submitting" ? "Sending..." : "Send enquiry"}
+        </button>
+      </form>
   );
 }
