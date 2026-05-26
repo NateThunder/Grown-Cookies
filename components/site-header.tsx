@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FiTruck } from "react-icons/fi";
 import { getAllProducts, type ShopProduct } from "@/lib/products";
 import MobileNav from "@/components/mobile-nav";
 import SearchModalTrigger from "@/components/search-modal-trigger";
@@ -102,7 +103,10 @@ export default async function SiteHeader({
       </header>
 
       {showAnnouncement ? (
-        <div className={styles.announcement}>Freshly baked flavours. Nationwide delivery.</div>
+        <div className={styles.announcement}>
+          <FiTruck className={styles.announcementIcon} aria-hidden="true" />
+          <span>Same day dispatch on orders before 12pm</span>
+        </div>
       ) : null}
     </>
   );

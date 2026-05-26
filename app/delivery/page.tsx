@@ -29,7 +29,7 @@ export default async function DeliveryPage() {
 
   return (
     <main className={styles.page}>
-      <SiteHeader variant="hero" showAnnouncement={false} />
+      <SiteHeader variant="hero" />
 
       <section className={styles.termsSection}>
         <div className={styles.contentWrap}>

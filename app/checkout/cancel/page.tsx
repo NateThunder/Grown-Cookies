@@ -7,7 +7,7 @@ import styles from "./page.module.css";
 export default function CheckoutCancelPage() {
   return (
     <main className={styles.page}>
-      <SiteHeader variant="hero" showAnnouncement={false} />
+      <SiteHeader variant="hero" />
       <section className={`${styles.content} whiteFrame`}>
         <p className={styles.badge}>Payment cancelled</p>
         <h1>Checkout was not completed</h1>
