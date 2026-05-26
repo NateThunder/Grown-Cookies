@@ -1,6 +1,16 @@
+import type { Metadata } from "next";
 import SiteHeader from "@/components/site-header";
 import ContactOrderForm from "@/components/contact-order-form";
 import styles from "./page.module.css";
+
+export const metadata: Metadata = {
+  title: "Contact",
+  description:
+    "Contact Grown Cookies about events, weddings, corporate orders, products, or customer support.",
+  alternates: {
+    canonical: "/contact",
+  },
+};
 
 export default function ContactPage() {
   return (

@@ -1,0 +1,28 @@
+
+> grown-cookies@0.1.0 dev:local
+> next dev -H 0.0.0.0 -p 3000
+
+▲ Next.js 16.2.1 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://0.0.0.0:3000
+- Environments: .env.local
+✓ Ready in 516ms
+Creating turbopack project { dir: 'E:\\Websites\\grown-cookies', testMode: true }
+- Experiments (use with caution):
+  · serverActions
+
+ POST /api/basket/quote 400 in 506ms (next.js: 109ms, application-code: 397ms)
+ POST /api/basket/quote 200 in 508ms (next.js: 132ms, application-code: 375ms)
+ GET /shop/gift-card 200 in 2.3s (next.js: 1609ms, generate-params: 1256ms, application-code: 650ms)
+ POST /api/basket/quote 400 in 13ms (next.js: 4ms, application-code: 9ms)
+ POST /api/basket/quote 400 in 13ms (next.js: 4ms, application-code: 9ms)
+ POST /api/basket/quote 400 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET / 200 in 322ms (next.js: 47ms, application-code: 274ms)
+ GET / 200 in 1313ms (next.js: 148ms, application-code: 1165ms)
+ GET /shop 200 in 399ms (next.js: 299ms, application-code: 100ms)
+ GET /shop/gift-card 200 in 191ms (next.js: 49ms, generate-params: 26ms, application-code: 142ms)
+ POST /api/basket/quote 400 in 55ms (next.js: 7ms, application-code: 48ms)
+ POST /api/basket/quote 400 in 16ms (next.js: 7ms, application-code: 8ms)
+ POST /api/basket/quote 200 in 13ms (next.js: 6ms, application-code: 8ms)
+ GET /checkout 200 in 122ms (next.js: 74ms, application-code: 48ms)
+ POST /api/basket/quote 200 in 16ms (next.js: 3ms, application-code: 13ms)

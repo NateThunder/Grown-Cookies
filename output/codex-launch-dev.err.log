@@ -1,0 +1,21 @@
+
+<--- Last few GCs --->
+
+[42748:0000026D7FD63000]      409 ms: Scavenge 13.4 (15.8) -> 12.5 (21.0) MB, pooled: 0 MB, 1.55 / 0.00 ms  (average mu = 1.000, current mu = 1.000) allocation failure; 
+[42748:0000026D7FD63000]    16669 ms: Mark-Compact (reduce) 13.8 (21.5) -> 12.0 (14.5) MB, pooled: 0 MB, 6.85 / 0.00 ms  (+ 4.7 ms in 0 steps since start of marking, biggest step 0.0 ms, walltime since start of marking 13 ms) (average mu = 0.999, current 
+
+<--- JS stacktrace --->
+
+FATAL ERROR: Committing semi space failed. Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
+
+ 1: 00007FF6824B7487 node::SetCppgcReference+16583
+ 2: 00007FF68241B1B8 v8::base::CPU::num_virtual_address_bits+103032
+ 3: 00007FF682F8C011 v8::Isolate::ReportExternalAllocationLimitReached+65
+ 4: 00007FF682F78B96 v8::Function::Experimental_IsNopFunction+3302
+ 5: 00007FF682DD54E0 v8::internal::StrongRootAllocatorBase::StrongRootAllocatorBase+33904
+ 6: 00007FF682D8D13D v8::PrimitiveArray::Length+130749
+ 7: 00007FF682DDE723 v8::internal::StrongRootAllocatorBase::StrongRootAllocatorBase+71347
+ 8: 00007FF682DCE5AD v8::internal::StrongRootAllocatorBase::StrongRootAllocatorBase+5437
+ 9: 00007FF682DCA165 v8::CpuProfileNode::GetScriptResourceNameStr+190613
+10: 00007FF682753DCD BIO_ssl_shutdown+189

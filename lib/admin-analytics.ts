@@ -1,4 +1,5 @@
 import { queryCloudflareD1 } from "@/lib/cloudflare-d1";
+import { ensureCustomerAccountSchema } from "@/lib/customer-profiles";
 import { STRIPE_CHECKOUT_ORDER_STATUS } from "@/lib/stripe-checkout";
 
 export const ADMIN_ANALYTICS_RANGES = {
@@ -590,6 +591,8 @@ export async function getAdminGoogleAnalyticsReport(
 export async function getAdminSalesAnalytics(
   dateRange: AdminAnalyticsDateRange,
 ): Promise<AdminSalesAnalytics> {
+  await ensureCustomerAccountSchema();
+
   const completedStatusParams = [...COMPLETED_ORDER_STATUSES];
   const [summaryRows, itemRows, topProductRows, dailyRows] = await Promise.all([
     queryCloudflareD1<{
@@ -602,7 +605,7 @@ export async function getAdminSalesAnalytics(
     }>(
       `SELECT
          COUNT(1) AS order_count,
-         COALESCE(SUM(total_cents), 0) AS revenue_cents,
+         COALESCE(SUM(COALESCE(stripe_amount_cents, total_cents)), 0) AS revenue_cents,
          COALESCE(SUM(subtotal_cents), 0) AS subtotal_cents,
          COALESCE(SUM(shipping_cents), 0) AS shipping_cents,
          COALESCE(SUM(tip_cents), 0) AS tip_cents,
@@ -651,7 +654,7 @@ export async function getAdminSalesAnalytics(
       `SELECT
          date(created_at) AS date_key,
          COUNT(1) AS order_count,
-         COALESCE(SUM(total_cents), 0) AS revenue_cents
+         COALESCE(SUM(COALESCE(stripe_amount_cents, total_cents)), 0) AS revenue_cents
        FROM orders
        WHERE status IN (?, ?)
          AND datetime(created_at) >= datetime(?)

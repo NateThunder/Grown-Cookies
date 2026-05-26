@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS orders (
   shipping_cents INTEGER NOT NULL,
   tip_cents INTEGER NOT NULL DEFAULT 0,
   total_cents INTEGER NOT NULL,
+  gift_card_redeemed_cents INTEGER NOT NULL DEFAULT 0,
+  stripe_amount_cents INTEGER,
   email TEXT NOT NULL,
   phone TEXT,
   first_name TEXT,
@@ -41,6 +43,8 @@ CREATE TABLE IF NOT EXISTS orders (
   city TEXT,
   postcode TEXT,
   country TEXT,
+  fulfilment_method TEXT,
+  dispatch_date TEXT,
   supabase_user_id TEXT,
   customer_profile_id INTEGER,
   stripe_payment_intent_id TEXT,
@@ -153,6 +157,22 @@ CREATE TABLE IF NOT EXISTS gift_cards (
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS gift_card_redemptions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  gift_card_id INTEGER NOT NULL,
+  order_id INTEGER NOT NULL,
+  order_public_id TEXT NOT NULL,
+  code TEXT NOT NULL,
+  amount_pence INTEGER NOT NULL CHECK (amount_pence > 0),
+  status TEXT NOT NULL CHECK (status IN ('reserved', 'finalized', 'released', 'restored')),
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  finalized_at TEXT,
+  released_at TEXT,
+  restored_at TEXT,
+  FOREIGN KEY (gift_card_id) REFERENCES gift_cards(id),
+  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS mailing_list_subscribers (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT NOT NULL,
@@ -200,6 +220,9 @@ CREATE INDEX IF NOT EXISTS idx_orders_supabase_user_id
 CREATE INDEX IF NOT EXISTS idx_orders_email
   ON orders(email);
 
+CREATE INDEX IF NOT EXISTS idx_orders_dispatch_date
+  ON orders(dispatch_date);
+
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id
   ON order_items(order_id);
 
@@ -222,6 +245,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_customer_addresses_default_profile
 CREATE UNIQUE INDEX IF NOT EXISTS idx_gift_cards_order_item
   ON gift_cards(order_item_id)
   WHERE order_item_id IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_gift_card_redemptions_order_card
+  ON gift_card_redemptions(order_id, gift_card_id);
+
+CREATE INDEX IF NOT EXISTS idx_gift_card_redemptions_order
+  ON gift_card_redemptions(order_id);
+
+CREATE INDEX IF NOT EXISTS idx_gift_card_redemptions_order_public
+  ON gift_card_redemptions(order_public_id);
+
+CREATE INDEX IF NOT EXISTS idx_gift_card_redemptions_status
+  ON gift_card_redemptions(status);
 
 CREATE INDEX IF NOT EXISTS idx_mailing_list_subscribers_status
   ON mailing_list_subscribers(status);

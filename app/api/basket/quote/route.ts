@@ -1,16 +1,26 @@
 import { NextResponse } from "next/server";
-import { buildCheckoutQuote, parseQuoteItems, parseQuoteTip } from "@/lib/checkout-quote";
+import {
+  buildCheckoutQuote,
+  parseQuoteDispatch,
+  parseQuoteGiftCardCodes,
+  parseQuoteItems,
+  parseQuoteTip,
+} from "@/lib/checkout-quote";
 
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
       items?: unknown;
       tip?: unknown;
+      dispatch?: unknown;
+      giftCardCodes?: unknown;
     };
 
     const quote = await buildCheckoutQuote({
       items: parseQuoteItems(body.items),
       tip: parseQuoteTip(body.tip),
+      dispatch: parseQuoteDispatch(body.dispatch),
+      giftCardCodes: parseQuoteGiftCardCodes(body.giftCardCodes),
     });
 
     return NextResponse.json(quote);

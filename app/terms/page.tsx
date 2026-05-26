@@ -1,11 +1,25 @@
+import type { Metadata } from "next";
 import SiteHeader from "@/components/site-header";
+import { buildDeliveryPolicySection } from "@/lib/delivery-policy";
+import { getDeliveryCostSetting, getDispatchSettings } from "@/lib/store-settings";
 import styles from "./page.module.css";
+
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Terms of Service",
+  description:
+    "Grown Cookies terms of service, product information, allergen notices, orders, payments, delivery, refunds, and returns.",
+  alternates: {
+    canonical: "/terms",
+  },
+};
 
 const termsSections = [
   {
     title: "Terms and Conditions",
     paragraphs: [
-      "Last updated: April 2026",
+      "Last updated: May 2026",
       "These Terms and Conditions govern your use of the Grown Cookies website and the purchase of products from us. By placing an order with us, you agree to be bound by these terms.",
     ],
   },
@@ -59,6 +73,7 @@ const termsSections = [
     title: "6. Delivery",
     paragraphs: [
       "We deliver across the UK using third-party courier services.",
+      "Orders cannot be dispatched on bank holidays in England, Wales, or Scotland, and those dates will not be available to select at checkout.",
       "Delivery times are estimates and not guaranteed.",
       "We are not responsible for delays caused by courier services or external factors.",
       "Risk passes to the customer once the order has been dispatched.",
@@ -128,98 +143,6 @@ const termsSections = [
   },
 ];
 
-const shippingSections = [
-  {
-    title: "Shipping Policy",
-    paragraphs: [
-      "Last updated: April 2026",
-      "This Shipping Policy explains how we process, dispatch, and deliver orders placed with Grown Cookies.",
-    ],
-  },
-  {
-    title: "1. Shipping Method",
-    paragraphs: [
-      "All orders are shipped using Royal Mail Tracked 24.",
-      "This service provides fully tracked delivery, a delivery aim of 1 business day after dispatch, photo proof of delivery where available, and SMS or email tracking updates.",
-    ],
-  },
-  {
-    title: "2. Dispatch Times",
-    paragraphs: [
-      "Orders are typically processed and baked within 1-3 business days.",
-      "Orders are dispatched Monday to Friday, excluding UK public holidays.",
-      "We do not dispatch on weekends.",
-      "You will receive a confirmation email once your order has been dispatched.",
-    ],
-  },
-  {
-    title: "3. Delivery Timeframes",
-    paragraphs: [
-      "Once dispatched via Royal Mail Tracked 24, delivery is usually within 1 business day.",
-      "In some cases, delivery may take 1-2 business days.",
-      "Delivery times are estimates and may vary due to postal delays, weather conditions, or peak seasonal periods.",
-    ],
-  },
-  {
-    title: "4. Shipping Costs",
-    paragraphs: [
-      "Shipping is charged at a flat rate of £4.95 per order.",
-      "This includes packaging, handling, and Royal Mail Tracked 24 delivery.",
-      "We may occasionally offer free shipping promotions, which will be clearly stated on our website.",
-    ],
-  },
-  {
-    title: "5. Delivery Areas",
-    paragraphs: [
-      "We currently deliver to mainland United Kingdom, Northern Ireland, and the Scottish Highlands and Islands, which may experience longer delivery times.",
-      "We do not currently offer international shipping.",
-    ],
-  },
-  {
-    title: "6. Order Tracking",
-    paragraphs: [
-      "All orders are fully trackable.",
-      "Once your order has been dispatched, you will receive a tracking number via email or SMS so you can follow your delivery via Royal Mail’s tracking system.",
-    ],
-  },
-  {
-    title: "7. Delivery Responsibility",
-    paragraphs: [
-      "Once an order has been marked as delivered by Royal Mail, responsibility for the parcel transfers to the customer.",
-      "We are not responsible for packages lost or stolen after confirmed delivery or for incorrect delivery addresses provided by the customer.",
-      "Please ensure your delivery details are accurate at checkout.",
-    ],
-  },
-  {
-    title: "8. Failed Deliveries",
-    paragraphs: [
-      "If delivery is unsuccessful, Royal Mail may attempt re-delivery or leave a collection notice.",
-      "It is the customer’s responsibility to follow up with Royal Mail.",
-      "We are not responsible for delays caused by missed delivery attempts.",
-    ],
-  },
-  {
-    title: "9. Perishable Goods Notice",
-    paragraphs: [
-      "Our cookies are freshly baked and perishable.",
-      "We recommend opening your parcel as soon as it is delivered and following any storage or reheating instructions included in your order.",
-      "We are not responsible for product quality deterioration after delivery has been completed.",
-    ],
-  },
-  {
-    title: "10. Order Changes & Address Accuracy",
-    paragraphs: [
-      "Once an order has been placed, we cannot guarantee changes to delivery address or order details.",
-      "Customers must ensure all information is correct at checkout.",
-      "We are not responsible for delays or losses caused by incorrect addresses.",
-    ],
-  },
-  {
-    title: "11. Contact Us",
-    paragraphs: ["If you have any questions regarding shipping, please contact orders@growncookies.co.uk."],
-  },
-];
-
 function renderParagraph(paragraph: string) {
   if (!paragraph.includes("orders@growncookies.co.uk")) {
     return paragraph;
@@ -237,7 +160,18 @@ function renderParagraph(paragraph: string) {
   );
 }
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const [deliveryCostSetting, dispatchSettings] = await Promise.all([
+    getDeliveryCostSetting(),
+    getDispatchSettings(),
+  ]);
+  const shippingSections = [
+    buildDeliveryPolicySection({
+      deliveryCostCents: deliveryCostSetting.deliveryCostCents,
+      dispatchSettings,
+    }),
+  ];
+
   return (
     <main className={styles.page}>
       <SiteHeader variant="hero" showAnnouncement={false} />
@@ -261,6 +195,16 @@ export default function TermsPage() {
             <article key={section.title} className={`${styles.termsItem} whiteFrame`}>
               <h2>{section.title}</h2>
               {section.paragraphs.map((paragraph) => (
+                <p key={paragraph}>{renderParagraph(paragraph)}</p>
+              ))}
+              {section.bulletPoints ? (
+                <ul className={styles.cookieBulletList}>
+                  {section.bulletPoints.map((point) => (
+                    <li key={point}>{point}</li>
+                  ))}
+                </ul>
+              ) : null}
+              {section.closingParagraphs?.map((paragraph) => (
                 <p key={paragraph}>{renderParagraph(paragraph)}</p>
               ))}
             </article>

@@ -77,7 +77,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   {
     id: "delivery",
     href: "/admin/delivery",
-    label: "Delivery costs",
+    label: "Delivery",
     matches: (pathname) => pathname === "/admin/delivery",
   },
   {

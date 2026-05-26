@@ -27,8 +27,7 @@
 }
 
 .emptyState,
-.loadingState,
-.summary {
+.loadingState {
   border: 1px solid var(--public-border);
   border-radius: var(--public-radius-lg);
   background: rgba(255, 248, 241, 0.84);
@@ -253,12 +252,15 @@
 
 .summary {
   margin-top: auto;
-  padding: 1.2rem;
+  padding: 1.65rem 1.25rem 1.45rem;
+  border: 1px solid rgba(76, 20, 95, 0.12);
+  border-radius: 20px;
+  background: #fffaf7;
 }
 
 .summaryFooter {
   display: grid;
-  gap: 0.9rem;
+  gap: 1rem;
 }
 
 .summaryFooterRow {
@@ -267,35 +269,201 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  color: var(--public-ink);
+  color: #4b3155;
   font-family: var(--font-public-ui);
-  font-size: 1rem;
+  font-size: 1.12rem;
 }
 
 .summaryFooterRow strong {
   font-weight: 700;
 }
 
-.checkoutButton {
+.dispatchIntro {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.dispatchHeading {
+  margin: 0;
+  color: #4b3155;
+  font-family: var(--font-public-ui);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.dispatchCopy {
+  margin: 0;
+  color: #4b3155;
+  font-family: var(--font-public-ui);
+  font-size: 0.95rem;
+  line-height: 1.48;
+}
+
+.dispatchPicker {
+  position: relative;
+}
+
+.dispatchDateButton {
+  width: 100%;
+  min-height: 3.65rem;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  border: 1px solid rgba(76, 20, 95, 0.14);
+  border-radius: 12px;
+  background: #ffffff;
+  color: rgba(75, 49, 85, 0.58);
+  padding: 0 1rem;
+  font-family: var(--font-public-ui);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.dispatchDateButton:disabled {
+  cursor: not-allowed;
+  color: rgba(75, 49, 85, 0.32);
+}
+
+.dispatchDateButton:focus-visible,
+.dispatchCalendarHeader button:focus-visible,
+.dispatchDay:focus-visible,
+.checkoutButton:focus-visible,
+.continueShoppingButton:focus-visible {
+  outline: 2px solid #4b3155;
+  outline-offset: 2px;
+}
+
+.dispatchDateButton svg {
+  width: 1.45rem;
+  height: 1.45rem;
+  color: #303030;
+}
+
+.dispatchCalendar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 0.45rem);
+  z-index: 20;
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid rgba(76, 20, 95, 0.14);
+  border-radius: 16px;
+  background: #fffaf7;
+  padding: 0.9rem;
+}
+
+.dispatchCalendarHeader {
+  display: grid;
+  grid-template-columns: 2.3rem minmax(0, 1fr) 2.3rem;
+  align-items: center;
+  gap: 0.5rem;
+  color: #4b3155;
+  font-family: var(--font-public-ui);
+  text-align: center;
+}
+
+.dispatchCalendarHeader button {
+  width: 2.3rem;
+  height: 2.3rem;
   display: inline-flex;
-  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(76, 20, 95, 0.14);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #4b3155;
+  cursor: pointer;
+}
+
+.dispatchCalendarHeader button:disabled {
+  color: rgba(75, 49, 85, 0.28);
+  cursor: not-allowed;
+}
+
+.dispatchWeekdays,
+.dispatchDays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.25rem;
+}
+
+.dispatchWeekdays span {
+  color: rgba(75, 49, 85, 0.58);
+  font-family: var(--font-public-ui);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.dispatchDay {
+  aspect-ratio: 1 / 1;
+  border: 1px solid rgba(76, 20, 95, 0.14);
+  border-radius: 10px;
+  background: #ffffff;
+  color: #4b3155;
+  font-family: var(--font-public-ui);
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.dispatchDay:disabled {
+  color: rgba(75, 49, 85, 0.28);
+  background: #f7f4f1;
+  cursor: not-allowed;
+}
+
+.dispatchDayMuted {
+  opacity: 0.45;
+}
+
+.dispatchDaySelected {
+  border-color: #7a4388;
+  background: #7a4388;
+  color: #ffffff;
+}
+
+.dispatchError {
+  margin: -0.2rem 0 0;
+  color: #a4223f;
+  font-family: var(--font-public-ui);
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.checkoutButton {
+  display: flex;
+  min-height: 3.15rem;
+  width: 100%;
   padding: 0 1.45rem;
   align-items: center;
   justify-content: center;
+  border: 1px solid #7a4388;
   border-radius: 999px;
-  background: var(--public-plum-deep);
-  color: var(--public-cream) !important;
+  background: #7a4388;
+  color: #ffffff !important;
   text-decoration: none;
   font-family: var(--font-public-ui);
-  font-size: 0.76rem;
+  font-size: 0.92rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   box-shadow: none;
+  cursor: pointer;
 }
 
 .checkoutButton:visited {
-  color: var(--public-cream) !important;
+  color: #ffffff !important;
+}
+
+.continueShoppingButton {
+  justify-self: center;
+  color: #7f6387;
+  text-decoration: none;
+  font-family: var(--font-public-ui);
+  font-size: 0.95rem;
+  font-weight: 500;
 }
 
 .clearAllButton {
@@ -303,9 +471,9 @@
   border: 0;
   padding: 0;
   background: transparent;
-  color: var(--public-ink-soft);
+  color: #7f6387;
   font-family: var(--font-public-ui);
-  font-size: 0.95rem;
+  font-size: 1rem;
   cursor: pointer;
 }
 

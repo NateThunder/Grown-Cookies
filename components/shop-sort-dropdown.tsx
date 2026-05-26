@@ -22,6 +22,12 @@ function getSortHref(sort: string) {
 export default function ShopSortDropdown({ options, activeSort }: ShopSortDropdownProps) {
   const menuRef = useRef<HTMLDetailsElement>(null);
 
+  function closeMenu() {
+    if (menuRef.current) {
+      menuRef.current.open = false;
+    }
+  }
+
   useEffect(() => {
     function closeMenuOnOutsideClick(event: PointerEvent) {
       const menu = menuRef.current;
@@ -57,6 +63,7 @@ export default function ShopSortDropdown({ options, activeSort }: ShopSortDropdo
               className={`${styles.sortOption} ${isActive ? styles.sortOptionActive : ""}`.trim()}
               scroll={false}
               role="menuitem"
+              onClick={closeMenu}
             >
               <span className={styles.sortCheck}>{isActive ? <FiCheck /> : null}</span>
               <span>{option.label}</span>

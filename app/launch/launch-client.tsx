@@ -62,9 +62,11 @@ function fireConfetti() {
 export default function LaunchClient({ initialSiteLockEnabled }: LaunchClientProps) {
   const [siteLockEnabled, setSiteLockEnabled] = useState(initialSiteLockEnabled);
   const [launchedThisSession, setLaunchedThisSession] = useState(false);
+  const [isCompletingLaunch, setIsCompletingLaunch] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const launchAudioRef = useRef<HTMLAudioElement | null>(null);
+  const launchSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const launched = !siteLockEnabled;
 
   useEffect(() => {
@@ -74,6 +76,9 @@ export default function LaunchClient({ initialSiteLockEnabled }: LaunchClientPro
     launchAudioRef.current = audio;
 
     return () => {
+      if (launchSuccessTimerRef.current) {
+        clearTimeout(launchSuccessTimerRef.current);
+      }
       audio.pause();
       launchAudioRef.current = null;
     };
@@ -108,7 +113,12 @@ export default function LaunchClient({ initialSiteLockEnabled }: LaunchClientPro
         }
 
         setSiteLockEnabled(result.enabled);
-        setLaunchedThisSession(true);
+        setIsCompletingLaunch(true);
+        launchSuccessTimerRef.current = setTimeout(() => {
+          setLaunchedThisSession(true);
+          setIsCompletingLaunch(false);
+          launchSuccessTimerRef.current = null;
+        }, 300);
         fireConfetti();
       })
       .catch((error: unknown) => {
@@ -142,8 +152,13 @@ export default function LaunchClient({ initialSiteLockEnabled }: LaunchClientPro
           return;
         }
 
+        if (launchSuccessTimerRef.current) {
+          clearTimeout(launchSuccessTimerRef.current);
+          launchSuccessTimerRef.current = null;
+        }
         setSiteLockEnabled(result.enabled);
         setLaunchedThisSession(false);
+        setIsCompletingLaunch(false);
         launchAudioRef.current?.pause();
       })
       .catch((error: unknown) => {
@@ -164,45 +179,78 @@ export default function LaunchClient({ initialSiteLockEnabled }: LaunchClientPro
       <div className={styles.launchStack}>
         <p id="launch-eyebrow" className={styles.eyebrow}>Site Launch</p>
 
-        <div className={styles.statusPanel} aria-live="polite">
-          <p className={styles.statusLabel}>Current Status</p>
-          <div className={styles.statusLine}>
-            <span
-              className={`${styles.statusDot} ${launched ? styles.statusDotLive : styles.statusDotWaiting}`}
-              aria-hidden="true"
-            />
-            <span>{launched ? "Live" : "Not Live"}</span>
-          </div>
-          <p className={styles.statusNote}>
-            {launched
-              ? launchedThisSession
-                ? "Launch confirmed just now."
-                : "The public site is open."
-              : "Your site is waiting to be launched."}
-          </p>
-        </div>
-
-        <div className={styles.buttonStage}>
-          <button
-            type="button"
-            className={`${styles.launchButton} ${launched ? styles.launchButtonLive : ""}`}
-            onClick={handleLaunch}
-            disabled={launched || isSaving}
-          >
-            <span>{launched ? "Live" : "Launch"}</span>
-          </button>
-
-          {launched ? (
-            <button
-              type="button"
-              className={styles.resetButton}
-              onClick={handleReset}
-              disabled={isSaving}
+        <div className={styles.launchSwitch} aria-live="polite">
+          {!launchedThisSession ? (
+            <div
+              key="button"
+              className={`${styles.launchState} ${isCompletingLaunch ? styles.launchStateExiting : ""}`}
             >
-              Re-lock Site
-            </button>
+              <div className={styles.statusPanel}>
+                <p className={styles.statusLabel}>Current Status</p>
+                <div className={styles.statusLine}>
+                  <span
+                    className={`${styles.statusDot} ${launched ? styles.statusDotLive : styles.statusDotWaiting}`}
+                    aria-hidden="true"
+                  />
+                  <span>{launched ? "Live" : "Not Live"}</span>
+                </div>
+                <p className={styles.statusNote}>
+                  {launched ? "The public site is open." : "Your site is waiting to be launched."}
+                </p>
+              </div>
+
+              <div className={styles.buttonStage}>
+                <button
+                  type="button"
+                  className={`${styles.launchButton} ${launched ? styles.launchButtonLive : ""}`}
+                  onClick={handleLaunch}
+                  disabled={launched || isSaving}
+                >
+                  <span>{launched ? "Live" : "Launch"}</span>
+                </button>
+
+                {launched ? (
+                  <button
+                    type="button"
+                    className={styles.resetButton}
+                    onClick={handleReset}
+                    disabled={isSaving}
+                  >
+                    Re-lock Site
+                  </button>
+                ) : (
+                  <p className={styles.hint}>Ready when you are.</p>
+                )}
+              </div>
+            </div>
           ) : (
-            <p className={styles.hint}>Ready when you are.</p>
+            <div key="success" className={`${styles.launchState} ${styles.successState}`}>
+              <div className={styles.statusPanel}>
+                <p className={styles.statusLabel}>Current Status</p>
+                <div className={styles.statusLine}>
+                  <span
+                    className={`${styles.statusDot} ${styles.statusDotLive}`}
+                    aria-hidden="true"
+                  />
+                  <span>Live</span>
+                </div>
+                <p className={styles.statusNote}>Just now</p>
+              </div>
+
+              <div className={styles.successMark} aria-hidden="true">!</div>
+              <h2 className={styles.successTitle}>Congratulations!</h2>
+              <p className={styles.successMessage}>
+                Your site is now live and ready for the world to see.
+              </p>
+              <button
+                type="button"
+                className={styles.resetButton}
+                onClick={handleReset}
+                disabled={isSaving}
+              >
+                Re-lock Site
+              </button>
+            </div>
           )}
 
           {actionError ? (

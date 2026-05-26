@@ -61,12 +61,16 @@ export default async function CheckoutSuccessPage({ searchParams }: CheckoutSucc
   const paymentIntentId = getSearchParamValue(params.payment_intent);
   const paymentIntentClientSecret = getSearchParamValue(params.payment_intent_client_secret);
   const redirectStatus = getSearchParamValue(params.redirect_status);
+  const giftCardOrder = getSearchParamValue(params.gift_card_order) === "true";
   const isPaymentSuccessful =
-    Boolean(paymentIntentId) &&
-    (redirectStatus ? redirectStatus === "succeeded" : Boolean(paymentIntentClientSecret));
+    giftCardOrder ||
+    (Boolean(paymentIntentId) &&
+      (redirectStatus ? redirectStatus === "succeeded" : Boolean(paymentIntentClientSecret)));
   const shouldClearBasket = isPaymentSuccessful && Boolean(orderId);
   const confirmationEmailTriggered = isPaymentSuccessful
-    ? await reconcileOrderConfirmationEmail(orderId, paymentIntentId)
+    ? giftCardOrder
+      ? false
+      : await reconcileOrderConfirmationEmail(orderId, paymentIntentId)
     : false;
 
   if (!isPaymentSuccessful) {
@@ -95,10 +99,12 @@ export default async function CheckoutSuccessPage({ searchParams }: CheckoutSucc
       <SiteHeader variant="hero" showAnnouncement={false} />
       <CheckoutSuccessBasketClearer shouldClearBasket={shouldClearBasket} />
       <section className={`${styles.content} whiteFrame`}>
-        <p className={styles.badge}>Payment complete</p>
+        <p className={styles.badge}>{giftCardOrder ? "Order complete" : "Payment complete"}</p>
         <h1>Thank you for your order</h1>
         <p>
-          Your payment has been confirmed and we are preparing your order.
+          {giftCardOrder
+            ? "Your gift card balance has been applied and we are preparing your order."
+            : "Your payment has been confirmed and we are preparing your order."}
         </p>
         <p>
           {confirmationEmailTriggered || isOrderNotificationEmailConfigured()

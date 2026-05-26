@@ -6,6 +6,8 @@ export type AccountOrderSummary = {
   orderId: string;
   status: string;
   totalCents: number;
+  giftCardRedeemedCents: number;
+  stripeAmountCents: number;
   currency: string;
   createdAt: string;
   fullName: string;
@@ -32,6 +34,8 @@ type AccountOrderRow = {
   public_id: string;
   status: string;
   total_cents: number;
+  gift_card_redeemed_cents: number | null;
+  stripe_amount_cents: number | null;
   currency: string;
   created_at: string;
   first_name: string | null;
@@ -193,6 +197,8 @@ export async function getAccountOrderSummariesForCustomer(params: {
        public_id,
        status,
        total_cents,
+       gift_card_redeemed_cents,
+       stripe_amount_cents,
        currency,
        created_at,
        first_name,
@@ -220,6 +226,8 @@ export async function getAccountOrderSummariesForCustomer(params: {
     orderId: normalizeText(row.public_id),
     status: normalizeText(row.status),
     totalCents: Number.isFinite(row.total_cents) ? row.total_cents : 0,
+    giftCardRedeemedCents: Math.max(0, normalizeInteger(row.gift_card_redeemed_cents)),
+    stripeAmountCents: Math.max(0, normalizeInteger(row.stripe_amount_cents ?? row.total_cents)),
     currency: normalizeText(row.currency) || "gbp",
     createdAt: normalizeText(row.created_at),
     fullName: [normalizeText(row.first_name), normalizeText(row.last_name)].filter(Boolean).join(" "),
@@ -248,6 +256,8 @@ export async function getAccountOrderSummariesByEmail(email: string): Promise<Ac
        public_id,
        status,
        total_cents,
+       gift_card_redeemed_cents,
+       stripe_amount_cents,
        currency,
        created_at,
        first_name,
@@ -274,6 +284,8 @@ export async function getAccountOrderSummariesByEmail(email: string): Promise<Ac
     orderId: normalizeText(row.public_id),
     status: normalizeText(row.status),
     totalCents: Number.isFinite(row.total_cents) ? row.total_cents : 0,
+    giftCardRedeemedCents: Math.max(0, normalizeInteger(row.gift_card_redeemed_cents)),
+    stripeAmountCents: Math.max(0, normalizeInteger(row.stripe_amount_cents ?? row.total_cents)),
     currency: normalizeText(row.currency) || "gbp",
     createdAt: normalizeText(row.created_at),
     fullName: [normalizeText(row.first_name), normalizeText(row.last_name)].filter(Boolean).join(" "),

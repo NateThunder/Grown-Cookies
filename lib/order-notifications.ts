@@ -1,5 +1,6 @@
 import { executeCloudflareD1, queryCloudflareD1 } from "@/lib/cloudflare-d1";
-import { issueGiftCardsForPaidOrder } from "@/lib/gift-cards";
+import { formatDispatchDate, formatDispatchMethod } from "@/lib/dispatch";
+import { getGiftCardRedemptionsForOrder, issueGiftCardsForPaidOrder } from "@/lib/gift-cards";
 import {
   getZohoOrderNotificationRecipient,
   getZohoOrderNotificationSender,
@@ -15,6 +16,8 @@ type OrderNotificationOrderRow = {
   shipping_cents: number;
   tip_cents: number;
   total_cents: number;
+  gift_card_redeemed_cents: number | null;
+  stripe_amount_cents: number | null;
   email: string;
   phone: string | null;
   first_name: string | null;
@@ -24,6 +27,8 @@ type OrderNotificationOrderRow = {
   city: string | null;
   postcode: string | null;
   country: string | null;
+  fulfilment_method: string | null;
+  dispatch_date: string | null;
   created_at: string;
   delivered_at: string | null;
   paid_notification_sent_at: string | null;
@@ -53,6 +58,19 @@ function formatMoney(totalCents: number, currency: string) {
     style: "currency",
     currency: currency.toUpperCase(),
   }).format(totalCents / 100);
+}
+
+function getGiftCardRedeemedCents(order: OrderNotificationOrderRow) {
+  return Math.max(0, Number(order.gift_card_redeemed_cents ?? 0));
+}
+
+function getStripeAmountCents(order: OrderNotificationOrderRow) {
+  const stripeAmount = Number(order.stripe_amount_cents);
+  if (Number.isFinite(stripeAmount)) {
+    return Math.max(0, stripeAmount);
+  }
+
+  return Math.max(0, Number(order.total_cents) - getGiftCardRedeemedCents(order));
 }
 
 function escapeHtml(value: string) {
@@ -96,6 +114,28 @@ function getOrderDeliveryLabel(
   return {
     heading: "Delivery address",
     lines: addressLines.length > 0 ? addressLines : ["Not provided"],
+  };
+}
+
+function getOrderDispatchLabel(
+  order: OrderNotificationOrderRow,
+  items: OrderNotificationItemRow[],
+) {
+  const hasOnlyGiftCards = items.length > 0 && items.every(isGiftCardItem);
+
+  if (hasOnlyGiftCards) {
+    return {
+      heading: "Dispatch",
+      lines: [] as string[],
+    };
+  }
+
+  return {
+    heading: "Dispatch",
+    lines: [
+      `Method: ${formatDispatchMethod(order.fulfilment_method) || "Not selected"}`,
+      `Date: ${formatDispatchDate(normalizeText(order.dispatch_date)) || "Not selected"}`,
+    ],
   };
 }
 
@@ -155,6 +195,8 @@ async function getOrderForNotification(orderPublicId: string) {
        shipping_cents,
        tip_cents,
        total_cents,
+       gift_card_redeemed_cents,
+       stripe_amount_cents,
        email,
        phone,
        first_name,
@@ -164,6 +206,8 @@ async function getOrderForNotification(orderPublicId: string) {
        city,
        postcode,
        country,
+       fulfilment_method,
+       dispatch_date,
        created_at,
        delivered_at,
        paid_notification_sent_at,
@@ -198,7 +242,8 @@ async function sendPaidOrderNotificationIfNeeded(order: OrderNotificationOrderRo
 
   const recipient = getZohoOrderNotificationRecipient();
   const items = await getOrderItemsForNotification(order.public_id);
-  const email = buildOrderNotificationEmail(order, items);
+  const redemptions = await getGiftCardRedemptionsForOrder(order.public_id);
+  const email = buildOrderNotificationEmail(order, items, redemptions);
   await sendZohoEmail({
     to: recipient,
     from: getZohoOrderNotificationSender(),
@@ -220,7 +265,8 @@ async function sendPaidOrderCustomerEmailIfNeeded(order: OrderNotificationOrderR
   }
 
   const items = await getOrderItemsForNotification(order.public_id);
-  const email = buildPaidOrderCustomerEmail(order, items);
+  const redemptions = await getGiftCardRedemptionsForOrder(order.public_id);
+  const email = buildPaidOrderCustomerEmail(order, items, redemptions);
   await sendZohoEmail({
     to: customerEmail,
     from: getZohoOrderNotificationSender(),
@@ -279,10 +325,39 @@ async function getOrderItemsForNotification(orderPublicId: string) {
   );
 }
 
-function buildOrderNotificationEmail(order: OrderNotificationOrderRow, items: OrderNotificationItemRow[]) {
+function buildGiftCardRedemptionLines(
+  order: OrderNotificationOrderRow,
+  redemptions: Awaited<ReturnType<typeof getGiftCardRedemptionsForOrder>>,
+) {
+  return redemptions
+    .filter((redemption) => redemption.status === "finalized" || redemption.status === "restored")
+    .map((redemption) => {
+      const status = redemption.status === "restored" ? " restored" : "";
+      return `${redemption.code}: ${formatMoney(redemption.appliedCents, order.currency)}${status}`;
+    });
+}
+
+function buildGiftCardRedemptionHtmlLines(
+  order: OrderNotificationOrderRow,
+  redemptions: Awaited<ReturnType<typeof getGiftCardRedemptionsForOrder>>,
+) {
+  return buildGiftCardRedemptionLines(order, redemptions)
+    .map((line) => `<li>${escapeHtml(line)}</li>`)
+    .join("");
+}
+
+function buildOrderNotificationEmail(
+  order: OrderNotificationOrderRow,
+  items: OrderNotificationItemRow[],
+  redemptions: Awaited<ReturnType<typeof getGiftCardRedemptionsForOrder>>,
+) {
   const customerName = [order.first_name, order.last_name].map(normalizeText).filter(Boolean).join(" ");
   const delivery = getOrderDeliveryLabel(order, items);
+  const dispatch = getOrderDispatchLabel(order, items);
   const itemLines = items.map((item) => formatOrderItemText(item, order.currency));
+  const redemptionLines = buildGiftCardRedemptionLines(order, redemptions);
+  const giftCardRedeemedCents = getGiftCardRedeemedCents(order);
+  const stripeAmountCents = getStripeAmountCents(order);
   const textSections = [
     `New paid order: ${order.public_id}`,
     "",
@@ -292,6 +367,7 @@ function buildOrderNotificationEmail(order: OrderNotificationOrderRow, items: Or
     "",
     `${delivery.heading}:`,
     ...delivery.lines,
+    ...(dispatch.lines.length > 0 ? ["", `${dispatch.heading}:`, ...dispatch.lines] : []),
     "",
     "Items:",
     ...(itemLines.length > 0 ? itemLines : ["No order lines found"]),
@@ -299,7 +375,10 @@ function buildOrderNotificationEmail(order: OrderNotificationOrderRow, items: Or
     `Subtotal: ${formatMoney(order.subtotal_cents, order.currency)}`,
     `Shipping: ${formatMoney(order.shipping_cents, order.currency)}`,
     `Tip: ${formatMoney(order.tip_cents, order.currency)}`,
-    `Total: ${formatMoney(order.total_cents, order.currency)}`,
+    `Gross total: ${formatMoney(order.total_cents, order.currency)}`,
+    `Gift cards: -${formatMoney(giftCardRedeemedCents, order.currency)}`,
+    `Card paid: ${formatMoney(stripeAmountCents, order.currency)}`,
+    ...(redemptionLines.length > 0 ? ["", "Gift card redemptions:", ...redemptionLines] : []),
     "",
     `Placed at: ${order.created_at}`,
   ];
@@ -310,6 +389,10 @@ function buildOrderNotificationEmail(order: OrderNotificationOrderRow, items: Or
   const htmlAddress = delivery.lines
     .map((line) => escapeHtml(line))
     .join("<br />");
+  const htmlDispatch = dispatch.lines
+    .map((line) => escapeHtml(line))
+    .join("<br />");
+  const htmlRedemptions = buildGiftCardRedemptionHtmlLines(order, redemptions);
 
   const html = [
     `<h1>New paid order: ${escapeHtml(order.public_id)}</h1>`,
@@ -320,13 +403,19 @@ function buildOrderNotificationEmail(order: OrderNotificationOrderRow, items: Or
     `<strong>Phone:</strong> ${escapeHtml(normalizeText(order.phone) || "Not provided")}</p>`,
     `<h2>${escapeHtml(delivery.heading)}</h2>`,
     `<p>${htmlAddress}</p>`,
+    ...(dispatch.lines.length > 0
+      ? [`<h2>${escapeHtml(dispatch.heading)}</h2>`, `<p>${htmlDispatch}</p>`]
+      : []),
     "<h2>Items</h2>",
     `<ul>${htmlItems || "<li>No order lines found</li>"}</ul>`,
     "<h2>Totals</h2>",
     `<p><strong>Subtotal:</strong> ${escapeHtml(formatMoney(order.subtotal_cents, order.currency))}<br />`,
     `<strong>Shipping:</strong> ${escapeHtml(formatMoney(order.shipping_cents, order.currency))}<br />`,
     `<strong>Tip:</strong> ${escapeHtml(formatMoney(order.tip_cents, order.currency))}<br />`,
-    `<strong>Total:</strong> ${escapeHtml(formatMoney(order.total_cents, order.currency))}</p>`,
+    `<strong>Gross total:</strong> ${escapeHtml(formatMoney(order.total_cents, order.currency))}<br />`,
+    `<strong>Gift cards:</strong> -${escapeHtml(formatMoney(giftCardRedeemedCents, order.currency))}<br />`,
+    `<strong>Card paid:</strong> ${escapeHtml(formatMoney(stripeAmountCents, order.currency))}</p>`,
+    ...(htmlRedemptions ? ["<h2>Gift card redemptions</h2>", `<ul>${htmlRedemptions}</ul>`] : []),
     `<p><strong>Placed at:</strong> ${escapeHtml(order.created_at)}</p>`,
   ].join("");
 
@@ -337,12 +426,20 @@ function buildOrderNotificationEmail(order: OrderNotificationOrderRow, items: Or
   };
 }
 
-function buildPaidOrderCustomerEmail(order: OrderNotificationOrderRow, items: OrderNotificationItemRow[]) {
+function buildPaidOrderCustomerEmail(
+  order: OrderNotificationOrderRow,
+  items: OrderNotificationItemRow[],
+  redemptions: Awaited<ReturnType<typeof getGiftCardRedemptionsForOrder>>,
+) {
   const customerName = [order.first_name, order.last_name].map(normalizeText).filter(Boolean).join(" ");
   const delivery = getOrderDeliveryLabel(order, items);
+  const dispatch = getOrderDispatchLabel(order, items);
   const hasOnlyGiftCards = items.length > 0 && items.every(isGiftCardItem);
   const placedAtLabel = formatOrderDateTime(order.created_at);
   const itemLines = items.map((item) => formatOrderItemText(item, order.currency));
+  const redemptionLines = buildGiftCardRedemptionLines(order, redemptions);
+  const giftCardRedeemedCents = getGiftCardRedeemedCents(order);
+  const stripeAmountCents = getStripeAmountCents(order);
 
   const textSections = [
     `Thanks for your order ${order.public_id}`,
@@ -358,6 +455,7 @@ function buildPaidOrderCustomerEmail(order: OrderNotificationOrderRow, items: Or
     "",
     `${delivery.heading}:`,
     ...delivery.lines,
+    ...(dispatch.lines.length > 0 ? ["", `${dispatch.heading}:`, ...dispatch.lines] : []),
     "",
     "Items:",
     ...(itemLines.length > 0 ? itemLines : ["No order lines found"]),
@@ -365,10 +463,13 @@ function buildPaidOrderCustomerEmail(order: OrderNotificationOrderRow, items: Or
     `Subtotal: ${formatMoney(order.subtotal_cents, order.currency)}`,
     `Shipping: ${formatMoney(order.shipping_cents, order.currency)}`,
     `Tip: ${formatMoney(order.tip_cents, order.currency)}`,
-    `Total: ${formatMoney(order.total_cents, order.currency)}`,
+    `Gross total: ${formatMoney(order.total_cents, order.currency)}`,
+    `Gift cards: -${formatMoney(giftCardRedeemedCents, order.currency)}`,
+    `Card paid: ${formatMoney(stripeAmountCents, order.currency)}`,
+    ...(redemptionLines.length > 0 ? ["", "Gift card redemptions:", ...redemptionLines] : []),
     "",
     hasOnlyGiftCards
-      ? "Use the gift card code above at checkout."
+      ? "Your gift card code is ready for checkout when you want to use it."
       : "We will email you again when your order has been delivered.",
   ];
 
@@ -378,6 +479,10 @@ function buildPaidOrderCustomerEmail(order: OrderNotificationOrderRow, items: Or
   const htmlAddress = delivery.lines
     .map((line) => escapeHtml(line))
     .join("<br />");
+  const htmlDispatch = dispatch.lines
+    .map((line) => escapeHtml(line))
+    .join("<br />");
+  const htmlRedemptions = buildGiftCardRedemptionHtmlLines(order, redemptions);
 
   const html = [
     `<h1>Thanks for your order ${escapeHtml(order.public_id)}</h1>`,
@@ -390,15 +495,21 @@ function buildPaidOrderCustomerEmail(order: OrderNotificationOrderRow, items: Or
     `<strong>Order number:</strong> ${escapeHtml(order.public_id)}</p>`,
     `<h2>${escapeHtml(delivery.heading)}</h2>`,
     `<p>${htmlAddress}</p>`,
+    ...(dispatch.lines.length > 0
+      ? [`<h2>${escapeHtml(dispatch.heading)}</h2>`, `<p>${htmlDispatch}</p>`]
+      : []),
     "<h2>Items</h2>",
     `<ul>${htmlItems || "<li>No order lines found</li>"}</ul>`,
     "<h2>Totals</h2>",
     `<p><strong>Subtotal:</strong> ${escapeHtml(formatMoney(order.subtotal_cents, order.currency))}<br />`,
     `<strong>Shipping:</strong> ${escapeHtml(formatMoney(order.shipping_cents, order.currency))}<br />`,
     `<strong>Tip:</strong> ${escapeHtml(formatMoney(order.tip_cents, order.currency))}<br />`,
-    `<strong>Total:</strong> ${escapeHtml(formatMoney(order.total_cents, order.currency))}</p>`,
+    `<strong>Gross total:</strong> ${escapeHtml(formatMoney(order.total_cents, order.currency))}<br />`,
+    `<strong>Gift cards:</strong> -${escapeHtml(formatMoney(giftCardRedeemedCents, order.currency))}<br />`,
+    `<strong>Card paid:</strong> ${escapeHtml(formatMoney(stripeAmountCents, order.currency))}</p>`,
+    ...(htmlRedemptions ? ["<h2>Gift card redemptions</h2>", `<ul>${htmlRedemptions}</ul>`] : []),
     hasOnlyGiftCards
-      ? "<p>Use the gift card code above at checkout.</p>"
+      ? "<p>Your gift card code is ready for checkout when you want to use it.</p>"
       : "<p>We will email you again when your order has been delivered.</p>",
   ].join("");
 
@@ -409,9 +520,14 @@ function buildPaidOrderCustomerEmail(order: OrderNotificationOrderRow, items: Or
   };
 }
 
-function buildDeliveredOrderEmail(order: OrderNotificationOrderRow, items: OrderNotificationItemRow[]) {
+function buildDeliveredOrderEmail(
+  order: OrderNotificationOrderRow,
+  items: OrderNotificationItemRow[],
+  redemptions: Awaited<ReturnType<typeof getGiftCardRedemptionsForOrder>>,
+) {
   const customerName = [order.first_name, order.last_name].map(normalizeText).filter(Boolean).join(" ");
   const addressLines = buildAddressLines(order);
+  const dispatch = getOrderDispatchLabel(order, items);
   const itemLines = items.map((item) => {
     const quantity = Number.isFinite(item.quantity) ? item.quantity : 0;
     const unitPrice = formatMoney(item.unit_price_cents, order.currency);
@@ -421,6 +537,9 @@ function buildDeliveredOrderEmail(order: OrderNotificationOrderRow, items: Order
   const deliveredAt = normalizeText(order.delivered_at);
   const deliveredAtLabel = deliveredAt ? formatOrderDateTime(deliveredAt) : "Just now";
   const placedAtLabel = formatOrderDateTime(order.created_at);
+  const redemptionLines = buildGiftCardRedemptionLines(order, redemptions);
+  const giftCardRedeemedCents = getGiftCardRedeemedCents(order);
+  const stripeAmountCents = getStripeAmountCents(order);
 
   const textSections = [
     `Your order ${order.public_id} has been delivered`,
@@ -435,6 +554,7 @@ function buildDeliveredOrderEmail(order: OrderNotificationOrderRow, items: Order
     "",
     "Delivery details:",
     ...(addressLines.length > 0 ? addressLines : ["Not provided"]),
+    ...(dispatch.lines.length > 0 ? ["", `${dispatch.heading}:`, ...dispatch.lines] : []),
     "",
     "Items:",
     ...(itemLines.length > 0 ? itemLines : ["No order lines found"]),
@@ -442,7 +562,10 @@ function buildDeliveredOrderEmail(order: OrderNotificationOrderRow, items: Order
     `Subtotal: ${formatMoney(order.subtotal_cents, order.currency)}`,
     `Shipping: ${formatMoney(order.shipping_cents, order.currency)}`,
     `Tip: ${formatMoney(order.tip_cents, order.currency)}`,
-    `Total: ${formatMoney(order.total_cents, order.currency)}`,
+    `Gross total: ${formatMoney(order.total_cents, order.currency)}`,
+    `Gift cards: -${formatMoney(giftCardRedeemedCents, order.currency)}`,
+    `Card paid: ${formatMoney(stripeAmountCents, order.currency)}`,
+    ...(redemptionLines.length > 0 ? ["", "Gift card redemptions:", ...redemptionLines] : []),
     "",
     "If anything is missing or wrong with your delivery, reply to this email and we will help.",
   ];
@@ -459,6 +582,10 @@ function buildDeliveredOrderEmail(order: OrderNotificationOrderRow, items: Order
   const htmlAddress = (addressLines.length > 0 ? addressLines : ["Not provided"])
     .map((line) => escapeHtml(line))
     .join("<br />");
+  const htmlDispatch = dispatch.lines
+    .map((line) => escapeHtml(line))
+    .join("<br />");
+  const htmlRedemptions = buildGiftCardRedemptionHtmlLines(order, redemptions);
 
   const html = [
     `<h1>Your order ${escapeHtml(order.public_id)} has been delivered</h1>`,
@@ -470,13 +597,19 @@ function buildDeliveredOrderEmail(order: OrderNotificationOrderRow, items: Order
     `<strong>Order number:</strong> ${escapeHtml(order.public_id)}</p>`,
     "<h2>Delivery details</h2>",
     `<p>${htmlAddress}</p>`,
+    ...(dispatch.lines.length > 0
+      ? [`<h2>${escapeHtml(dispatch.heading)}</h2>`, `<p>${htmlDispatch}</p>`]
+      : []),
     "<h2>Items</h2>",
     `<ul>${htmlItems || "<li>No order lines found</li>"}</ul>`,
     "<h2>Totals</h2>",
     `<p><strong>Subtotal:</strong> ${escapeHtml(formatMoney(order.subtotal_cents, order.currency))}<br />`,
     `<strong>Shipping:</strong> ${escapeHtml(formatMoney(order.shipping_cents, order.currency))}<br />`,
     `<strong>Tip:</strong> ${escapeHtml(formatMoney(order.tip_cents, order.currency))}<br />`,
-    `<strong>Total:</strong> ${escapeHtml(formatMoney(order.total_cents, order.currency))}</p>`,
+    `<strong>Gross total:</strong> ${escapeHtml(formatMoney(order.total_cents, order.currency))}<br />`,
+    `<strong>Gift cards:</strong> -${escapeHtml(formatMoney(giftCardRedeemedCents, order.currency))}<br />`,
+    `<strong>Card paid:</strong> ${escapeHtml(formatMoney(stripeAmountCents, order.currency))}</p>`,
+    ...(htmlRedemptions ? ["<h2>Gift card redemptions</h2>", `<ul>${htmlRedemptions}</ul>`] : []),
     "<p>If anything is missing or wrong with your delivery, reply to this email and we will help.</p>",
   ].join("");
 
@@ -540,7 +673,8 @@ export async function sendDeliveredOrderEmail(orderPublicId: string) {
   }
 
   const items = await getOrderItemsForNotification(orderPublicId);
-  const email = buildDeliveredOrderEmail(order, items);
+  const redemptions = await getGiftCardRedemptionsForOrder(orderPublicId);
+  const email = buildDeliveredOrderEmail(order, items, redemptions);
   await sendZohoEmail({
     to: customerEmail,
     from: getZohoOrderNotificationSender(),

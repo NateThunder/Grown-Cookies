@@ -18,6 +18,8 @@ function getOrderStatusClass(status: string) {
       return styles.statusPaid;
     case "delivered":
       return styles.statusDelivered;
+    case "refunded":
+      return styles.statusMuted;
     case "failed":
       return styles.statusFailed;
     default:
@@ -31,6 +33,14 @@ function getOrderItemSubtotal(lineTotalCents: number, unitPriceCents: number, qu
   }
 
   return unitPriceCents * quantity;
+}
+
+function getPaymentSummary(order: AdminOrderSummary) {
+  if (order.giftCardRedeemedCents <= 0) {
+    return formatAdminCurrency(order.totalCents, order.currency);
+  }
+
+  return `${formatAdminCurrency(order.stripeAmountCents, order.currency)} card`;
 }
 
 export default function AdminOrdersTable({ orders }: AdminOrdersTableProps) {
@@ -85,6 +95,7 @@ export default function AdminOrdersTable({ orders }: AdminOrdersTableProps) {
                   <div className={styles.orderCell}>
                     <strong>{order.orderId}</strong>
                     <span>{order.deliveryAddress || "Delivery address unavailable"}</span>
+                    <span>Dispatch: {order.dispatchDateLabel}</span>
                   </div>
                 </td>
                 <td>
@@ -105,7 +116,7 @@ export default function AdminOrdersTable({ orders }: AdminOrdersTableProps) {
                     </strong>
                   </div>
                 </td>
-                <td className={styles.priceCell}>{formatAdminCurrency(order.totalCents, order.currency)}</td>
+                <td className={styles.priceCell}>{getPaymentSummary(order)}</td>
                 <td>
                   <span
                     className={`${styles.statusBadge} ${
@@ -182,15 +193,36 @@ export default function AdminOrdersTable({ orders }: AdminOrdersTableProps) {
                         "City/postcode unavailable"}
                     </p>
                     <p>{selectedOrder.country || "Country unavailable"}</p>
+                    <p>Method: {selectedOrder.fulfilmentMethodLabel}</p>
+                    <p>Dispatch: {selectedOrder.dispatchDateLabel}</p>
                   </section>
 
                   <section className={styles.orderDetailsSection}>
                     <p className={styles.orderDetailsLabel}>Order</p>
                     <p>Placed: {formatAdminDateTime(selectedOrder.createdAt)}</p>
                     <p>Delivered: {formatAdminDateTime(selectedOrder.deliveredAt)}</p>
-                    <p>Total: {formatAdminCurrency(selectedOrder.totalCents, selectedOrder.currency)}</p>
+                    <p>Gross total: {formatAdminCurrency(selectedOrder.totalCents, selectedOrder.currency)}</p>
+                    <p>
+                      Gift cards: -{formatAdminCurrency(
+                        selectedOrder.giftCardRedeemedCents,
+                        selectedOrder.currency,
+                      )}
+                    </p>
+                    <p>Card paid: {formatAdminCurrency(selectedOrder.stripeAmountCents, selectedOrder.currency)}</p>
                   </section>
                 </div>
+
+                {selectedOrder.giftCardRedemptions.length > 0 ? (
+                  <section className={styles.orderDetailsSection}>
+                    <p className={styles.orderDetailsLabel}>Gift card redemptions</p>
+                    {selectedOrder.giftCardRedemptions.map((redemption) => (
+                      <p key={`${selectedOrder.orderId}-${redemption.code}`}>
+                        {redemption.code}: {formatAdminCurrency(redemption.amountCents, selectedOrder.currency)}{" "}
+                        {redemption.status}
+                      </p>
+                    ))}
+                  </section>
+                ) : null}
 
                 <section className={styles.orderDetailsSection}>
                   <p className={styles.orderDetailsLabel}>Items</p>

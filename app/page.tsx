@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import SiteHeader from "@/components/site-header";
@@ -11,6 +12,21 @@ import { getProductImageForVariant, PRODUCT_IMAGE_VARIANTS } from "@/lib/product
 import styles from "./page.module.css";
 
 const GIFT_CARD_FRAME_IMAGE = "/gift card frame no crumbs.png";
+
+export const metadata: Metadata = {
+  title: "Artisan Cookies Delivered in the UK",
+  description:
+    "Shop handcrafted Grown Cookies, from classic favourites to limited-edition artisan flavours baked fresh for gifting, parties, and treats.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Grown Cookies",
+    description: "Handcrafted artisan cookies baked fresh for grown folks.",
+    url: "/",
+    type: "website",
+  },
+};
 
 const flavourToneMap: Record<string, string> = {
   "matcha-white-chocolate": "matchaTone",

@@ -351,12 +351,16 @@
   inset-block: 0;
   inset-inline-start: 0;
   width: min(21rem, 86vw);
+  max-height: 100dvh;
+  min-height: 100svh;
+  border-inline-end: 2px solid rgba(75, 20, 95, 0.38);
   background: var(--public-panel-gradient);
   z-index: 1400;
   transform: translateX(-100%);
   transition: transform 0.28s ease;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   box-shadow: none;
 }
 
@@ -366,8 +370,9 @@
 }
 
 .mobileMenuHeader {
+  flex: 0 0 auto;
   padding: 1.2rem 1.2rem 1rem;
-  border-bottom: 1px solid var(--public-border);
+  border-bottom: 1px solid rgba(75, 20, 95, 0.22);
   color: var(--public-ink);
   font-family: var(--font-public-display);
   font-size: 1.45rem;
@@ -379,14 +384,20 @@
 }
 
 .mobileMenuNav {
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 0.85rem 1.2rem 1.5rem;
+  padding: 0.85rem 1.2rem max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
 }
 
 .mobileMenuLink {
   padding: 0.95rem 0;
-  border-bottom: 1px solid rgba(87, 31, 108, 0.08);
+  border-bottom: 1px solid rgba(75, 20, 95, 0.16);
   color: rgba(53, 20, 63, 0.76);
   text-decoration: none;
   font-family: var(--font-public-ui);
@@ -403,7 +414,7 @@
   flex-direction: column;
   margin-top: 0.45rem;
   padding-top: 0.7rem;
-  border-top: 1px solid rgba(87, 31, 108, 0.08);
+  border-top: 1px solid rgba(75, 20, 95, 0.18);
 }
 
 .mobileMenuAccountLabel {

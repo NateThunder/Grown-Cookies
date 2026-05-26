@@ -1,7 +1,17 @@
 import { unstable_cache } from "next/cache";
 import { executeCloudflareD1, hasCloudflareD1Config, queryCloudflareD1 } from "@/lib/cloudflare-d1";
+import {
+  DEFAULT_DISPATCH_SETTINGS,
+  normalizeDispatchSettings,
+  type DispatchSettings,
+} from "@/lib/dispatch";
 
 const DELIVERY_COST_SETTING_KEY = "delivery_cost_cents";
+const DISPATCH_ENABLED_WEEKDAYS_KEY = "dispatch_enabled_weekdays";
+const DISPATCH_SAME_DAY_ENABLED_KEY = "dispatch_same_day_enabled";
+const DISPATCH_CUTOFF_TIME_KEY = "dispatch_cutoff_time";
+const DISPATCH_MINIMUM_PREP_DAYS_KEY = "dispatch_minimum_prep_days";
+const DISPATCH_BOOKING_HORIZON_DAYS_KEY = "dispatch_booking_horizon_days";
 const COOKIE_OF_MONTH_TITLE_KEY = "cookie_of_month_title";
 const COOKIE_OF_MONTH_CTA_LABEL_KEY = "cookie_of_month_cta_label";
 const COOKIE_OF_MONTH_PRODUCT_SLUG_KEY = "cookie_of_month_product_slug";
@@ -14,6 +24,7 @@ const SITE_LOCK_ENABLED_KEY = "site_lock_enabled";
 const STORE_SETTINGS_TAG = "store-settings";
 const HOMEPAGE_SETTINGS_TAG = "store-settings-homepage";
 const DELIVERY_SETTINGS_TAG = "store-settings-delivery";
+const DISPATCH_SETTINGS_TAG = "store-settings-dispatch";
 const SITE_LOCK_SETTINGS_TAG = "store-settings-site-lock";
 const STORE_SETTINGS_REVALIDATE_SECONDS = 300;
 
@@ -203,6 +214,60 @@ function mapDeliveryCostSetting(row: StoreSettingRow | null): DeliveryCostSettin
   };
 }
 
+function parseStoredWeekdays(value: unknown) {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  if (!normalized) {
+    return DEFAULT_DISPATCH_SETTINGS.enabledWeekdays;
+  }
+
+  try {
+    const parsed = JSON.parse(normalized) as unknown;
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((day) => Number.parseInt(String(day), 10))
+        .filter((day) => Number.isFinite(day));
+    }
+  } catch {
+    return normalized
+      .split(",")
+      .map((day) => Number.parseInt(day, 10))
+      .filter((day) => Number.isFinite(day));
+  }
+
+  return DEFAULT_DISPATCH_SETTINGS.enabledWeekdays;
+}
+
+function mapDispatchSettings(settings: Map<string, StoreSettingValueRow>): DispatchSettings {
+  const enabledWeekdaysRow = settings.get(DISPATCH_ENABLED_WEEKDAYS_KEY);
+  const sameDayRow = settings.get(DISPATCH_SAME_DAY_ENABLED_KEY);
+  const cutoffRow = settings.get(DISPATCH_CUTOFF_TIME_KEY);
+  const prepDaysRow = settings.get(DISPATCH_MINIMUM_PREP_DAYS_KEY);
+  const horizonRow = settings.get(DISPATCH_BOOKING_HORIZON_DAYS_KEY);
+  const isDefault = !enabledWeekdaysRow && !sameDayRow && !cutoffRow && !prepDaysRow && !horizonRow;
+
+  return normalizeDispatchSettings({
+    enabledWeekdays: enabledWeekdaysRow
+      ? parseStoredWeekdays(enabledWeekdaysRow.value)
+      : DEFAULT_DISPATCH_SETTINGS.enabledWeekdays,
+    sameDayEnabled: sameDayRow?.value === "1",
+    cutoffTime: cutoffRow?.value || DEFAULT_DISPATCH_SETTINGS.cutoffTime,
+    minimumPrepDays: prepDaysRow
+      ? Number.parseInt(prepDaysRow.value, 10)
+      : DEFAULT_DISPATCH_SETTINGS.minimumPrepDays,
+    bookingHorizonDays: horizonRow
+      ? Number.parseInt(horizonRow.value, 10)
+      : DEFAULT_DISPATCH_SETTINGS.bookingHorizonDays,
+    isDefault,
+    updatedAt: getLatestUpdatedAt([
+      enabledWeekdaysRow?.updated_at,
+      sameDayRow?.updated_at,
+      cutoffRow?.updated_at,
+      prepDaysRow?.updated_at,
+      horizonRow?.updated_at,
+    ]),
+  });
+}
+
 function mapCookieOfMonthSectionSetting(
   settings: Map<string, StoreSettingValueRow>,
 ): CookieOfMonthSectionSetting {
@@ -282,6 +347,25 @@ const getDeliveryCostSettingCached = unstable_cache(
   },
 );
 
+const getDispatchSettingsCached = unstable_cache(
+  async (): Promise<DispatchSettings> => {
+    const settings = await getStoreSettings([
+      DISPATCH_ENABLED_WEEKDAYS_KEY,
+      DISPATCH_SAME_DAY_ENABLED_KEY,
+      DISPATCH_CUTOFF_TIME_KEY,
+      DISPATCH_MINIMUM_PREP_DAYS_KEY,
+      DISPATCH_BOOKING_HORIZON_DAYS_KEY,
+    ]);
+
+    return mapDispatchSettings(settings);
+  },
+  ["store-settings-dispatch"],
+  {
+    revalidate: STORE_SETTINGS_REVALIDATE_SECONDS,
+    tags: [STORE_SETTINGS_TAG, DISPATCH_SETTINGS_TAG],
+  },
+);
+
 const getHomepageSectionSettingsCached = unstable_cache(
   async (): Promise<HomepageSectionSettings> => {
     const settings = await getStoreSettings([
@@ -353,6 +437,14 @@ export async function getDeliveryCostCents() {
   return setting.deliveryCostCents;
 }
 
+export async function getDispatchSettings() {
+  if (!hasCloudflareD1Config()) {
+    return DEFAULT_DISPATCH_SETTINGS;
+  }
+
+  return getDispatchSettingsCached();
+}
+
 export async function updateDeliveryCostCents(deliveryCostCents: number) {
   if (!hasCloudflareD1Config()) {
     throw new Error("Cloudflare D1 is not configured.");
@@ -369,6 +461,24 @@ export async function updateDeliveryCostCents(deliveryCostCents: number) {
   return {
     deliveryCostCents: normalizedValue,
   };
+}
+
+export async function updateDispatchSettings(settings: Partial<DispatchSettings>) {
+  if (!hasCloudflareD1Config()) {
+    throw new Error("Cloudflare D1 is not configured.");
+  }
+
+  const normalized = normalizeDispatchSettings(settings);
+
+  await Promise.all([
+    upsertStoreSetting(DISPATCH_ENABLED_WEEKDAYS_KEY, JSON.stringify(normalized.enabledWeekdays)),
+    upsertStoreSetting(DISPATCH_SAME_DAY_ENABLED_KEY, normalized.sameDayEnabled ? "1" : "0"),
+    upsertStoreSetting(DISPATCH_CUTOFF_TIME_KEY, normalized.cutoffTime),
+    upsertStoreSetting(DISPATCH_MINIMUM_PREP_DAYS_KEY, String(normalized.minimumPrepDays)),
+    upsertStoreSetting(DISPATCH_BOOKING_HORIZON_DAYS_KEY, String(normalized.bookingHorizonDays)),
+  ]);
+
+  return normalized;
 }
 
 export async function getCookieOfMonthSectionSetting() {

@@ -1,0 +1,222 @@
+⨯ upstream image response failed for https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/products/double-choc-box/1773699773746-dsc6455.jpg 404
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/products/double-choc-box/1773699773746-dsc6455.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Double_Choc_Hazelnut/_DSC6200.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "/gift card frame.png" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Crunchy_Granola/_DSC6127.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/products/dark-choc-maldon-salt/1773699719243-choc-maldon-cookie.png" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Red_Velvet/_DSC6161.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Matcha/_DSC6441.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+      <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<NotAllowedRootHTTPFallbackError>} forbidden={undefined} ...>
+        <RedirectBoundary>
+          <RedirectErrorBoundary router={{...}}>
+            <Head>
+            <__next_root_layout_boundary__>
+              <SegmentViewNode type="layout" pagePath="layout.tsx">
+                <SegmentTrieNode>
+                <link>
+                <script>
+                <script>
+                <script>
+                <RootLayout>
+                  <html lang="en" className="besley_fe2...">
+                    <head>
+                    <body className="antialiased">
+                      <SiteLockGate enabled={false} isUnlockedForAdmin={false}>
+                        <OuterLayoutRouter>
+                        <CookieConsentBanner>
+                        <footer className="site-footer">
+                          <div className="site-foote...">
+                            <div className="site-foote...">
+                              <div className="site-foote...">
+                                <div>
+                                <form className="site-foote..." aria-label="Newsletter...">
+                                  <label>
+                                  <input
+                                    id="footer-email"
+                                    type="email"
+                                    placeholder="Email address"
+                                    className="site-footer-input"
+-                                   style={{caret-color:"transparent"}}
+                                  >
+                                  ...
+                              ...
+            ...
+ 
+⨯ upstream image response failed for https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/products/double-choc-box/1773699773746-dsc6455.jpg 404
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/products/double-choc-box/1773699773746-dsc6455.jpg" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/products/double-choc-box/1773699773746-dsc6455.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/products/dark-choc-maldon-salt/1773699719243-choc-maldon-cookie.png" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Double_Choc_Hazelnut/_DSC6200.jpg" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Double_Choc_Hazelnut/_DSC6200.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Crunchy_Granola/_DSC6127.jpg" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Crunchy_Granola/_DSC6127.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Red_Velvet/_DSC6161.jpg" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Red_Velvet/_DSC6161.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Matcha/_DSC6441.jpg" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Matcha/_DSC6441.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+⨯ upstream image response failed for https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/products/double-choc-box/1773699773746-dsc6455.jpg 404
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+      <HTTPAccessFallbackErrorBoundary pathname="/shop/dark..." notFound={<NotAllowedRootHTTPFallbackError>} ...>
+        <RedirectBoundary>
+          <RedirectErrorBoundary router={{...}}>
+            <Head>
+            <__next_root_layout_boundary__>
+              <SegmentViewNode type="layout" pagePath="layout.tsx">
+                <SegmentTrieNode>
+                <link>
+                <script>
+                <script>
+                <script>
+                <RootLayout>
+                  <html lang="en" className="besley_fe2...">
+                    <head>
+                    <body className="antialiased">
+                      <SiteLockGate enabled={false} isUnlockedForAdmin={false}>
+                        <OuterLayoutRouter>
+                        <CookieConsentBanner>
+                        <footer className="site-footer">
+                          <div className="site-foote...">
+                            <div className="site-foote...">
+                              <div className="site-foote...">
+                                <div>
+                                <form className="site-foote..." aria-label="Newsletter...">
+                                  <label>
+                                  <input
+                                    id="footer-email"
+                                    type="email"
+                                    placeholder="Email address"
+                                    className="site-footer-input"
+-                                   style={{caret-color:"transparent"}}
+                                  >
+                                  ...
+                              ...
+            ...
+ 
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/products/dark-choc-maldon-salt/1773699719243-choc-maldon-cookie.png" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+      <HTTPAccessFallbackErrorBoundary pathname="/shop" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+        <RedirectBoundary>
+          <RedirectErrorBoundary router={{...}}>
+            <Head>
+            <__next_root_layout_boundary__>
+              <SegmentViewNode type="layout" pagePath="layout.tsx">
+                <SegmentTrieNode>
+                <link>
+                <script>
+                <script>
+                <script>
+                <RootLayout>
+                  <html lang="en" className="besley_fe2...">
+                    <head>
+                    <body className="antialiased">
+                      <SiteLockGate enabled={false} isUnlockedForAdmin={false}>
+                        <OuterLayoutRouter>
+                        <CookieConsentBanner>
+                        <footer className="site-footer">
+                          <div className="site-foote...">
+                            <div className="site-foote...">
+                              <div className="site-foote...">
+                                <div>
+                                <form className="site-foote..." aria-label="Newsletter...">
+                                  <label>
+                                  <input
+                                    id="footer-email"
+                                    type="email"
+                                    placeholder="Email address"
+                                    className="site-footer-input"
+-                                   style={{caret-color:"transparent"}}
+                                  >
+                                  ...
+                              ...
+            ...
+ 
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+      <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<NotAllowedRootHTTPFallbackError>} forbidden={undefined} ...>
+        <RedirectBoundary>
+          <RedirectErrorBoundary router={{...}}>
+            <Head>
+            <__next_root_layout_boundary__>
+              <SegmentViewNode type="layout" pagePath="layout.tsx">
+                <SegmentTrieNode>
+                <link>
+                <script>
+                <script>
+                <script>
+                <RootLayout>
+                  <html lang="en" className="besley_fe2...">
+                    <head>
+                    <body className="antialiased">
+                      <SiteLockGate enabled={false} isUnlockedForAdmin={false}>
+                        <OuterLayoutRouter>
+                        <CookieConsentBanner>
+                        <footer className="site-footer">
+                          <div className="site-foote...">
+                            <div className="site-foote...">
+                              <div className="site-foote...">
+                                <div>
+                                <form className="site-foote..." aria-label="Newsletter...">
+                                  <label>
+                                  <input
+                                    id="footer-email"
+                                    type="email"
+                                    placeholder="Email address"
+                                    className="site-footer-input"
+-                                   style={{caret-color:"transparent"}}
+                                  >
+                                  ...
+                              ...
+            ...
+ 

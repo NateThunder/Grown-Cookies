@@ -1,6 +1,7 @@
 import { executeCloudflareD1, hasCloudflareD1Config, queryCloudflareD1 } from "@/lib/cloudflare-d1";
 import { ensureCustomerAccountSchema } from "@/lib/customer-profiles";
 import { sendDeliveredOrderEmail } from "@/lib/order-notifications";
+import { formatDispatchDate, formatDispatchMethod } from "@/lib/dispatch";
 import {
   expireStalePendingOrders,
   PENDING_ORDER_WARNING_MINUTES,
@@ -18,14 +19,21 @@ export type AdminOrderSummary = {
   postcode: string;
   country: string;
   deliveryAddress: string;
+  fulfilmentMethod: string;
+  fulfilmentMethodLabel: string;
+  dispatchDate: string;
+  dispatchDateLabel: string;
   itemCount: number;
   itemsSummary: string;
   totalCents: number;
+  giftCardRedeemedCents: number;
+  stripeAmountCents: number;
   currency: string;
   createdAt: string;
   deliveredAt: string;
   isPendingWarning: boolean;
   items: AdminOrderItem[];
+  giftCardRedemptions: AdminOrderGiftCardRedemption[];
 };
 
 export type AdminOrderItem = {
@@ -34,6 +42,12 @@ export type AdminOrderItem = {
   quantity: number;
   unitPriceCents: number;
   lineTotalCents: number;
+};
+
+export type AdminOrderGiftCardRedemption = {
+  code: string;
+  amountCents: number;
+  status: string;
 };
 
 type AdminOrderRow = {
@@ -48,12 +62,23 @@ type AdminOrderRow = {
   city: string | null;
   postcode: string | null;
   country: string | null;
+  fulfilment_method: string | null;
+  dispatch_date: string | null;
   total_cents: number;
+  gift_card_redeemed_cents: number | null;
+  stripe_amount_cents: number | null;
   currency: string;
   created_at: string;
   delivered_at: string | null;
   item_count: number | null;
   items_summary: string | null;
+};
+
+type AdminOrderGiftCardRedemptionRow = {
+  order_id: number;
+  code: string | null;
+  amount_pence: number | null;
+  status: string | null;
 };
 
 type AdminOrderItemRow = {
@@ -150,6 +175,46 @@ async function getOrderItemsByOrderId(orderIds: number[]) {
   return itemsByOrderId;
 }
 
+async function getGiftCardRedemptionsByOrderId(orderIds: number[]) {
+  if (orderIds.length === 0) {
+    return new Map<number, AdminOrderGiftCardRedemption[]>();
+  }
+
+  const placeholders = orderIds.map(() => "?").join(", ");
+  const rows = await queryCloudflareD1<AdminOrderGiftCardRedemptionRow>(
+    `SELECT
+       order_id,
+       code,
+       amount_pence,
+       status
+     FROM gift_card_redemptions
+     WHERE order_id IN (${placeholders})
+     ORDER BY order_id ASC, id ASC`,
+    orderIds,
+    { cache: "no-store" },
+  ).catch(() => [] as AdminOrderGiftCardRedemptionRow[]);
+
+  const redemptionsByOrderId = new Map<number, AdminOrderGiftCardRedemption[]>();
+
+  for (const row of rows) {
+    const code = normalizeText(row.code);
+
+    if (!code) {
+      continue;
+    }
+
+    const existing = redemptionsByOrderId.get(row.order_id) ?? [];
+    existing.push({
+      code,
+      amountCents: Math.max(0, normalizeInteger(row.amount_pence)),
+      status: normalizeText(row.status),
+    });
+    redemptionsByOrderId.set(row.order_id, existing);
+  }
+
+  return redemptionsByOrderId;
+}
+
 export async function getAdminOrders(limit = 100): Promise<AdminOrderSummary[]> {
   if (!hasCloudflareD1Config()) {
     return [];
@@ -171,7 +236,11 @@ export async function getAdminOrders(limit = 100): Promise<AdminOrderSummary[]> 
        o.city,
        o.postcode,
        o.country,
+       o.fulfilment_method,
+       o.dispatch_date,
        o.total_cents,
+       o.gift_card_redeemed_cents,
+       o.stripe_amount_cents,
        o.currency,
        o.created_at,
        o.delivered_at,
@@ -191,7 +260,11 @@ export async function getAdminOrders(limit = 100): Promise<AdminOrderSummary[]> 
        o.city,
        o.postcode,
        o.country,
+       o.fulfilment_method,
+       o.dispatch_date,
        o.total_cents,
+       o.gift_card_redeemed_cents,
+       o.stripe_amount_cents,
        o.currency,
        o.created_at,
        o.delivered_at
@@ -201,13 +274,17 @@ export async function getAdminOrders(limit = 100): Promise<AdminOrderSummary[]> 
     { cache: "no-store" },
   );
 
-  const itemsByOrderId = await getOrderItemsByOrderId(
-    rows.map((row) => row.id).filter((id) => Number.isFinite(id) && id > 0),
-  );
+  const orderIds = rows.map((row) => row.id).filter((id) => Number.isFinite(id) && id > 0);
+  const [itemsByOrderId, giftCardRedemptionsByOrderId] = await Promise.all([
+    getOrderItemsByOrderId(orderIds),
+    getGiftCardRedemptionsByOrderId(orderIds),
+  ]);
 
   return rows.map((row) => {
     const status = normalizeText(row.status);
     const createdAt = normalizeText(row.created_at);
+    const fulfilmentMethod = normalizeText(row.fulfilment_method);
+    const dispatchDate = normalizeText(row.dispatch_date);
 
     return {
       orderId: normalizeText(row.public_id),
@@ -220,9 +297,18 @@ export async function getAdminOrders(limit = 100): Promise<AdminOrderSummary[]> 
       postcode: normalizeText(row.postcode),
       country: normalizeText(row.country),
       deliveryAddress: buildDeliveryAddress(row),
+      fulfilmentMethod,
+      fulfilmentMethodLabel: formatDispatchMethod(fulfilmentMethod) || "Not selected",
+      dispatchDate,
+      dispatchDateLabel: formatDispatchDate(dispatchDate) || "Not selected",
       itemCount: Number.isFinite(row.item_count) ? Number(row.item_count) : 0,
       itemsSummary: normalizeText(row.items_summary),
       totalCents: Number.isFinite(row.total_cents) ? Number(row.total_cents) : 0,
+      giftCardRedeemedCents: Math.max(0, normalizeInteger(row.gift_card_redeemed_cents)),
+      stripeAmountCents:
+        row.stripe_amount_cents === null || row.stripe_amount_cents === undefined
+          ? Math.max(0, normalizeInteger(row.total_cents) - normalizeInteger(row.gift_card_redeemed_cents))
+          : Math.max(0, normalizeInteger(row.stripe_amount_cents)),
       currency: normalizeText(row.currency) || "gbp",
       createdAt,
       deliveredAt: normalizeText(row.delivered_at),
@@ -230,6 +316,7 @@ export async function getAdminOrders(limit = 100): Promise<AdminOrderSummary[]> 
         status === STRIPE_CHECKOUT_ORDER_STATUS.pending &&
         getPendingAgeMinutes(createdAt) >= PENDING_ORDER_WARNING_MINUTES,
       items: itemsByOrderId.get(row.id) ?? [],
+      giftCardRedemptions: giftCardRedemptionsByOrderId.get(row.id) ?? [],
     };
   });
 }

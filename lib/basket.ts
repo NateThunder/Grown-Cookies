@@ -1,3 +1,5 @@
+import type { DispatchMethod } from "@/lib/dispatch";
+
 export type BasketStoredItem = {
   lineId: string;
   slug: string;
@@ -32,6 +34,13 @@ export type BasketQuoteLine = {
   lineTotalCents: number;
 };
 
+export type BasketGiftCardApplication = {
+  code: string;
+  appliedCents: number;
+  balanceBeforeCents: number;
+  balanceAfterCents: number;
+};
+
 export type BasketQuote = {
   currency: string;
   lines: BasketQuoteLine[];
@@ -39,7 +48,14 @@ export type BasketQuote = {
   shippingCents: number;
   tipCents: number;
   totalCents: number;
+  giftCardApplicableCents: number;
+  giftCardAppliedCents: number;
+  stripeAmountCents: number;
+  giftCardApplications: BasketGiftCardApplication[];
   tipOptions: BasketTipOption[];
+  fulfilmentMethod: DispatchMethod | null;
+  dispatchDate: string | null;
+  availableDispatchDates: string[];
 };
 
 function normalizeText(value: unknown) {

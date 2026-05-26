@@ -1,0 +1,31 @@
+
+> grown-cookies@0.1.0 dev
+> next dev -H 127.0.0.1 -p 3000
+
+▲ Next.js 16.2.1 (Turbopack)
+- Local:         http://127.0.0.1:3000
+- Network:       http://127.0.0.1:3000
+- Environments: .env.local
+✓ Ready in 989ms
+Creating turbopack project { dir: 'E:\\Websites\\grown-cookies', testMode: true }
+- Experiments (use with caution):
+  · serverActions
+
+○ Compiling /shop ...
+ GET /shop 200 in 5.6s (next.js: 4.1s, application-code: 1471ms)
+ GET / 200 in 1421ms (next.js: 1027ms, application-code: 394ms)
+ GET /shop/dark-chocolate-maldon-salt 404 in 3.5s (next.js: 3.3s, generate-params: 1548ms, application-code: 173ms)
+ GET /shop 200 in 125ms (next.js: 10ms, application-code: 115ms)
+ GET /shop/dark-choc-maldon-salt 200 in 182ms (next.js: 15ms, generate-params: 10ms, application-code: 167ms)
+ GET /shop/double-choc-box 200 in 107ms (next.js: 6ms, generate-params: 53µs, application-code: 101ms)
+ GET /shop/double-chocolate-hazelnut 200 in 90ms (next.js: 5ms, generate-params: 28µs, application-code: 86ms)
+ GET /shop/granola-raisin 200 in 97ms (next.js: 12ms, generate-params: 9ms, application-code: 85ms)
+ GET /shop/matcha-white-chocolate 200 in 103ms (next.js: 5ms, generate-params: 51µs, application-code: 98ms)
+ GET /shop/red-velvet 200 in 108ms (next.js: 3ms, generate-params: 54µs, application-code: 104ms)
+ GET /shop/dark-choc-maldon-salt 200 in 113ms (next.js: 14ms, generate-params: 9ms, application-code: 99ms)
+✓ Compiled in 446ms
+ GET / 200 in 2.7s (next.js: 166ms, application-code: 2.5s)
+ GET /shop/dark-choc-maldon-salt 200 in 2.3s (next.js: 664ms, generate-params: 25ms, application-code: 1601ms)
+ GET /shop 200 in 2.7s (next.js: 28ms, application-code: 2.7s)
+Terminate batch job (Y/N)? 
+[?25h

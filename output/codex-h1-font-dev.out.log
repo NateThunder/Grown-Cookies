@@ -1,0 +1,87 @@
+
+> grown-cookies@0.1.0 dev:local
+> next dev -H 0.0.0.0 -p 3000
+
+▲ Next.js 16.2.1 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://0.0.0.0:3000
+- Environments: .env.local
+✓ Ready in 698ms
+Creating turbopack project { dir: 'E:\\Websites\\grown-cookies', testMode: true }
+- Experiments (use with caution):
+  · serverActions
+
+ GET /checkout 200 in 2.2s (next.js: 1320ms, application-code: 852ms)
+ GET / 200 in 2.2s (next.js: 1254ms, application-code: 931ms)
+ GET / 200 in 2.2s (next.js: 936ms, application-code: 1295ms)
+ GET / 200 in 123ms (next.js: 6ms, application-code: 118ms)
+ POST /api/basket/quote 200 in 284ms (next.js: 227ms, application-code: 57ms)
+ POST /api/basket/quote 200 in 246ms (next.js: 5ms, application-code: 241ms)
+ GET / 200 in 121ms (next.js: 4ms, application-code: 117ms)
+ GET / 200 in 113ms (next.js: 4ms, application-code: 109ms)
+✓ Compiled in 230ms
+ GET / 200 in 124ms (next.js: 6ms, application-code: 118ms)
+✓ Compiled in 578ms
+ GET / 500 in 2.0s (next.js: 1796ms, application-code: 222ms)
+ GET / 200 in 122ms (next.js: 8ms, application-code: 113ms)
+ GET /checkout 200 in 433ms (next.js: 56ms, application-code: 377ms)
+ GET / 200 in 515ms (next.js: 8ms, application-code: 507ms)
+ GET / 200 in 495ms (next.js: 8ms, application-code: 487ms)
+ GET / 200 in 496ms (next.js: 97ms, application-code: 400ms)
+ GET /checkout 200 in 216ms (next.js: 61ms, application-code: 155ms)
+ GET / 200 in 358ms (next.js: 8ms, application-code: 350ms)
+ GET / 200 in 300ms (next.js: 19ms, application-code: 281ms)
+ GET / 200 in 289ms (next.js: 67ms, application-code: 222ms)
+ GET / 200 in 127ms (next.js: 5ms, application-code: 122ms)
+ GET / 200 in 114ms (next.js: 3ms, application-code: 111ms)
+ GET / 200 in 231ms (next.js: 4ms, application-code: 227ms)
+ GET / 200 in 118ms (next.js: 4ms, application-code: 114ms)
+✓ Compiled in 202ms
+ GET / 200 in 127ms (next.js: 4ms, application-code: 123ms)
+ GET / 200 in 300ms (next.js: 5ms, application-code: 295ms)
+ GET / 200 in 227ms (next.js: 4ms, application-code: 223ms)
+ GET /shop 200 in 132ms (next.js: 71ms, application-code: 61ms)
+ GET / 200 in 39ms (next.js: 4ms, application-code: 35ms)
+ GET /shop 200 in 53ms (next.js: 6ms, application-code: 47ms)
+ GET /contact 200 in 82ms (next.js: 49ms, application-code: 33ms)
+ GET /faqs 200 in 82ms (next.js: 46ms, application-code: 36ms)
+ GET / 200 in 35ms (next.js: 4ms, application-code: 32ms)
+✓ Compiled in 174ms
+ GET / 200 in 113ms (next.js: 4ms, application-code: 108ms)
+ GET /shop 200 in 51ms (next.js: 4ms, application-code: 47ms)
+ GET / 200 in 47ms (next.js: 5ms, application-code: 42ms)
+✓ Compiled in 211ms
+ GET / 200 in 133ms (next.js: 4ms, application-code: 128ms)
+ GET /shop 200 in 52ms (next.js: 4ms, application-code: 48ms)
+ GET / 200 in 33ms (next.js: 3ms, application-code: 31ms)
+ GET / 200 in 204ms (next.js: 3ms, application-code: 201ms)
+ GET / 200 in 113ms (next.js: 4ms, application-code: 109ms)
+ GET / 200 in 123ms (next.js: 4ms, application-code: 119ms)
+ GET / 200 in 186ms (next.js: 4ms, application-code: 182ms)
+ GET / 200 in 190ms (next.js: 3ms, application-code: 187ms)
+ GET / 200 in 225ms (next.js: 6ms, application-code: 219ms)
+✓ Compiled in 215ms
+✓ Compiled in 187ms
+ GET / 200 in 133ms (next.js: 6ms, application-code: 128ms)
+✓ Compiled in 73ms
+ GET / 200 in 126ms (next.js: 4ms, application-code: 121ms)
+ GET /shop 200 in 48ms (next.js: 4ms, application-code: 44ms)
+ GET /contact 200 in 33ms (next.js: 5ms, application-code: 28ms)
+ GET /faqs 200 in 40ms (next.js: 4ms, application-code: 36ms)
+ GET /contact 200 in 29ms (next.js: 4ms, application-code: 25ms)
+✓ Compiled in 179ms
+ GET / 200 in 115ms (next.js: 3ms, application-code: 112ms)
+ GET / 200 in 44ms (next.js: 3ms, application-code: 41ms)
+ GET /admin 200 in 781ms (next.js: 83ms, application-code: 697ms)
+ GET / 200 in 132ms (next.js: 5ms, application-code: 127ms)
+ GET /admin?notice=Signed+in. 200 in 628ms (next.js: 4ms, application-code: 624ms)
+ POST /admin 303 in 1400ms (next.js: 4ms, application-code: 1396ms)
+  └─ ƒ adminLoginAction({}) in 729ms app/admin/actions.ts
+ GET /admin?view=featured 200 in 263ms (next.js: 4ms, application-code: 260ms)
+ GET /admin/homepage 200 in 259ms (next.js: 64ms, application-code: 195ms)
+✓ Compiled in 67ms
+✓ Compiled in 63ms
+✓ Compiled in 178ms
+ GET / 200 in 117ms (next.js: 4ms, application-code: 114ms)
+Terminate batch job (Y/N)? 
+[?25h
