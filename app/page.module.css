@@ -59,9 +59,9 @@
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 55%) minmax(0, 45%);
+  grid-template-columns: minmax(0, 56%) minmax(0, 44%);
   align-items: stretch;
-  min-height: clamp(31rem, 82svh, 44rem);
+  min-height: clamp(36rem, 77.6svh, 49rem);
   width: 100%;
 }
 
@@ -147,29 +147,23 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  transition:
-    transform var(--public-transition),
-    background-color var(--public-transition),
-    border-color var(--public-transition),
-    color var(--public-transition),
-    box-shadow var(--public-transition);
 }
 
 .primaryCta {
   background: var(--public-pink);
   color: var(--public-cream);
-  box-shadow: 0 10px 24px rgba(98, 26, 91, 0.18);
+  box-shadow: none;
 }
 
 .heroCta {
   min-height: 4rem;
   padding: 0 2.35rem;
-  background: linear-gradient(180deg, #f3a9c6 0%, #e99dbd 100%);
+  background: #f3a9c6;
   color: #fff8fb;
   font-size: 1rem;
   font-weight: 800;
   letter-spacing: 0.05em;
-  box-shadow: 0 16px 34px rgba(48, 9, 66, 0.22);
+  box-shadow: none;
 }
 
 .secondaryCta {
@@ -189,11 +183,6 @@
   color: var(--public-plum-deep);
 }
 
-.primaryCta:hover,
-.tertiaryCta:hover {
-  transform: translateY(-2px);
-}
-
 .heroImageWrap {
   position: relative;
   min-height: 100%;
@@ -204,7 +193,7 @@
 
 .heroImage {
   object-fit: cover;
-  object-position: 30% 62%;
+  object-position: 50% 56%;
   transform: scale(1.02);
   filter: saturate(1.04) contrast(1.02);
 }
@@ -575,6 +564,23 @@
   font-size: 0.78rem;
   line-height: 1.5;
   text-align: center;
+}
+
+@media (min-width: 981px) {
+  .heroCopy {
+    justify-content: flex-start;
+    padding-top: clamp(2.25rem, 3.2vw, 3.7rem);
+  }
+
+  .heroImage {
+    object-position: 56% 84%;
+  }
+}
+
+@media (min-width: 1500px) {
+  .heroImage {
+    object-position: 58% 64%;
+  }
 }
 
 @media (max-width: 980px) {

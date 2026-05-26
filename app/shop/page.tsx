@@ -127,7 +127,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
 
   return (
     <main className={styles.page}>
-      <SiteHeader activeRoute="shop" products={products} variant="hero" showAnnouncement={false} />
+      <SiteHeader activeRoute="shop" products={products} variant="hero" />
 
       <section className={styles.shop}>
         <h1>Shop</h1>

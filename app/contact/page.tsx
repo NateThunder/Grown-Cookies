@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <main className={styles.page}>
-      <SiteHeader activeRoute="contact" variant="hero" showAnnouncement={false} />
+      <SiteHeader activeRoute="contact" variant="hero" />
 
       <section className={styles.contactSection}>
         <div className={styles.contentWrap}>

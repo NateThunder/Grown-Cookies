@@ -51,7 +51,7 @@ export default async function Home() {
   return (
     <main className={`${styles.page} ${styles.pageWidthWide}`}>
       <div className={styles.posterShell}>
-        <SiteHeader activeRoute="home" products={products} variant="hero" showAnnouncement={false} />
+        <SiteHeader activeRoute="home" products={products} variant="hero" />
 
         <section className={styles.hero}>
           <div className={styles.heroCopy}>

@@ -5,7 +5,7 @@ import styles from "../legal.module.css";
 export default function DataDeletionPage() {
   return (
     <main className={styles.page}>
-      <SiteHeader variant="hero" showAnnouncement={false} />
+      <SiteHeader variant="hero" />
       <section className={styles.hero}>
         <div className={styles.copy}>
           <p className={styles.eyebrow}>Data Deletion</p>

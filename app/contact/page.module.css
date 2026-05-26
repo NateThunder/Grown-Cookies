@@ -31,6 +31,12 @@
   padding: clamp(2.5rem, 6vw, 5rem) var(--public-page-padding) clamp(4rem, 8vw, 6rem);
 }
 
+@media (max-height: 1050px) and (min-width: 740px) {
+  .contactSection {
+    padding-top: clamp(1.75rem, 3.5vh, 2.5rem);
+  }
+}
+
 .contentWrap {
   max-width: 40rem;
 }

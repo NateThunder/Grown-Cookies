@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default function FaqsPage() {
   return (
     <main className={styles.page}>
-      <SiteHeader activeRoute="faqs" variant="hero" showAnnouncement={false} />
+      <SiteHeader activeRoute="faqs" variant="hero" />
 
       <section className={styles.faqSection}>
         <div className={styles.contentWrap}>

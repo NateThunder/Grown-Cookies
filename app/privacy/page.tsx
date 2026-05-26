@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <main className={styles.page}>
-      <SiteHeader variant="hero" showAnnouncement={false} />
+      <SiteHeader variant="hero" />
       <section className={styles.hero}>
         <div className={styles.copy}>
           <p className={styles.eyebrow}>Privacy Policy</p>

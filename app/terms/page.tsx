@@ -174,7 +174,7 @@ export default async function TermsPage() {
 
   return (
     <main className={styles.page}>
-      <SiteHeader variant="hero" showAnnouncement={false} />
+      <SiteHeader variant="hero" />
 
       <section className={styles.termsSection}>
         <div className={styles.contentWrap}>
