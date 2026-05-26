@@ -1,0 +1,85 @@
+
+> grown-cookies@0.1.0 dev
+> next dev -p 3000
+
+▲ Next.js 16.2.1 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.53:3000
+- Environments: .env.local
+✓ Ready in 484ms
+- Experiments (use with caution):
+  · serverActions
+
+ GET / 200 in 1538ms (next.js: 371ms, application-code: 1166ms)
+ POST /api/basket/quote 200 in 176ms (next.js: 104ms, application-code: 72ms)
+ GET /checkout 200 in 176ms (next.js: 32ms, application-code: 144ms)
+ POST /api/basket/quote 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /checkout 200 in 98ms (next.js: 5ms, application-code: 93ms)
+ POST /api/basket/quote 200 in 9ms (next.js: 2ms, application-code: 7ms)
+ GET /checkout 200 in 61ms (next.js: 2ms, application-code: 59ms)
+ POST /api/basket/quote 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET /checkout 200 in 62ms (next.js: 3ms, application-code: 59ms)
+ POST /api/basket/quote 200 in 10ms (next.js: 4ms, application-code: 6ms)
+✓ Compiled in 276ms
+ GET /account 200 in 309ms (next.js: 55ms, application-code: 254ms)
+✓ Compiled in 103ms
+ GET /account 200 in 527ms (next.js: 196ms, application-code: 331ms)
+ GET /basket 404 in 1699ms (next.js: 1631ms, application-code: 68ms)
+ GET /cart 200 in 924ms (next.js: 685ms, application-code: 239ms)
+ GET /checkout 200 in 650ms (next.js: 319ms, application-code: 331ms)
+ GET /checkout 200 in 181ms (next.js: 6ms, application-code: 175ms)
+ GET /checkout 200 in 118ms (next.js: 72ms, application-code: 45ms)
+ GET /checkout 200 in 121ms (next.js: 6ms, application-code: 115ms)
+ GET /checkout 200 in 121ms (next.js: 39ms, application-code: 82ms)
+ POST /api/basket/quote 200 in 174ms (next.js: 80ms, application-code: 94ms)
+ GET /checkout 200 in 296ms (next.js: 4ms, application-code: 292ms)
+ POST /api/basket/quote 200 in 12ms (next.js: 4ms, application-code: 8ms)
+ POST /api/basket/quote 200 in 17ms (next.js: 7ms, application-code: 10ms)
+ GET /account 200 in 65ms (next.js: 20ms, application-code: 45ms)
+ GET /account 200 in 163ms (next.js: 3ms, application-code: 160ms)
+ GET / 200 in 382ms (next.js: 194ms, application-code: 189ms)
+ GET /shop 200 in 115ms (next.js: 46ms, application-code: 69ms)
+ GET /shop?sort=best-selling 200 in 47ms (next.js: 3ms, application-code: 44ms)
+ GET /shop?sort=price-ascending 200 in 41ms (next.js: 4ms, application-code: 36ms)
+ GET /shop?sort=best-selling 200 in 41ms (next.js: 4ms, application-code: 36ms)
+ GET /shop?sort=created-descending 200 in 51ms (next.js: 6ms, application-code: 46ms)
+ GET /shop 200 in 37ms (next.js: 5ms, application-code: 31ms)
+✓ Compiled in 263ms
+ GET /shop 200 in 1168ms (next.js: 369ms, application-code: 799ms)
+ GET /shop 200 in 411ms (next.js: 79ms, application-code: 332ms)
+ GET /shop 200 in 643ms (next.js: 9ms, application-code: 634ms)
+ GET /shop 200 in 413ms (next.js: 111ms, application-code: 301ms)
+ GET /shop 200 in 413ms (next.js: 146ms, application-code: 268ms)
+ GET /shop 200 in 884ms (next.js: 12ms, application-code: 872ms)
+ POST /api/basket/quote 200 in 249ms (next.js: 83ms, application-code: 166ms)
+ POST /api/basket/quote 200 in 10ms (next.js: 4ms, application-code: 7ms)
+ GET /checkout 200 in 652ms (next.js: 255ms, application-code: 397ms)
+ POST /api/basket/quote 200 in 8ms (next.js: 2ms, application-code: 6ms)
+ GET /checkout 200 in 51ms (next.js: 3ms, application-code: 49ms)
+ GET /checkout 200 in 51ms (next.js: 3ms, application-code: 48ms)
+ GET /checkout 200 in 80ms (next.js: 4ms, application-code: 76ms)
+ POST /api/basket/quote 200 in 9ms (next.js: 3ms, application-code: 5ms)
+ GET /checkout 200 in 90ms (next.js: 4ms, application-code: 86ms)
+ POST /api/basket/quote 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ POST /api/basket/quote 400 in 6ms (next.js: 1891µs, application-code: 4ms)
+✓ Compiled in 70ms
+ POST /api/basket/quote 200 in 67ms (next.js: 3ms, application-code: 64ms)
+ GET /checkout 200 in 549ms (next.js: 166ms, application-code: 384ms)
+ POST /api/basket/quote 200 in 8ms (next.js: 2ms, application-code: 6ms)
+✓ Compiled in 60ms
+ POST /api/basket/quote 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /checkout 200 in 508ms (next.js: 162ms, application-code: 345ms)
+ POST /api/basket/quote 200 in 9ms (next.js: 3ms, application-code: 7ms)
+ GET /checkout 200 in 84ms (next.js: 4ms, application-code: 80ms)
+ POST /api/basket/quote 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ POST /api/basket/quote 200 in 9ms (next.js: 4ms, application-code: 5ms)
+ GET /shop 200 in 58ms (next.js: 6ms, application-code: 52ms)
+ GET /shop/gift-card 200 in 826ms (next.js: 649ms, generate-params: 595ms, application-code: 177ms)
+ POST /api/basket/quote 200 in 10ms (next.js: 5ms, application-code: 6ms)
+ POST /api/basket/quote 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /checkout 200 in 72ms (next.js: 5ms, application-code: 67ms)
+ POST /api/basket/quote 200 in 8ms (next.js: 1946µs, application-code: 6ms)
+✓ Compiled in 51ms
+ POST /api/basket/quote 200 in 9ms (next.js: 3ms, application-code: 5ms)
+ GET /checkout 200 in 496ms (next.js: 163ms, application-code: 333ms)
+ POST /api/basket/quote 200 in 8ms (next.js: 2ms, application-code: 6ms)

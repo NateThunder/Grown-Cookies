@@ -1,0 +1,1297 @@
+[browser] You may test your Stripe.js integration over HTTP. However, live Stripe.js integrations must use HTTPS. (https://js.stripe.com/v3:1:800532)
+[browser] You may test your Stripe.js integration over HTTP. However, live Stripe.js integrations must use HTTPS. (https://js.stripe.com/v3:1:800532)
+[browser] Unsupported prop change on Elements: You cannot change the `stripe` prop after setting it.
+[browser] You may test your Stripe.js integration over HTTP. However, live Stripe.js integrations must use HTTPS. (https://js.stripe.com/v3:1:800532)
+[browser] Unsupported prop change on Elements: You cannot change the `stripe` prop after setting it.
+[browser] You may test your Stripe.js integration over HTTP. However, live Stripe.js integrations must use HTTPS. (https://js.stripe.com/v3:1:800532)
+[browser] Unsupported prop change on Elements: You cannot change the `stripe` prop after setting it.
+[browser] You may test your Stripe.js integration over HTTP. However, live Stripe.js integrations must use HTTPS. (https://js.stripe.com/v3:1:800532)
+[browser] Unsupported prop change on Elements: You cannot change the `stripe` prop after setting it.
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+⨯ ./app/globals.css:220:8
+Parsing CSS source code failed
+  [90m218 |[0m   }
+  [90m219 |[0m }
+[31m[1m>[0m [90m220 |[0m @[36mimport[0m url([32m"https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap"[0m);
+  [90m    |[0m        [31m[1m^[0m
+  [90m221 |[0m :root {
+  [90m222 |[0m   --background: #f4f4f4;
+  [90m223 |[0m   --foreground: #[35m111111[0m;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  [90m218 |[0m   }
+  [90m219 |[0m }
+[31m[1m>[0m [90m220 |[0m @[36mimport[0m url([32m"https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap"[0m);
+  [90m    |[0m        [31m[1m^[0m
+  [90m221 |[0m :root {
+  [90m222 |[0m   --background: #f4f4f4;
+  [90m223 |[0m   --foreground: #[35m111111[0m;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component]
+
+
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] Uncaught Error: ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component]
+
+
+    at <unknown> (Error: ./app/globals.css:220:8)
+    at <unknown> (./app/globals.css:220:8)
+    at <unknown> (Error: (./app/globals.css:220:8)
+    at <unknown> (./app/globals.css:220:8)
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[browser] "⨯ unhandledRejection:" undefined 
+
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] "⨯ unhandledRejection:" undefined 
+
+[browser] You may test your Stripe.js integration over HTTP. However, live Stripe.js integrations must use HTTPS. (https://js.stripe.com/v3:1:800532)
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] "⨯ unhandledRejection:" undefined 
+
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] ./app/globals.css:220:8
+Parsing CSS source code failed
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Generated code of PostCSS transform of file content of app/globals.css:
+./app/globals.css:220:8
+  218 |   }
+  219 | }
+> 220 | @import url("https://fonts.googleapis.com/css2?family=BJ+Cree:wght@400;700&display=swap");
+      |        ^
+  221 | :root {
+  222 |   --background: #f4f4f4;
+  223 |   --foreground: #111111;
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component] 
+[browser] "⨯ unhandledRejection:" undefined 
+
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/products/dark-choc-maldon-salt/1773699719243-choc-maldon-cookie.png" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Double_Choc_Hazelnut/_DSC6200.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Crunchy_Granola/_DSC6127.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Red_Velvet/_DSC6161.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Matcha/_DSC6441.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+⨯ upstream image response failed for https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/products/double-choc-box/1773699773746-dsc6455.jpg 404
+⨯ upstream image response failed for https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/products/double-choc-box/1773699773746-dsc6455.jpg 404
+⨯ upstream image response failed for https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/products/double-choc-box/1773699773746-dsc6455.jpg 404
+⨯ upstream image response failed for https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/products/double-choc-box/1773699773746-dsc6455.jpg 404
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/products/dark-choc-maldon-salt/1773699719243-choc-maldon-cookie.png" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Double_Choc_Hazelnut/_DSC6200.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Crunchy_Granola/_DSC6127.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Matcha/_DSC6441.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Red_Velvet/_DSC6161.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+⨯ upstream image response failed for https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/products/double-choc-box/1773699773746-dsc6455.jpg 404
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/products/dark-choc-maldon-salt/1773699719243-choc-maldon-cookie.png" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Double_Choc_Hazelnut/_DSC6200.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Crunchy_Granola/_DSC6127.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Matcha/_DSC6441.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[browser] Image with src "https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/Red_Velvet/_DSC6161.jpg" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+⨯ upstream image response failed for https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/products/double-choc-box/1773699773746-dsc6455.jpg 404
+⨯ upstream image response failed for https://pub-643f13871f25495b912ab9d8eb939c55.r2.dev/products/double-choc-box/1773699773746-dsc6455.jpg 404

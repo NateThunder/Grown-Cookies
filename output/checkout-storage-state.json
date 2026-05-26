@@ -1,0 +1,20 @@
+{
+    "cookies":  [
+
+                ],
+    "origins":  [
+                    {
+                        "origin":  "http://localhost:3000",
+                        "localStorage":  [
+                                             {
+                                                 "name":  "grown-cookies-basket",
+                                                 "value":  "[{\"lineId\":\"dark-choc-maldon-salt\",\"slug\":\"dark-choc-maldon-salt\",\"quantity\":1}]"
+                                             },
+                                             {
+                                                 "name":  "grown-cookies-dispatch-selection",
+                                                 "value":  "{\"method\":\"uk_postal_shipping\",\"dispatchDate\":\"2026-05-29\"}"
+                                             }
+                                         ]
+                    }
+                ]
+}

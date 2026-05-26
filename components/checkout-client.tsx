@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
 import { FiChevronDown, FiLock, FiMinus, FiPlus, FiSearch } from "react-icons/fi";
 import {
   Elements,
@@ -12,11 +12,14 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js";
 import {
+  type Stripe,
   type StripeElementsOptions,
   type StripeExpressCheckoutElementConfirmEvent,
+  type StripePaymentElementOptions,
   loadStripe,
 } from "@stripe/stripe-js";
 import { BASKET_UPDATED_EVENT, getBasket } from "@/lib/basket-storage";
+import { DISPATCH_UPDATED_EVENT, getDispatchSelection } from "@/lib/dispatch-storage";
 import {
   TIP_PRESET_OPTIONS,
   formatPriceFromCents,
@@ -25,6 +28,11 @@ import {
   type BasketStoredItem,
   type BasketTipInput,
 } from "@/lib/basket";
+import {
+  UK_POSTAL_SHIPPING_LABEL,
+  formatDispatchDate,
+  type DispatchSelection,
+} from "@/lib/dispatch";
 import { formatGiftCardAmount } from "@/lib/gift-card-amounts";
 import GiftCardTile from "@/components/gift-card-tile";
 import type { CustomerAddress, CustomerProfile } from "@/lib/customer-profiles";
@@ -53,8 +61,10 @@ type ConfirmPaymentPayload = {
   savePaymentMethod?: boolean;
   items: BasketStoredItem[];
   tip: BasketTipInput;
+  giftCardCodes: string[];
   contact?: ContactDetails;
   delivery?: DeliveryDetails;
+  dispatch?: DispatchSelection | null;
   paymentContact?: ContactDetails;
   paymentDelivery?: DeliveryDetails;
 };
@@ -84,8 +94,6 @@ type AddressSuggestion = {
 
 const SUPPORTED_COUNTRIES = [
   { code: "GB", label: "United Kingdom" },
-  { code: "US", label: "United States" },
-  { code: "CA", label: "Canada" },
 ] as const;
 
 const defaultDelivery = {
@@ -102,6 +110,13 @@ const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : 
 const STRIPE_PREPARE_TIMEOUT_MS = 20_000;
 const PAYMENT_CONFIRM_SLOW_NOTICE_MS = 25_000;
 const PAYMENT_CONFIRM_ABORT_MS = 60_000;
+const CHECKOUT_GIFT_CARD_STORAGE_KEY = "grown-cookies-checkout-gift-cards";
+const CHECKOUT_TIPS_ENABLED = false;
+const CHECKOUT_PAYMENT_METHOD_TYPES = ["card", "link", "revolut_pay", "klarna", "amazon_pay"] as const;
+const PAYMENT_ELEMENT_OPTIONS: StripePaymentElementOptions = {
+  layout: "tabs",
+  paymentMethodOrder: [...CHECKOUT_PAYMENT_METHOD_TYPES],
+};
 type CheckoutFlow = "manual_card" | "express" | "saved_card";
 
 function stripeErrorText(error: unknown): string {
@@ -299,9 +314,208 @@ function buildRedirectUrl(params: {
   return `/checkout/success?${searchParams.toString()}`;
 }
 
+function getStoredCheckoutGiftCardCodes() {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(window.sessionStorage.getItem(CHECKOUT_GIFT_CARD_STORAGE_KEY) ?? "[]");
+    return Array.isArray(parsed)
+      ? parsed.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+type FinalizeCheckoutPaymentParams = {
+  stripe: Stripe | null;
+  items: BasketStoredItem[];
+  tip: BasketTipInput;
+  giftCardCodes: string[];
+  contact: ContactDetails;
+  delivery: DeliveryDetails;
+  dispatch: DispatchSelection | null;
+  authAccessToken: string;
+  setPaymentProgressMessage: (message: string) => void;
+  attemptId: string;
+  confirmationTokenId?: string;
+  flow: CheckoutFlow;
+  savedPaymentMethodId?: string;
+  savePaymentMethod?: boolean;
+  paymentContact?: ContactDetails;
+  paymentDelivery?: DeliveryDetails;
+};
+
+function redirectToCheckoutSuccess(params: {
+  orderId: string;
+  paymentIntentId: string;
+  clientSecret?: string;
+}) {
+  window.location.href = buildRedirectUrl(params);
+}
+
+async function finalizeCheckoutPayment(params: FinalizeCheckoutPaymentParams) {
+  const shouldSendAuthToken = Boolean(
+    params.authAccessToken && (params.savePaymentMethod || params.savedPaymentMethodId),
+  );
+  let response: Response;
+  const abortController = new AbortController();
+  const slowNoticeTimeoutId = window.setTimeout(() => {
+    params.setPaymentProgressMessage(
+      "Payment confirmation is taking longer than usual. Please keep this page open while we finish confirming it.",
+    );
+  }, PAYMENT_CONFIRM_SLOW_NOTICE_MS);
+  const requestTimeoutId = window.setTimeout(() => {
+    abortController.abort();
+  }, PAYMENT_CONFIRM_ABORT_MS);
+
+  try {
+    response = await withCheckoutClientTiming(
+      params.attemptId,
+      "confirm-payment.request",
+      () =>
+        fetch("/api/stripe/confirm-payment", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Checkout-Attempt-Id": params.attemptId,
+            ...(shouldSendAuthToken ? { Authorization: `Bearer ${params.authAccessToken}` } : {}),
+          },
+          body: JSON.stringify({
+            confirmationTokenId: params.confirmationTokenId,
+            savedPaymentMethodId: params.savedPaymentMethodId,
+            savePaymentMethod: params.savePaymentMethod,
+            items: params.items,
+            tip: params.tip,
+            giftCardCodes: params.giftCardCodes,
+            contact: params.contact,
+            delivery: params.delivery,
+            dispatch: params.dispatch,
+            paymentContact: params.paymentContact,
+            paymentDelivery: params.paymentDelivery,
+          } satisfies ConfirmPaymentPayload),
+          signal: abortController.signal,
+        }),
+      {
+        flow: params.flow,
+        itemCount: params.items.length,
+        savePaymentMethod: Boolean(params.savePaymentMethod),
+        usingSavedPaymentMethod: Boolean(params.savedPaymentMethodId),
+      },
+    );
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error(
+        "Payment confirmation did not return within one minute. If your bank or wallet is still asking for approval, finish that first, then wait a moment before trying again.",
+        { cause: error },
+      );
+    }
+
+    throw error;
+  } finally {
+    window.clearTimeout(slowNoticeTimeoutId);
+    window.clearTimeout(requestTimeoutId);
+    params.setPaymentProgressMessage("");
+  }
+
+  const result = await withCheckoutClientTiming(
+    params.attemptId,
+    "confirm-payment.response",
+    async () => {
+      const payload = (await response.json().catch(() => ({}))) as ConfirmPaymentResponse & {
+        error?: string;
+      };
+      return payload;
+    },
+    {
+      flow: params.flow,
+      ok: response.ok,
+      status: response.status,
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(result.error || "Could not finalize payment.");
+  }
+
+  if (!result.orderId || !result.paymentIntentId || !result.clientSecret || !result.status) {
+    throw new Error("Could not finalize payment.");
+  }
+
+  const orderId = result.orderId;
+  const paymentIntentId = result.paymentIntentId;
+  const clientSecret = result.clientSecret;
+  const status = result.status;
+
+  if (status === "requires_action") {
+    const stripe = params.stripe;
+    if (!stripe) {
+      throw new Error("Payment form is still loading. Please wait.");
+    }
+
+    const nextActionResult = await withCheckoutClientTiming(
+      params.attemptId,
+      "stripe.handleNextAction",
+      () =>
+        stripe.handleNextAction({
+          clientSecret,
+        }),
+      {
+        flow: params.flow,
+        orderId,
+        paymentIntentId,
+      },
+    );
+
+    if (nextActionResult.error) {
+      throw new Error(stripeErrorText(nextActionResult.error));
+    }
+
+    if (nextActionResult.paymentIntent?.id) {
+      logCheckoutClientEvent(params.attemptId, "checkout.redirect", "redirecting after next action", {
+        flow: params.flow,
+        orderId,
+        paymentIntentId: nextActionResult.paymentIntent.id,
+        status,
+      });
+      redirectToCheckoutSuccess({
+        orderId,
+        paymentIntentId: nextActionResult.paymentIntent.id,
+        clientSecret,
+      });
+    }
+
+    return;
+  }
+
+  if (
+    status === "succeeded" ||
+    status === "processing" ||
+    status === "requires_capture"
+  ) {
+    logCheckoutClientEvent(params.attemptId, "checkout.redirect", "redirecting after confirmation", {
+      flow: params.flow,
+      orderId,
+      paymentIntentId,
+      status,
+    });
+    redirectToCheckoutSuccess({
+      orderId,
+      paymentIntentId,
+      clientSecret,
+    });
+    return;
+  }
+
+  throw new Error("Payment could not be completed. Please try another payment method.");
+}
+
 function validateManualCheckoutDetails(
   contact: ContactDetails,
   delivery: DeliveryDetails,
+  dispatch: DispatchSelection | null,
   requiresDelivery: boolean,
 ) {
   if (!normalizeText(contact.email)) {
@@ -325,7 +539,11 @@ function validateManualCheckoutDetails(
   }
 
   if (!getCountryCodeFromLabel(delivery.country)) {
-    return "Select a supported delivery country.";
+    return "We only deliver to the United Kingdom.";
+  }
+
+  if (!dispatch?.dispatchDate) {
+    return "Choose a dispatch date from your basket before checkout.";
   }
 
   return "";
@@ -469,8 +687,15 @@ function buildExpressLineItems(quote: BasketQuote) {
 
   if (quote.shippingCents > 0) {
     lineItems.push({
-      name: "Standard shipping",
+      name: UK_POSTAL_SHIPPING_LABEL,
       amount: quote.shippingCents,
+    });
+  }
+
+  if (quote.giftCardAppliedCents > 0) {
+    lineItems.push({
+      name: "Gift cards",
+      amount: -quote.giftCardAppliedCents,
     });
   }
 
@@ -484,9 +709,9 @@ function buildExpressShippingRates(shippingCents: number) {
 
   return [
     {
-      id: "standard-shipping",
+      id: "uk-postal-shipping",
       amount: shippingCents,
-      displayName: "Standard shipping",
+      displayName: UK_POSTAL_SHIPPING_LABEL,
     },
   ];
 }
@@ -543,70 +768,61 @@ function mapAddressToDelivery(address: CustomerAddress): DeliveryDetails {
   };
 }
 
-function PaymentElementForm({
+function CheckoutElementsShell({
+  children,
+  options,
+}: {
+  children: ReactNode;
+  options: StripeElementsOptions | null;
+}) {
+  if (!options || !stripePromise) {
+    return <>{children}</>;
+  }
+
+  return (
+    <Elements stripe={stripePromise} options={options}>
+      {children}
+    </Elements>
+  );
+}
+
+function ExpressCheckoutSection({
   items,
   tip,
+  giftCardCodes,
   contact,
   delivery,
+  dispatch,
   authAccessToken,
   isAuthenticated,
-  savedPaymentMethods,
   selectedSavedPaymentMethodId,
-  onSelectedSavedPaymentMethodChange,
   savePaymentMethod,
-  onSavePaymentMethodChange,
   quote,
   isDigitalOnly,
 }: {
   items: BasketStoredItem[];
   tip: BasketTipInput;
+  giftCardCodes: string[];
   contact: ContactDetails;
   delivery: DeliveryDetails;
+  dispatch: DispatchSelection | null;
   authAccessToken: string;
   isAuthenticated: boolean;
-  savedPaymentMethods: SavedPaymentMethod[];
   selectedSavedPaymentMethodId: string;
-  onSelectedSavedPaymentMethodChange: (paymentMethodId: string) => void;
   savePaymentMethod: boolean;
-  onSavePaymentMethodChange: (value: boolean) => void;
   quote: BasketQuote;
   isDigitalOnly: boolean;
 }) {
   const stripe = useStripe();
   const elements = useElements();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState("");
   const [paymentProgressMessage, setPaymentProgressMessage] = useState("");
-  const [hasExpressMethods, setHasExpressMethods] = useState(false);
-  const [hasResolvedExpressMethods, setHasResolvedExpressMethods] = useState(false);
-  const [isPaymentElementReady, setIsPaymentElementReady] = useState(false);
-  const [hasPaymentMethodSelection, setHasPaymentMethodSelection] = useState(false);
   const usingSavedPaymentMethod = Boolean(selectedSavedPaymentMethodId);
   const expressLineItems = useMemo(() => buildExpressLineItems(quote), [quote]);
   const expressShippingRates = useMemo(
     () => buildExpressShippingRates(quote.shippingCents),
     [quote.shippingCents],
   );
-
-  useEffect(() => {
-    setIsPaymentElementReady(false);
-    setHasPaymentMethodSelection(false);
-    setPaymentProgressMessage("");
-  }, [usingSavedPaymentMethod]);
-
-  const expressCheckoutClassName = !hasResolvedExpressMethods
-    ? styles.expressCheckoutProbe
-    : hasExpressMethods
-      ? styles.expressCheckoutWrap
-      : styles.expressCheckoutWrapHidden;
-
-  const redirectToSuccess = (params: {
-    orderId: string;
-    paymentIntentId: string;
-    clientSecret?: string;
-  }) => {
-    window.location.href = buildRedirectUrl(params);
-  };
 
   const finalizePayment = async (params: {
     attemptId: string;
@@ -617,162 +833,265 @@ function PaymentElementForm({
     paymentContact?: ContactDetails;
     paymentDelivery?: DeliveryDetails;
   }) => {
-    const shouldSendAuthToken = Boolean(
-      authAccessToken && (params.savePaymentMethod || params.savedPaymentMethodId),
-    );
-    let response: Response;
-    const abortController = new AbortController();
-    const slowNoticeTimeoutId = window.setTimeout(() => {
-      setPaymentProgressMessage(
-        "Payment confirmation is taking longer than usual. Please keep this page open while we finish confirming it.",
-      );
-    }, PAYMENT_CONFIRM_SLOW_NOTICE_MS);
-    const requestTimeoutId = window.setTimeout(() => {
-      abortController.abort();
-    }, PAYMENT_CONFIRM_ABORT_MS);
+    await finalizeCheckoutPayment({
+      stripe,
+      items,
+      tip,
+      giftCardCodes,
+      contact,
+      delivery,
+      dispatch,
+      authAccessToken,
+      setPaymentProgressMessage,
+      ...params,
+    });
+  };
+
+  const handleExpressConfirm = async (event: StripeExpressCheckoutElementConfirmEvent) => {
+    if (!stripe || !elements) {
+      const message = "Payment form is still loading. Please wait.";
+      setLocalError(message);
+      event.paymentFailed({
+        reason: "fail",
+        message,
+      });
+      return;
+    }
+
+    if (!isDigitalOnly && !dispatch?.dispatchDate) {
+      const message = "Choose a dispatch date from your basket before checkout.";
+      setLocalError(message);
+      event.paymentFailed({
+        reason: "invalid_shipping_address",
+        message,
+      });
+      return;
+    }
+
+    if (!isDigitalOnly && event.shippingAddress && !isSupportedCountryCode(event.shippingAddress.address.country)) {
+      const message = "We only deliver to the United Kingdom.";
+      setLocalError(message);
+      event.paymentFailed({
+        reason: "address_unserviceable",
+        message,
+      });
+      return;
+    }
+
+    setLocalError("");
+    setPaymentProgressMessage("");
+    const attemptId = createCheckoutAttemptId();
 
     try {
-      response = await withCheckoutClientTiming(
-        params.attemptId,
-        "confirm-payment.request",
+      const submitResult = await withCheckoutClientTiming(
+        attemptId,
+        "elements.submit",
         () =>
-          fetch("/api/stripe/confirm-payment", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Checkout-Attempt-Id": params.attemptId,
-              ...(shouldSendAuthToken ? { Authorization: `Bearer ${authAccessToken}` } : {}),
-            },
-            body: JSON.stringify({
-              confirmationTokenId: params.confirmationTokenId,
-              savedPaymentMethodId: params.savedPaymentMethodId,
-              savePaymentMethod: params.savePaymentMethod,
-              items,
-              tip,
-              contact,
-              delivery,
-              paymentContact: params.paymentContact,
-              paymentDelivery: params.paymentDelivery,
-            } satisfies ConfirmPaymentPayload),
-            signal: abortController.signal,
-          }),
+          withTimeout(
+            elements.submit(),
+            STRIPE_PREPARE_TIMEOUT_MS,
+            "Stripe is taking too long to validate the payment form. Please try again.",
+          ),
         {
-          flow: params.flow,
+          flow: "express",
+        },
+      );
+      if (submitResult.error) {
+        throw new Error(stripeErrorText(submitResult.error));
+      }
+
+      const confirmationResult = await withCheckoutClientTiming(
+        attemptId,
+        "stripe.createConfirmationToken",
+        () =>
+          withTimeout(
+            stripe.createConfirmationToken({
+              elements,
+              params: {
+                payment_method_data: {
+                  billing_details: buildExpressBillingDetails(event, contact, delivery),
+                },
+                shipping: isDigitalOnly ? undefined : buildExpressShipping(event, contact),
+              },
+            }),
+            STRIPE_PREPARE_TIMEOUT_MS,
+            "Stripe is taking too long to prepare this payment. Please try again.",
+          ),
+        {
+          flow: "express",
           itemCount: items.length,
-          savePaymentMethod: Boolean(params.savePaymentMethod),
-          usingSavedPaymentMethod: Boolean(params.savedPaymentMethodId),
         },
       );
+
+      if (confirmationResult.error || !confirmationResult.confirmationToken?.id) {
+        throw new Error(stripeErrorText(confirmationResult.error));
+      }
+
+      await finalizePayment({
+        attemptId,
+        confirmationTokenId: confirmationResult.confirmationToken.id,
+        flow: "express",
+        paymentContact: buildExpressContactPayload(event, contact),
+        paymentDelivery: isDigitalOnly ? undefined : buildExpressDeliveryPayload(event, delivery),
+        savePaymentMethod: isAuthenticated && savePaymentMethod,
+      });
     } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        throw new Error(
-          "Payment confirmation did not return within one minute. If your bank or wallet is still asking for approval, finish that first, then wait a moment before trying again.",
-          { cause: error },
-        );
-      }
-
-      throw error;
-    } finally {
-      window.clearTimeout(slowNoticeTimeoutId);
-      window.clearTimeout(requestTimeoutId);
-      setPaymentProgressMessage("");
-    }
-
-    const result = await withCheckoutClientTiming(
-      params.attemptId,
-      "confirm-payment.response",
-      async () => {
-        const payload = (await response.json().catch(() => ({}))) as ConfirmPaymentResponse & {
-          error?: string;
-        };
-        return payload;
-      },
-      {
-        flow: params.flow,
-        ok: response.ok,
-        status: response.status,
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(result.error || "Could not finalize payment.");
-    }
-
-    if (!result.orderId || !result.paymentIntentId || !result.clientSecret || !result.status) {
-      throw new Error("Could not finalize payment.");
-    }
-
-    const orderId = result.orderId;
-    const paymentIntentId = result.paymentIntentId;
-    const clientSecret = result.clientSecret;
-    const status = result.status;
-
-    if (status === "requires_action") {
-      if (!stripe) {
-        throw new Error("Payment form is still loading. Please wait.");
-      }
-
-      const nextActionResult = await withCheckoutClientTiming(
-        params.attemptId,
-        "stripe.handleNextAction",
-        () =>
-          stripe.handleNextAction({
-            clientSecret,
-          }),
-        {
-          flow: params.flow,
-          orderId,
-          paymentIntentId,
-        },
-      );
-
-      if (nextActionResult.error) {
-        throw new Error(stripeErrorText(nextActionResult.error));
-      }
-
-      if (nextActionResult.paymentIntent?.id) {
-        logCheckoutClientEvent(params.attemptId, "checkout.redirect", "redirecting after next action", {
-          flow: params.flow,
-          orderId,
-          paymentIntentId: nextActionResult.paymentIntent.id,
-          status,
-        });
-        redirectToSuccess({
-          orderId,
-          paymentIntentId: nextActionResult.paymentIntent.id,
-          clientSecret,
-        });
-      }
-
-      return;
-    }
-
-    if (
-      status === "succeeded" ||
-      status === "processing" ||
-      status === "requires_capture"
-    ) {
-      logCheckoutClientEvent(params.attemptId, "checkout.redirect", "redirecting after confirmation", {
-        flow: params.flow,
-        orderId,
-        paymentIntentId,
-        status,
+      const message = stripeErrorText(error);
+      setLocalError(message);
+      event.paymentFailed({
+        reason: getExpressFailureReason(message),
+        message,
       });
-      redirectToSuccess({
-        orderId,
-        paymentIntentId,
-        clientSecret,
-      });
-      return;
     }
+  };
 
-    throw new Error("Payment could not be completed. Please try another payment method.");
+  return (
+    <div className={styles.expressCheckoutTop}>
+      <div className={styles.expressCheckoutWrap}>
+        <p className={styles.expressCheckoutLabel}>Express checkout</p>
+        <ExpressCheckoutElement
+          options={{
+            allowedShippingCountries: SUPPORTED_COUNTRIES.map((country) => country.code),
+            billingAddressRequired: false,
+            buttonHeight: 55,
+            buttonTheme: {
+              applePay: "black",
+              googlePay: "black",
+            },
+            buttonType: {
+              applePay: "check-out",
+              googlePay: "checkout",
+              paypal: "buynow",
+            },
+            emailRequired: true,
+            layout: {
+              maxColumns: 1,
+              maxRows: 3,
+            },
+            paymentMethodOrder: ["apple_pay", "google_pay", "paypal"],
+            paymentMethods: {
+              applePay: "always",
+              googlePay: "always",
+              link: "never",
+              paypal: "auto",
+              amazonPay: "never",
+            },
+            phoneNumberRequired: false,
+            shippingAddressRequired: !isDigitalOnly,
+            lineItems: expressLineItems,
+            shippingRates: expressShippingRates,
+          }}
+          onClick={(event) => {
+            event.resolve({
+              lineItems: expressLineItems,
+              shippingRates: expressShippingRates,
+            });
+          }}
+          onShippingAddressChange={(event) => {
+            if (!isSupportedCountryCode(event.address.country)) {
+              event.reject();
+              return;
+            }
+
+            event.resolve({
+              lineItems: expressLineItems,
+              shippingRates: expressShippingRates,
+            });
+          }}
+          onShippingRateChange={(event) => {
+            event.resolve({
+              lineItems: expressLineItems,
+              shippingRates: expressShippingRates,
+            });
+          }}
+          onConfirm={handleExpressConfirm}
+        />
+        <div className={styles.expressCheckoutDivider}>
+          <span>{usingSavedPaymentMethod ? "Or pay with your saved card" : "Or pay with card"}</span>
+        </div>
+      </div>
+
+      {localError ? <p className={styles.errorText}>{localError}</p> : null}
+      {paymentProgressMessage ? <p className={styles.sectionNote}>{paymentProgressMessage}</p> : null}
+    </div>
+  );
+}
+
+function PaymentElementForm({
+  items,
+  tip,
+  giftCardCodes,
+  contact,
+  delivery,
+  dispatch,
+  authAccessToken,
+  isAuthenticated,
+  savedPaymentMethods,
+  selectedSavedPaymentMethodId,
+  onSelectedSavedPaymentMethodChange,
+  savePaymentMethod,
+  onSavePaymentMethodChange,
+  isDigitalOnly,
+  stripeAmountCents,
+}: {
+  items: BasketStoredItem[];
+  tip: BasketTipInput;
+  giftCardCodes: string[];
+  contact: ContactDetails;
+  delivery: DeliveryDetails;
+  dispatch: DispatchSelection | null;
+  authAccessToken: string;
+  isAuthenticated: boolean;
+  savedPaymentMethods: SavedPaymentMethod[];
+  selectedSavedPaymentMethodId: string;
+  onSelectedSavedPaymentMethodChange: (paymentMethodId: string) => void;
+  savePaymentMethod: boolean;
+  onSavePaymentMethodChange: (value: boolean) => void;
+  isDigitalOnly: boolean;
+  stripeAmountCents: number;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [localError, setLocalError] = useState("");
+  const [paymentProgressMessage, setPaymentProgressMessage] = useState("");
+  const [isPaymentElementReady, setIsPaymentElementReady] = useState(false);
+  const [hasPaymentMethodSelection, setHasPaymentMethodSelection] = useState(false);
+  const usingSavedPaymentMethod = Boolean(selectedSavedPaymentMethodId);
+
+  useEffect(() => {
+    setIsPaymentElementReady(false);
+    setHasPaymentMethodSelection(false);
+    setPaymentProgressMessage("");
+  }, [usingSavedPaymentMethod]);
+
+  const finalizePayment = async (params: {
+    attemptId: string;
+    confirmationTokenId?: string;
+    flow: CheckoutFlow;
+    savedPaymentMethodId?: string;
+    savePaymentMethod?: boolean;
+    paymentContact?: ContactDetails;
+    paymentDelivery?: DeliveryDetails;
+  }) => {
+    await finalizeCheckoutPayment({
+      stripe,
+      items,
+      tip,
+      giftCardCodes,
+      contact,
+      delivery,
+      dispatch,
+      authAccessToken,
+      setPaymentProgressMessage,
+      ...params,
+    });
   };
 
   const handleManualSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const validationError = validateManualCheckoutDetails(contact, delivery, !isDigitalOnly);
+    const validationError = validateManualCheckoutDetails(contact, delivery, dispatch, !isDigitalOnly);
     if (validationError) {
       setLocalError(validationError);
       return;
@@ -880,97 +1199,6 @@ function PaymentElementForm({
     }
   };
 
-  const handleExpressConfirm = async (event: StripeExpressCheckoutElementConfirmEvent) => {
-    if (!stripe || !elements) {
-      const message = "Payment form is still loading. Please wait.";
-      setLocalError(message);
-      event.paymentFailed({
-        reason: "fail",
-        message,
-      });
-      return;
-    }
-
-    if (!isDigitalOnly && event.shippingAddress && !isSupportedCountryCode(event.shippingAddress.address.country)) {
-      const message = "We only deliver to the United Kingdom, United States, and Canada.";
-      setLocalError(message);
-      event.paymentFailed({
-        reason: "address_unserviceable",
-        message,
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    setLocalError("");
-    setPaymentProgressMessage("");
-    const attemptId = createCheckoutAttemptId();
-
-    try {
-      const submitResult = await withCheckoutClientTiming(
-        attemptId,
-        "elements.submit",
-        () =>
-          withTimeout(
-            elements.submit(),
-            STRIPE_PREPARE_TIMEOUT_MS,
-            "Stripe is taking too long to validate the payment form. Please try again.",
-          ),
-        {
-          flow: "express",
-        },
-      );
-      if (submitResult.error) {
-        throw new Error(stripeErrorText(submitResult.error));
-      }
-
-      const confirmationResult = await withCheckoutClientTiming(
-        attemptId,
-        "stripe.createConfirmationToken",
-        () =>
-          withTimeout(
-            stripe.createConfirmationToken({
-              elements,
-              params: {
-                payment_method_data: {
-                  billing_details: buildExpressBillingDetails(event, contact, delivery),
-                },
-                shipping: isDigitalOnly ? undefined : buildExpressShipping(event, contact),
-              },
-            }),
-            STRIPE_PREPARE_TIMEOUT_MS,
-            "Stripe is taking too long to prepare this payment. Please try again.",
-          ),
-        {
-          flow: "express",
-          itemCount: items.length,
-        },
-      );
-
-      if (confirmationResult.error || !confirmationResult.confirmationToken?.id) {
-        throw new Error(stripeErrorText(confirmationResult.error));
-      }
-
-      await finalizePayment({
-        attemptId,
-        confirmationTokenId: confirmationResult.confirmationToken.id,
-        flow: "express",
-        paymentContact: buildExpressContactPayload(event, contact),
-        paymentDelivery: isDigitalOnly ? undefined : buildExpressDeliveryPayload(event, delivery),
-        savePaymentMethod: isAuthenticated && savePaymentMethod,
-      });
-    } catch (error) {
-      const message = stripeErrorText(error);
-      setLocalError(message);
-      event.paymentFailed({
-        reason: getExpressFailureReason(message),
-        message,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <form className={styles.stripeForm} onSubmit={handleManualSubmit}>
       {savedPaymentMethods.length > 0 ? (
@@ -1012,77 +1240,6 @@ function PaymentElementForm({
         </div>
       ) : null}
 
-      <div className={expressCheckoutClassName}>
-        <p className={styles.expressCheckoutLabel}>Express checkout</p>
-        <ExpressCheckoutElement
-          options={{
-            allowedShippingCountries: SUPPORTED_COUNTRIES.map((country) => country.code),
-            billingAddressRequired: false,
-            buttonHeight: 55,
-            buttonTheme: {
-              applePay: "black",
-              googlePay: "black",
-            },
-            buttonType: {
-              applePay: "check-out",
-              googlePay: "checkout",
-              paypal: "buynow",
-            },
-            emailRequired: true,
-            layout: {
-              maxColumns: 1,
-              maxRows: 3,
-            },
-            paymentMethodOrder: ["apple_pay", "google_pay", "paypal"],
-            paymentMethods: {
-              applePay: "always",
-              googlePay: "always",
-              link: "never",
-              paypal: "auto",
-              amazonPay: "never",
-            },
-            phoneNumberRequired: false,
-            shippingAddressRequired: !isDigitalOnly,
-            lineItems: expressLineItems,
-            shippingRates: expressShippingRates,
-          }}
-          onClick={(event) => {
-            event.resolve({
-              lineItems: expressLineItems,
-              shippingRates: expressShippingRates,
-            });
-          }}
-          onReady={(event) => {
-            const available = event.availablePaymentMethods;
-            setHasResolvedExpressMethods(true);
-            setHasExpressMethods(
-              Boolean(available?.applePay || available?.googlePay || available?.paypal),
-            );
-          }}
-          onShippingAddressChange={(event) => {
-            if (!isSupportedCountryCode(event.address.country)) {
-              event.reject();
-              return;
-            }
-
-            event.resolve({
-              lineItems: expressLineItems,
-              shippingRates: expressShippingRates,
-            });
-          }}
-          onShippingRateChange={(event) => {
-            event.resolve({
-              lineItems: expressLineItems,
-              shippingRates: expressShippingRates,
-            });
-          }}
-          onConfirm={handleExpressConfirm}
-        />
-        <div className={styles.expressCheckoutDivider}>
-          <span>{usingSavedPaymentMethod ? "Or pay with your saved card" : "Or pay with card"}</span>
-        </div>
-      </div>
-
       {usingSavedPaymentMethod ? (
         <div className={`${styles.savedPaymentSummary} whiteFrame`}>
           <p className={styles.sectionNote}>
@@ -1095,6 +1252,7 @@ function PaymentElementForm({
         <>
           <div className={`${styles.paymentElement} whiteFrame`}>
             <PaymentElement
+              options={PAYMENT_ELEMENT_OPTIONS}
               onReady={() => setIsPaymentElementReady(true)}
               onChange={(event) => setHasPaymentMethodSelection(Boolean(event.value?.type))}
             />
@@ -1120,17 +1278,28 @@ function PaymentElementForm({
         type="submit"
         className={styles.payButton}
         disabled={isSubmitting || (!usingSavedPaymentMethod && !isPaymentElementReady)}
-      >
-        {isSubmitting ? "Processing..." : usingSavedPaymentMethod ? "Pay with saved card" : "Pay securely"}
-      </button>
+        >
+          {isSubmitting
+            ? "Processing..."
+            : usingSavedPaymentMethod
+              ? `Pay ${formatPriceFromCents(stripeAmountCents)} with saved card`
+              : "Pay securely"}
+        </button>
     </form>
   );
 }
 
 export default function CheckoutClient() {
   const [items, setItems] = useState<BasketStoredItem[]>([]);
+  const [dispatchSelection, setDispatchSelection] = useState<DispatchSelection | null>(null);
   const [quote, setQuote] = useState<BasketQuote | null>(null);
   const [quoteError, setQuoteError] = useState("");
+  const [giftCardCodes, setGiftCardCodes] = useState<string[]>(getStoredCheckoutGiftCardCodes);
+  const [giftCardEntry, setGiftCardEntry] = useState("");
+  const [giftCardApplyError, setGiftCardApplyError] = useState("");
+  const [isGiftCardApplying, setIsGiftCardApplying] = useState(false);
+  const [isZeroDueSubmitting, setIsZeroDueSubmitting] = useState(false);
+  const [zeroDueError, setZeroDueError] = useState("");
   const [contact, setContact] = useState<ContactDetails>({ email: "", phone: "" });
   const [delivery, setDelivery] = useState<DeliveryDetails>(defaultDelivery);
   const [tipChoice, setTipChoice] = useState<"none" | "custom" | (typeof TIP_PRESET_OPTIONS)[number]>("none");
@@ -1150,6 +1319,10 @@ export default function CheckoutClient() {
   const [isAccountLoading, setIsAccountLoading] = useState(false);
 
   const tipRequest = useMemo<BasketTipInput>(() => {
+    if (!CHECKOUT_TIPS_ENABLED) {
+      return { mode: "none" };
+    }
+
     if (tipChoice === "custom") {
       return {
         mode: "custom",
@@ -1170,14 +1343,15 @@ export default function CheckoutClient() {
   const isAuthenticated = Boolean(authAccessToken);
 
   const stripeOptions = useMemo<StripeElementsOptions | null>(() => {
-    if (!quote) {
+    if (!quote || quote.stripeAmountCents <= 0) {
       return null;
     }
 
     return {
-      amount: quote.totalCents,
+      amount: quote.stripeAmountCents,
       currency: quote.currency,
       mode: "payment",
+      paymentMethodTypes: [...CHECKOUT_PAYMENT_METHOD_TYPES],
       paymentMethodCreation: "manual",
       appearance: publicStripeAppearance,
     };
@@ -1253,7 +1427,9 @@ export default function CheckoutClient() {
         }
 
         const profile = payload.profile;
-        const addresses = Array.isArray(payload.addresses) ? payload.addresses : [];
+        const addresses = (Array.isArray(payload.addresses) ? payload.addresses : []).filter(
+          (address) => getCountryCodeFromLabel(getCountryLabel(address.country) || address.country) === "GB",
+        );
         const paymentMethods = Array.isArray(payload.paymentMethods) ? payload.paymentMethods : [];
         const defaultAddress = addresses.find((address) => address.isDefault) ?? addresses[0];
 
@@ -1340,6 +1516,33 @@ export default function CheckoutClient() {
   }, []);
 
   useEffect(() => {
+    const refresh = () => setDispatchSelection(getDispatchSelection());
+    const handleUpdate = () => refresh();
+
+    refresh();
+    window.addEventListener("storage", handleUpdate);
+    window.addEventListener(DISPATCH_UPDATED_EVENT, handleUpdate);
+
+    return () => {
+      window.removeEventListener("storage", handleUpdate);
+      window.removeEventListener(DISPATCH_UPDATED_EVENT, handleUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (giftCardCodes.length === 0) {
+        window.sessionStorage.removeItem(CHECKOUT_GIFT_CARD_STORAGE_KEY);
+        return;
+      }
+
+      window.sessionStorage.setItem(CHECKOUT_GIFT_CARD_STORAGE_KEY, JSON.stringify(giftCardCodes));
+    } catch {
+      // Session storage can be unavailable in private or restricted browser contexts.
+    }
+  }, [giftCardCodes]);
+
+  useEffect(() => {
     if (items.length === 0) {
       setQuote(null);
       setQuoteError("");
@@ -1358,6 +1561,8 @@ export default function CheckoutClient() {
           body: JSON.stringify({
             items,
             tip: tipRequest,
+            dispatch: dispatchSelection,
+            giftCardCodes,
           }),
           signal: abortController.signal,
         });
@@ -1385,7 +1590,7 @@ export default function CheckoutClient() {
     return () => {
       abortController.abort();
     };
-  }, [items, tipRequest]);
+  }, [dispatchSelection, giftCardCodes, items, tipRequest]);
 
   useEffect(() => {
     if (!savedPaymentMethods.some((paymentMethod) => paymentMethod.id === selectedSavedPaymentMethodId)) {
@@ -1457,6 +1662,57 @@ export default function CheckoutClient() {
     }
   };
 
+  const requestQuoteWithGiftCards = async (codes: string[]) => {
+    const response = await fetch("/api/basket/quote", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        items,
+        tip: tipRequest,
+        dispatch: dispatchSelection,
+        giftCardCodes: codes,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(error.error || "Could not apply gift card.");
+    }
+
+    return (await response.json()) as BasketQuote;
+  };
+
+  const applyGiftCardCode = async () => {
+    const nextCode = normalizeText(giftCardEntry);
+    if (!nextCode) {
+      setGiftCardApplyError("Enter a gift card code.");
+      return;
+    }
+
+    const candidateCodes = [...giftCardCodes, nextCode];
+    setIsGiftCardApplying(true);
+    setGiftCardApplyError("");
+
+    try {
+      const nextQuote = await requestQuoteWithGiftCards(candidateCodes);
+      setQuote(nextQuote);
+      setQuoteError("");
+      setGiftCardCodes(nextQuote.giftCardApplications.map((application) => application.code));
+      setGiftCardEntry("");
+    } catch (error) {
+      setGiftCardApplyError(error instanceof Error ? error.message : "Could not apply gift card.");
+    } finally {
+      setIsGiftCardApplying(false);
+    }
+  };
+
+  const removeGiftCardCode = (code: string) => {
+    setGiftCardCodes((current) => current.filter((currentCode) => currentCode !== code));
+    setGiftCardApplyError("");
+  };
+
   const updateDelivery = <K extends keyof DeliveryDetails>(key: K, value: DeliveryDetails[K]) => {
     setSelectedSavedAddressId(null);
     setDelivery((current) => ({ ...current, [key]: value }));
@@ -1491,13 +1747,83 @@ export default function CheckoutClient() {
     setCustomTip((nextCents / 100).toFixed(2));
   };
 
+  const placeZeroDueOrder = async () => {
+    const validationError = validateManualCheckoutDetails(
+      contact,
+      delivery,
+      checkoutDispatchSelection,
+      !isDigitalOnly,
+    );
+
+    if (validationError) {
+      setZeroDueError(validationError);
+      return;
+    }
+
+    if (!quote || quote.stripeAmountCents > 0 || quote.giftCardAppliedCents <= 0) {
+      setZeroDueError("A card payment is still due for this order.");
+      return;
+    }
+
+    setIsZeroDueSubmitting(true);
+    setZeroDueError("");
+
+    try {
+      const response = await fetch("/api/checkout/zero-due", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(authAccessToken ? { Authorization: `Bearer ${authAccessToken}` } : {}),
+        },
+        body: JSON.stringify({
+          items,
+          tip: tipRequest,
+          giftCardCodes,
+          contact: buildCheckoutContactPayload(contact),
+          delivery: isDigitalOnly ? undefined : buildCheckoutDeliveryPayload(delivery),
+          dispatch: checkoutDispatchSelection,
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        orderId?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.orderId) {
+        throw new Error(payload.error || "Could not place this order.");
+      }
+
+      window.location.href = `/checkout/success?orderId=${encodeURIComponent(payload.orderId)}&gift_card_order=true`;
+    } catch (error) {
+      setZeroDueError(error instanceof Error ? error.message : "Could not place this order.");
+    } finally {
+      setIsZeroDueSubmitting(false);
+    }
+  };
+
   const lines = quote?.lines ?? [];
   const isGiftCardBasket = items.length > 0 && items.every((item) => item.slug === "gift-card");
   const isDigitalOnly = lines.length > 0 ? lines.every((item) => item.isGiftCard) : isGiftCardBasket;
+  const checkoutDispatchSelection =
+    isDigitalOnly || (quote?.dispatchDate && dispatchSelection?.dispatchDate === quote.dispatchDate)
+      ? dispatchSelection
+      : null;
   const shippingCents = quote?.shippingCents ?? 0;
   const tipCents = quote?.tipCents ?? 0;
   const totalCents = quote?.totalCents ?? 0;
-  const stripeConfigError = stripePromise ? "" : "Stripe is not configured.";
+  const giftCardAppliedCents = quote?.giftCardAppliedCents ?? 0;
+  const stripeAmountCents = quote?.stripeAmountCents ?? totalCents;
+  const isZeroDue = Boolean(quote && quote.giftCardAppliedCents > 0 && quote.stripeAmountCents <= 0);
+  const stripeConfigError = stripePromise || isZeroDue ? "" : "Stripe is not configured.";
+  const giftCardDisplayItems =
+    quote && quote.giftCardApplications.length > 0
+      ? quote.giftCardApplications
+      : giftCardCodes.map((code) => ({
+          code,
+          appliedCents: 0,
+          balanceBeforeCents: 0,
+          balanceAfterCents: 0,
+        }));
 
   return (
     <section className={styles.checkout}>
@@ -1512,7 +1838,24 @@ export default function CheckoutClient() {
               </Link>
             </div>
           ) : (
-            <>
+            <CheckoutElementsShell options={stripeOptions}>
+              {quote && stripeOptions && stripePromise ? (
+                <ExpressCheckoutSection
+                  items={items}
+                  tip={tipRequest}
+                  giftCardCodes={giftCardCodes}
+                  contact={contact}
+                  delivery={delivery}
+                  dispatch={checkoutDispatchSelection}
+                  authAccessToken={authAccessToken}
+                  isAuthenticated={isAuthenticated}
+                  selectedSavedPaymentMethodId={selectedSavedPaymentMethodId}
+                  savePaymentMethod={savePaymentMethod}
+                  quote={quote}
+                  isDigitalOnly={isDigitalOnly}
+                />
+              ) : null}
+
               <section className={styles.section}>
                 <h2>Contact</h2>
                 <div className={styles.fieldStack}>
@@ -1745,94 +2088,164 @@ export default function CheckoutClient() {
                 <section className={styles.section}>
                   <h2>Shipping method</h2>
                   <div className={`${styles.methodCard} whiteFrame`}>
-                    <span>Standard</span>
+                    <span>{UK_POSTAL_SHIPPING_LABEL}</span>
                     <strong>{formatPriceFromCents(shippingCents)}</strong>
                   </div>
+                  <p className={styles.sectionNote}>
+                    Dispatch date:{" "}
+                    {checkoutDispatchSelection?.dispatchDate
+                      ? formatDispatchDate(checkoutDispatchSelection.dispatchDate)
+                      : "Choose a dispatch date in your basket before paying."}
+                  </p>
                 </section>
               )}
 
-              <section className={styles.section}>
-                <h2>Add tip</h2>
-                <div className={`${styles.tipCard} whiteFrame`}>
-                  <div className={styles.tipCardHeader}>
-                    <div className={styles.tipIntro}>
-                      <span className={styles.tipEyebrow}>Optional tip</span>
-                      <p className={styles.tipTitle}>Show your support for the team at Grown Cookies</p>
+              {CHECKOUT_TIPS_ENABLED ? (
+                <section className={styles.section}>
+                  <h2>Add tip</h2>
+                  <div className={`${styles.tipCard} whiteFrame`}>
+                    <div className={styles.tipCardHeader}>
+                      <div className={styles.tipIntro}>
+                        <span className={styles.tipEyebrow}>Optional tip</span>
+                        <p className={styles.tipTitle}>Show your support for the team at Grown Cookies</p>
+                      </div>
+                      <div className={`${styles.tipSummary} whiteFrame`}>
+                        <span>{tipSelectionLabel}</span>
+                        <strong>{formatPriceFromCents(tipCents)}</strong>
+                      </div>
                     </div>
-                    <div className={`${styles.tipSummary} whiteFrame`}>
-                      <span>{tipSelectionLabel}</span>
-                      <strong>{formatPriceFromCents(tipCents)}</strong>
+
+                    <div className={styles.tipGrid}>
+                      {TIP_PRESET_OPTIONS.map((value) => {
+                        const optionAmount =
+                          quote?.tipOptions.find((option) => option.percent === value)?.amountCents ?? 0;
+
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            className={tipChoice === value ? styles.tipButtonActive : styles.tipButton}
+                            onClick={() => setPresetTip(value)}
+                          >
+                            <strong>{value}%</strong>
+                            <span>{formatPriceFromCents(optionAmount)}</span>
+                          </button>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        className={tipChoice === "none" ? styles.tipButtonActive : styles.tipButton}
+                        onClick={() => setPresetTip("none")}
+                      >
+                        <strong>None</strong>
+                        <span>{formatPriceFromCents(0)}</span>
+                      </button>
                     </div>
-                  </div>
 
-                  <div className={styles.tipGrid}>
-                    {TIP_PRESET_OPTIONS.map((value) => {
-                      const optionAmount =
-                        quote?.tipOptions.find((option) => option.percent === value)?.amountCents ?? 0;
-
-                      return (
-                        <button
-                          key={value}
-                          type="button"
-                          className={tipChoice === value ? styles.tipButtonActive : styles.tipButton}
-                          onClick={() => setPresetTip(value)}
+                    <div className={`${styles.customTipSection} whiteFrame`}>
+                      <div className={styles.customTipHeader}>
+                        <span>Custom tip</span>
+                        <strong>{formatPriceFromCents(customTipPreviewCents)}</strong>
+                      </div>
+                      <div className={styles.customTipRow}>
+                        <label
+                          className={
+                            tipChoice === "custom" ? styles.customTipFieldActive : styles.customTipField
+                          }
                         >
-                          <strong>{value}%</strong>
-                          <span>{formatPriceFromCents(optionAmount)}</span>
-                        </button>
-                      );
-                    })}
+                          <span>Amount</span>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={customTip}
+                            onChange={(event) => {
+                              setTipChoice("custom");
+                              setCustomTip(event.target.value);
+                            }}
+                          />
+                        </label>
+                        <div className={styles.stepper}>
+                          <button type="button" onClick={() => incrementCustomTip(-1)}>
+                            <FiMinus />
+                          </button>
+                          <button type="button" onClick={() => incrementCustomTip(1)}>
+                            <FiPlus />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className={styles.tipMessage}>Thank you, we appreciate it.</p>
+                  </div>
+                </section>
+              ) : null}
+
+              <section className={styles.section}>
+                <h2>Gift card</h2>
+                <div className={`${styles.giftCardRedeemCard} whiteFrame`}>
+                  <div className={styles.giftCardRedeemRow}>
+                    <label className={`${styles.field} whiteFrame`}>
+                      <span>Gift card code</span>
+                      <input
+                        type="text"
+                        value={giftCardEntry}
+                        onChange={(event) => setGiftCardEntry(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            void applyGiftCardCode();
+                          }
+                        }}
+                      />
+                    </label>
                     <button
                       type="button"
-                      className={tipChoice === "none" ? styles.tipButtonActive : styles.tipButton}
-                      onClick={() => setPresetTip("none")}
+                      className={styles.giftCardApplyButton}
+                      disabled={isGiftCardApplying}
+                      onClick={() => {
+                        void applyGiftCardCode();
+                      }}
                     >
-                      <strong>None</strong>
-                      <span>{formatPriceFromCents(0)}</span>
+                      {isGiftCardApplying ? "Applying..." : "Apply"}
                     </button>
                   </div>
 
-                  <div className={`${styles.customTipSection} whiteFrame`}>
-                    <div className={styles.customTipHeader}>
-                      <span>Custom tip</span>
-                      <strong>{formatPriceFromCents(customTipPreviewCents)}</strong>
-                    </div>
-                    <div className={styles.customTipRow}>
-                      <label
-                        className={
-                          tipChoice === "custom" ? styles.customTipFieldActive : styles.customTipField
-                        }
-                      >
-                        <span>Amount</span>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={customTip}
-                          onChange={(event) => {
-                            setTipChoice("custom");
-                            setCustomTip(event.target.value);
-                          }}
-                        />
-                      </label>
-                      <div className={styles.stepper}>
-                        <button type="button" onClick={() => incrementCustomTip(-1)}>
-                          <FiMinus />
-                        </button>
-                        <button type="button" onClick={() => incrementCustomTip(1)}>
-                          <FiPlus />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                  {giftCardApplyError ? <p className={styles.errorText}>{giftCardApplyError}</p> : null}
 
-                  <p className={styles.tipMessage}>Thank you, we appreciate it.</p>
+                  {giftCardDisplayItems.length > 0 ? (
+                    <div className={styles.appliedGiftCards}>
+                      {giftCardDisplayItems.map((application) => (
+                        <div key={application.code} className={styles.appliedGiftCard}>
+                          <div>
+                            <strong>{application.code}</strong>
+                            {application.appliedCents > 0 ? (
+                              <span>
+                                Applied {formatPriceFromCents(application.appliedCents)}. Remaining{" "}
+                                {formatPriceFromCents(application.balanceAfterCents)}.
+                              </span>
+                            ) : (
+                              <span>Remove this code to refresh checkout totals.</span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            className={styles.removeGiftCardButton}
+                            onClick={() => removeGiftCardCode(application.code)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               </section>
 
               <section className={styles.section}>
                 <h2>Payment</h2>
                 <p className={styles.totalAmount}>
-                  <strong>Total amount:</strong> {formatPriceFromCents(totalCents)}
+                  <strong>{isZeroDue ? "Amount due:" : "Payment due:"}</strong>{" "}
+                  {formatPriceFromCents(stripeAmountCents)}
                 </p>
                 <p className={styles.sectionNote}>All transactions are secure and encrypted.</p>
 
@@ -1842,27 +2255,45 @@ export default function CheckoutClient() {
                 {isAuthenticated && accountLoadError ? <p className={styles.errorText}>{accountLoadError}</p> : null}
                 {quoteError ? <p className={styles.errorText}>{quoteError}</p> : null}
                 {stripeConfigError ? <p className={styles.errorText}>{stripeConfigError}</p> : null}
-                {!quote && !quoteError ? (
+                {zeroDueError ? <p className={styles.errorText}>{zeroDueError}</p> : null}
+                {isZeroDue ? (
+                  <div className={`${styles.savedPaymentSummary} whiteFrame`}>
+                    <p className={styles.sectionNote}>
+                      Your applied gift card balance covers this order. No card details are needed.
+                    </p>
+                    <button
+                      type="button"
+                      className={styles.payButton}
+                      disabled={isZeroDueSubmitting}
+                      onClick={() => {
+                        void placeZeroDueOrder();
+                      }}
+                    >
+                      {isZeroDueSubmitting ? "Placing order..." : "Place order"}
+                    </button>
+                  </div>
+                ) : null}
+                {!isZeroDue && !quote && !quoteError ? (
                   <p className={styles.sectionNote}>Loading payment methods...</p>
                 ) : null}
-                {quote && stripeOptions && stripePromise ? (
-                  <Elements stripe={stripePromise} options={stripeOptions}>
-                    <PaymentElementForm
-                      items={items}
-                      tip={tipRequest}
-                      contact={contact}
-                      delivery={delivery}
-                      authAccessToken={authAccessToken}
-                      isAuthenticated={isAuthenticated}
-                      savedPaymentMethods={savedPaymentMethods}
-                      selectedSavedPaymentMethodId={selectedSavedPaymentMethodId}
-                      onSelectedSavedPaymentMethodChange={setSelectedSavedPaymentMethodId}
-                      savePaymentMethod={savePaymentMethod}
-                      onSavePaymentMethodChange={setSavePaymentMethod}
-                      quote={quote}
-                      isDigitalOnly={isDigitalOnly}
-                    />
-                  </Elements>
+                {!isZeroDue && quote && stripeOptions && stripePromise ? (
+                  <PaymentElementForm
+                    items={items}
+                    tip={tipRequest}
+                    giftCardCodes={giftCardCodes}
+                    contact={contact}
+                    delivery={delivery}
+                    dispatch={checkoutDispatchSelection}
+                    authAccessToken={authAccessToken}
+                    isAuthenticated={isAuthenticated}
+                    savedPaymentMethods={savedPaymentMethods}
+                    selectedSavedPaymentMethodId={selectedSavedPaymentMethodId}
+                    onSelectedSavedPaymentMethodChange={setSelectedSavedPaymentMethodId}
+                    savePaymentMethod={savePaymentMethod}
+                    onSavePaymentMethodChange={setSavePaymentMethod}
+                    isDigitalOnly={isDigitalOnly}
+                    stripeAmountCents={stripeAmountCents}
+                  />
                 ) : null}
               </section>
 
@@ -1872,7 +2303,7 @@ export default function CheckoutClient() {
                   Secure and encrypted
                 </p>
               </div>
-            </>
+            </CheckoutElementsShell>
           )}
         </div>
 
@@ -1935,13 +2366,29 @@ export default function CheckoutClient() {
                 <dt>{isDigitalOnly ? "Digital delivery" : "Delivery fee"}</dt>
                 <dd>{isDigitalOnly ? "Email" : formatPriceFromCents(shippingCents)}</dd>
               </div>
+              {giftCardAppliedCents > 0 ? (
+                <div>
+                  <dt>Gift cards</dt>
+                  <dd>-{formatPriceFromCents(giftCardAppliedCents)}</dd>
+                </div>
+              ) : null}
+              {!isDigitalOnly ? (
+                <div>
+                  <dt>Dispatch date</dt>
+                  <dd>
+                    {checkoutDispatchSelection?.dispatchDate
+                      ? formatDispatchDate(checkoutDispatchSelection.dispatchDate)
+                      : "Required"}
+                  </dd>
+                </div>
+              ) : null}
             </dl>
 
             <div className={styles.totalRow}>
-              <span>Total price</span>
+              <span>{giftCardAppliedCents > 0 ? "To pay" : "Total price"}</span>
               <div>
                 <small>£</small>
-                <strong>{formatPriceFromCents(totalCents).replace("£", "")}</strong>
+                <strong>{formatPriceFromCents(stripeAmountCents).replace("£", "")}</strong>
               </div>
             </div>
           </div>

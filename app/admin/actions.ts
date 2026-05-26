@@ -27,6 +27,7 @@ import {
   updateCookieOfMonthProductSlug,
   updateCookieOfMonthSectionSetting,
   updateDeliveryCostCents,
+  updateDispatchSettings,
   updateSiteLockEnabled,
   updateShopIntroSectionSetting,
 } from "@/lib/store-settings";
@@ -279,6 +280,55 @@ export async function updateDeliveryCostAction(formData: FormData) {
         error instanceof Error
           ? error.message
           : "The delivery cost could not be saved.",
+      returnView: getTextField(formData, "returnView"),
+    });
+  }
+}
+
+export async function updateDispatchSettingsAction(formData: FormData) {
+  try {
+    const returnView = getTextField(formData, "returnView");
+    const returnPath = getTextField(formData, "returnPath");
+    await requireAdminSession();
+
+    const enabledWeekdays = formData
+      .getAll("dispatchWeekdays")
+      .map((value) => Number.parseInt(String(value), 10))
+      .filter((value) => Number.isFinite(value));
+
+    if (enabledWeekdays.length === 0) {
+      throw new Error("Choose at least one dispatch weekday.");
+    }
+
+    await updateDispatchSettings({
+      enabledWeekdays,
+      sameDayEnabled: getTextField(formData, "sameDayEnabled") === "1",
+      cutoffTime: getTextField(formData, "cutoffTime"),
+      minimumPrepDays: getNumberField(formData, "minimumPrepDays"),
+      bookingHorizonDays: getNumberField(formData, "bookingHorizonDays"),
+    });
+
+    revalidateTag("store-settings-dispatch", "max");
+    revalidatePath("/admin/delivery");
+    revalidatePath("/cart");
+    revalidatePath("/checkout");
+
+    redirectToAdmin({
+      returnPath,
+      notice: "Dispatch settings saved.",
+      returnView,
+    });
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    redirectToAdmin({
+      returnPath: getTextField(formData, "returnPath"),
+      error:
+        error instanceof Error
+          ? error.message
+          : "The dispatch settings could not be saved.",
       returnView: getTextField(formData, "returnView"),
     });
   }

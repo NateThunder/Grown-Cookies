@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { buildCheckoutQuote, parseQuoteItems, parseQuoteTip } from "@/lib/checkout-quote";
+import {
+  buildCheckoutQuote,
+  parseQuoteGiftCardCodes,
+  parseQuoteItems,
+  parseQuoteTip,
+} from "@/lib/checkout-quote";
 import { getAuthenticatedSupabaseUser } from "@/lib/account-auth";
 import { consumeCheckoutAttempt } from "@/lib/checkout-attempt-throttle";
 import { ensureCustomerProfileForUser } from "@/lib/customer-profiles";
@@ -14,13 +19,12 @@ import {
   type StripeCheckoutContactInput,
   type StripeCheckoutDeliveryInput,
 } from "@/lib/stripe-checkout";
+import { parseDispatchSelection } from "@/lib/dispatch";
 
 export const runtime = "nodejs";
 
 const SUPPORTED_COUNTRIES = {
   GB: "United Kingdom",
-  US: "United States",
-  CA: "Canada",
 } as const;
 
 const DEFAULT_CHECKOUT_RETURN_ORIGINS = [
@@ -30,6 +34,7 @@ const DEFAULT_CHECKOUT_RETURN_ORIGINS = [
   "http://127.0.0.1:3000",
   "http://[::1]:3000",
 ] as const;
+const CHECKOUT_PAYMENT_METHOD_TYPES = ["card", "link", "revolut_pay", "klarna", "amazon_pay"] as const;
 
 type CheckoutContactPayload = {
   email: string;
@@ -231,7 +236,7 @@ function buildFullName(firstName: string, lastName: string) {
 function requireSupportedCountry(raw: string) {
   const country = normalizeSupportedCountry(raw);
   if (!country) {
-    throw new Error("We only deliver to the United Kingdom, United States, and Canada.");
+    throw new Error("We only deliver to the United Kingdom.");
   }
 
   return country;
@@ -305,6 +310,8 @@ export async function POST(request: Request) {
       delivery?: unknown;
       paymentContact?: unknown;
       paymentDelivery?: unknown;
+      dispatch?: unknown;
+      giftCardCodes?: unknown;
       savePaymentMethod?: unknown;
       savedPaymentMethodId?: unknown;
     };
@@ -317,8 +324,12 @@ export async function POST(request: Request) {
 
     const items = parseItems(body.items);
     const tip = parseQuoteTip(body.tip);
-    const quote = await buildCheckoutQuote({ items, tip });
+    const giftCardCodes = parseQuoteGiftCardCodes(body.giftCardCodes);
+    const quote = await buildCheckoutQuote({ items, tip, giftCardCodes });
     const requiresDelivery = quote.lines.some((line) => !line.isGiftCard);
+    if (quote.stripeAmountCents <= 0) {
+      throw new Error("No card payment is due. Place this order with your gift card balance.");
+    }
     const returnUrlBase = getCheckoutReturnOrigin(request);
     const savePaymentMethod = body.savePaymentMethod === true;
     const stripe = getStripeClient();
@@ -326,6 +337,7 @@ export async function POST(request: Request) {
     const fallbackDelivery = parseCheckoutDelivery(body.delivery);
     const paymentContact = parseCheckoutContact(body.paymentContact);
     const paymentDelivery = parseCheckoutDelivery(body.paymentDelivery);
+    const dispatch = parseDispatchSelection(body.dispatch);
     const authenticatedUserPromise = getAuthenticatedSupabaseUser(request);
     const contact = getContactFromSources(paymentContact, fallbackContact);
     const delivery = getDeliveryFromSources(paymentDelivery, fallbackDelivery, {
@@ -413,6 +425,8 @@ export async function POST(request: Request) {
           contact,
           delivery,
           tip,
+          dispatch,
+          giftCardCodes,
           customer: customerProfile
             ? {
                 supabaseUserId: customerProfile.supabaseUserId,
@@ -432,10 +446,12 @@ export async function POST(request: Request) {
       "stripe.paymentIntents.create",
       () =>
         stripe.paymentIntents.create({
-          amount: draft.totalCents,
-          automatic_payment_methods: {
-            enabled: shouldUseSavedPaymentMethod ? false : true,
-          },
+          amount: draft.stripeAmountCents,
+          automatic_payment_methods: shouldUseSavedPaymentMethod
+            ? {
+                enabled: false,
+              }
+            : undefined,
           confirm: true,
           confirmation_token: shouldUseSavedPaymentMethod ? undefined : confirmationTokenId,
           customer: stripeCustomerId || undefined,
@@ -455,11 +471,11 @@ export async function POST(request: Request) {
                 }
               : undefined,
           payment_method: shouldUseSavedPaymentMethod ? savedPaymentMethodId : undefined,
-          payment_method_types: shouldUseSavedPaymentMethod ? ["card"] : undefined,
+          payment_method_types: shouldUseSavedPaymentMethod ? ["card"] : [...CHECKOUT_PAYMENT_METHOD_TYPES],
           return_url: buildCheckoutSuccessReturnUrl(returnUrlBase, draft.orderPublicId),
         }),
       {
-        amount: draft.totalCents,
+        amount: draft.stripeAmountCents,
         orderId: draft.orderPublicId,
         savePaymentMethod,
         usingSavedPaymentMethod: shouldUseSavedPaymentMethod,

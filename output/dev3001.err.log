@@ -1,0 +1,8 @@
+⨯ Another next dev server is already running.
+
+- Local:        http://localhost:3000
+- PID:          106948
+- Dir:          E:\Websites\grown-cookies
+- Log:          .next\dev\logs\next-development.log
+
+Run taskkill /PID 106948 /F to stop it.

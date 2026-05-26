@@ -7,8 +7,12 @@ export default tseslint.config(
     ignores: [
       ".next/**",
       ".open-next/**",
+      ".wrangler/**",
       "out/**",
+      "output/**",
       "build/**",
+      "test-results/**",
+      "live-checkout-chunk.js",
       "next-env.d.ts",
     ],
   },

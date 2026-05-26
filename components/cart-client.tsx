@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { FiCalendar, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import {
   BASKET_UPDATED_EVENT,
   clearBasket,
@@ -10,7 +11,22 @@ import {
   removeBasketLine,
   setBasketLineQuantity,
 } from "@/lib/basket-storage";
+import {
+  DISPATCH_UPDATED_EVENT,
+  clearDispatchSelection,
+  getDispatchSelection,
+  setDispatchDate,
+} from "@/lib/dispatch-storage";
 import { formatPriceFromCents, type BasketQuote, type BasketStoredItem } from "@/lib/basket";
+import {
+  UK_POSTAL_SHIPPING_LABEL,
+  UK_POSTAL_SHIPPING_METHOD,
+  addDaysToIsoDate,
+  formatDispatchDate,
+  getIsoDateWeekday,
+  getLondonTodayIso,
+  type DispatchSelection,
+} from "@/lib/dispatch";
 import { formatGiftCardAmount } from "@/lib/gift-card-amounts";
 import GiftCardTile from "@/components/gift-card-tile";
 import styles from "@/components/cart-client.module.css";
@@ -21,15 +37,191 @@ type CartClientProps = {
   showTitle?: boolean;
 };
 
+const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const monthFormatter = new Intl.DateTimeFormat("en-GB", {
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+function getMonthStart(date: string) {
+  return `${date.slice(0, 7)}-01`;
+}
+
+function addMonthsToIsoMonth(monthDate: string, delta: number) {
+  const parsed = new Date(`${monthDate}T00:00:00Z`);
+  parsed.setUTCMonth(parsed.getUTCMonth() + delta);
+  return parsed.toISOString().slice(0, 10);
+}
+
+function getMonthDays(monthDate: string) {
+  const monthStart = getMonthStart(monthDate);
+  const firstDay = new Date(`${monthStart}T00:00:00Z`);
+  const nextMonth = new Date(firstDay);
+  nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1);
+  nextMonth.setUTCDate(0);
+
+  const leadingDays = (getIsoDateWeekday(monthStart) + 6) % 7;
+  const daysInMonth = nextMonth.getUTCDate();
+  const days: Array<{ date: string; inMonth: boolean }> = [];
+
+  for (let index = leadingDays; index > 0; index -= 1) {
+    days.push({
+      date: addDaysToIsoDate(monthStart, -index),
+      inMonth: false,
+    });
+  }
+
+  for (let day = 0; day < daysInMonth; day += 1) {
+    days.push({
+      date: addDaysToIsoDate(monthStart, day),
+      inMonth: true,
+    });
+  }
+
+  while (days.length % 7 !== 0) {
+    days.push({
+      date: addDaysToIsoDate(days.at(-1)?.date ?? monthStart, 1),
+      inMonth: false,
+    });
+  }
+
+  return days;
+}
+
+function DispatchDatePicker({
+  availableDates,
+  selectedDate,
+  onSelect,
+}: {
+  availableDates: string[];
+  selectedDate: string;
+  onSelect: (date: string) => void;
+}) {
+  const firstAvailableDate = availableDates[0] ?? getLondonTodayIso();
+  const lastAvailableDate = availableDates.at(-1) ?? firstAvailableDate;
+  const selectedAvailableDate = availableDates.includes(selectedDate) ? selectedDate : "";
+  const [isOpen, setIsOpen] = useState(false);
+  const [visibleMonth, setVisibleMonth] = useState(getMonthStart(selectedAvailableDate || firstAvailableDate));
+  const pickerRef = useRef<HTMLDivElement | null>(null);
+  const availableDateSet = useMemo(() => new Set(availableDates), [availableDates]);
+  const monthDays = useMemo(() => getMonthDays(visibleMonth), [visibleMonth]);
+  const minMonth = getMonthStart(firstAvailableDate);
+  const maxMonth = getMonthStart(lastAvailableDate);
+  const hasDates = availableDates.length > 0;
+
+  useEffect(() => {
+    setVisibleMonth(getMonthStart(selectedAvailableDate || firstAvailableDate));
+  }, [firstAvailableDate, selectedAvailableDate]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+
+      if (target instanceof Node && pickerRef.current?.contains(target)) {
+        return;
+      }
+
+      setIsOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className={styles.dispatchPicker} ref={pickerRef}>
+      <button
+        type="button"
+        className={styles.dispatchDateButton}
+        onClick={() => setIsOpen((current) => !current)}
+        disabled={!hasDates}
+        aria-expanded={isOpen}
+      >
+        <FiCalendar aria-hidden="true" />
+        <span>{selectedAvailableDate ? formatDispatchDate(selectedAvailableDate) : "Choose a dispatch date"}</span>
+      </button>
+
+      {isOpen && hasDates ? (
+        <div className={styles.dispatchCalendar} role="dialog" aria-label="Choose a dispatch date">
+          <div className={styles.dispatchCalendarHeader}>
+            <button
+              type="button"
+              onClick={() => setVisibleMonth((current) => addMonthsToIsoMonth(current, -1))}
+              disabled={visibleMonth <= minMonth}
+              aria-label="Previous month"
+            >
+              <FiChevronLeft aria-hidden="true" />
+            </button>
+            <strong>{monthFormatter.format(new Date(`${visibleMonth}T00:00:00Z`))}</strong>
+            <button
+              type="button"
+              onClick={() => setVisibleMonth((current) => addMonthsToIsoMonth(current, 1))}
+              disabled={visibleMonth >= maxMonth}
+              aria-label="Next month"
+            >
+              <FiChevronRight aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className={styles.dispatchWeekdays} aria-hidden="true">
+            {WEEKDAY_LABELS.map((day) => (
+              <span key={day}>{day}</span>
+            ))}
+          </div>
+
+          <div className={styles.dispatchDays}>
+            {monthDays.map((day) => {
+              const isAvailable = day.inMonth && availableDateSet.has(day.date);
+              const isSelected = day.date === selectedAvailableDate;
+
+              return (
+                <button
+                  key={day.date}
+                  type="button"
+                  className={[
+                    styles.dispatchDay,
+                    !day.inMonth ? styles.dispatchDayMuted : "",
+                    isSelected ? styles.dispatchDaySelected : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  disabled={!isAvailable}
+                  onClick={() => {
+                    onSelect(day.date);
+                    setIsOpen(false);
+                  }}
+                  aria-pressed={isSelected}
+                >
+                  {Number.parseInt(day.date.slice(-2), 10)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function CartClient({
   className = "",
   layout = "page",
   showTitle = true,
 }: CartClientProps) {
   const [basketItems, setBasketItems] = useState<BasketStoredItem[]>([]);
+  const [dispatchSelection, setDispatchSelection] = useState<DispatchSelection | null>(null);
   const [hasHydratedBasket, setHasHydratedBasket] = useState(false);
   const [quote, setQuote] = useState<BasketQuote | null>(null);
   const [quoteError, setQuoteError] = useState("");
+  const [dispatchError, setDispatchError] = useState("");
   const cartClassName = [
     styles.cart,
     layout === "drawer" ? styles.drawerCart : styles.pageCart,
@@ -54,6 +246,20 @@ export default function CartClient({
   }, []);
 
   useEffect(() => {
+    const refresh = () => setDispatchSelection(getDispatchSelection());
+    const handleUpdate = () => refresh();
+
+    refresh();
+    window.addEventListener("storage", handleUpdate);
+    window.addEventListener(DISPATCH_UPDATED_EVENT, handleUpdate);
+
+    return () => {
+      window.removeEventListener("storage", handleUpdate);
+      window.removeEventListener(DISPATCH_UPDATED_EVENT, handleUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
     if (basketItems.length === 0) {
       setQuote(null);
       setQuoteError("");
@@ -72,6 +278,7 @@ export default function CartClient({
           body: JSON.stringify({
             items: basketItems,
             tip: { mode: "none" },
+            dispatch: dispatchSelection,
           }),
           signal: abortController.signal,
         });
@@ -99,7 +306,7 @@ export default function CartClient({
     return () => {
       abortController.abort();
     };
-  }, [basketItems]);
+  }, [basketItems, dispatchSelection]);
 
   const handleQuantityChange = (lineId: string, nextQuantity: number) => {
     setBasketLineQuantity(lineId, nextQuantity);
@@ -111,14 +318,64 @@ export default function CartClient({
     setBasketItems(getBasket());
   };
 
+  const handleClearBasket = () => {
+    clearBasket();
+    clearDispatchSelection();
+    setBasketItems(getBasket());
+    setDispatchSelection(null);
+    setDispatchError("");
+  };
+
+  const handleDispatchDateSelect = (date: string) => {
+    setDispatchDate(date);
+    setDispatchSelection({
+      method: UK_POSTAL_SHIPPING_METHOD,
+      dispatchDate: date,
+    });
+    setDispatchError("");
+  };
+
   const lines = quote?.lines ?? [];
   const subtotalCents = quote?.subtotalCents ?? 0;
+  const hasPhysicalItems = quote
+    ? lines.some((line) => !line.isGiftCard)
+    : basketItems.some((item) => item.slug !== "gift-card");
+  const availableDispatchDates = quote?.availableDispatchDates ?? [];
+  const selectedDispatchDate = dispatchSelection?.dispatchDate ?? "";
+  const isSelectedDispatchDateValid =
+    !hasPhysicalItems ||
+    Boolean(selectedDispatchDate && availableDispatchDates.includes(selectedDispatchDate));
   const isQuotePending = hasHydratedBasket && basketItems.length > 0 && !quote && !quoteError;
   const subtotalLabel = quote
     ? formatPriceFromCents(subtotalCents)
     : quoteError
       ? "Unavailable"
       : "Calculating...";
+
+  useEffect(() => {
+    if (!quote || !hasPhysicalItems || !selectedDispatchDate) {
+      return;
+    }
+
+    if (!availableDispatchDates.includes(selectedDispatchDate)) {
+      clearDispatchSelection();
+      setDispatchSelection(null);
+      setDispatchError("That dispatch date is no longer available. Choose a new dispatch date.");
+    }
+  }, [availableDispatchDates, hasPhysicalItems, quote, selectedDispatchDate]);
+
+  const handleCheckout = () => {
+    if (!quote || quoteError) {
+      return;
+    }
+
+    if (!isSelectedDispatchDateValid) {
+      setDispatchError("Choose a dispatch date before checkout.");
+      return;
+    }
+
+    window.location.href = "/checkout";
+  };
 
   return (
     <section className={cartClassName}>
@@ -232,22 +489,51 @@ export default function CartClient({
             </ul>
           )}
 
-          <section className={`${styles.summary} whiteFrame`}>
+          <section className={styles.summary}>
             <div className={styles.summaryFooter}>
               <p className={styles.summaryFooterRow}>
                 <span>Subtotal</span>
                 <strong>{subtotalLabel}</strong>
               </p>
 
-              {quote && !quoteError ? (
-                <Link href="/checkout" className={styles.checkoutButton}>
-                  Continue to Checkout
-                </Link>
+              {quote && !quoteError && hasPhysicalItems ? (
+                <>
+                  <div className={styles.dispatchIntro}>
+                    <h2 className={styles.dispatchHeading}>{UK_POSTAL_SHIPPING_LABEL}</h2>
+                    <p className={styles.dispatchCopy}>
+                      Choose your dispatch date so we know when to bake and post your cookies.
+                    </p>
+                  </div>
+
+                  <DispatchDatePicker
+                    availableDates={availableDispatchDates}
+                    selectedDate={selectedDispatchDate}
+                    onSelect={handleDispatchDateSelect}
+                  />
+                  <p className={styles.dispatchCopy}>
+                    Bank holidays in England, Wales, and Scotland are unavailable for dispatch.
+                  </p>
+                  {dispatchError ? <p className={styles.dispatchError}>{dispatchError}</p> : null}
+                </>
               ) : null}
 
-              <button type="button" onClick={clearBasket} className={styles.clearAllButton}>
+              {quote && !quoteError && !hasPhysicalItems ? (
+                <p className={styles.dispatchCopy}>Your gift card code will be delivered by email.</p>
+              ) : null}
+
+              {quote && !quoteError ? (
+                <button type="button" className={styles.checkoutButton} onClick={handleCheckout}>
+                  Continue to checkout
+                </button>
+              ) : null}
+
+              <button type="button" onClick={handleClearBasket} className={styles.clearAllButton}>
                 Clear Basket
               </button>
+
+              <Link href="/shop" className={styles.continueShoppingButton}>
+                Continue shopping
+              </Link>
             </div>
           </section>
         </>

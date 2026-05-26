@@ -1,0 +1,18 @@
+
+┌───────────────────────────────┐
+│ OpenNext — Cloudflare preview │
+└───────────────────────────────┘
+
+Incremental cache does not need populating
+Tag cache does not need populating
+
+ ⛅️ wrangler 4.80.0 (update available 4.81.1)
+─────────────────────────────────────────────
+Your Worker has access to the following bindings:
+Binding                         Resource         Mode
+env.DB (grown-cookies)          D1 Database      local
+env.ASSETS                      Assets           local
+
+⎔ Starting local server...
+[wrangler:info] Ready on http://127.0.0.1:8789
+[wrangler:info] GET / 200 OK (876ms)

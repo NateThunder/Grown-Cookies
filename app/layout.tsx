@@ -9,6 +9,7 @@ import CookieConsentBanner from "@/components/cookie-consent-banner";
 import MailingListSignupForm from "@/components/mailing-list-signup-form";
 import SiteLockGate from "@/components/site-lock-gate";
 import { COOKIE_CONSENT_STORAGE_KEY } from "@/lib/cookie-consent";
+import { getSiteUrl } from "@/lib/site-url";
 import { isSiteLockEnabled } from "@/lib/site-lock";
 import { ADMIN_AUTH_COOKIE, getAdminUserFromAccessToken } from "@/lib/supabase/admin-auth";
 import "./globals.css";
@@ -39,8 +40,13 @@ const abrilFatface = Abril_Fatface({
 });
 
 export const metadata: Metadata = {
-  title: "Grown Cookies",
+  metadataBase: new URL(getSiteUrl()),
+  title: {
+    default: "Grown Cookies",
+    template: "%s | Grown Cookies",
+  },
   description: "Artisan cookies for grown folks.",
+  applicationName: "Grown Cookies",
   icons: {
     icon: "/favicon.png",
     shortcut: "/favicon.png",
@@ -174,11 +180,17 @@ export default async function RootLayout({
                     </p>
                     <div className="site-footer-links">
                       <div className="site-footer-legal-links">
-                        <Link href="/privacy">Privacy Policy</Link>
                         <Link href="/terms">Terms of Service</Link>
+                        <Link href="/delivery">Delivery</Link>
+                        <Link href="/privacy">Privacy Policy</Link>
                       </div>
                       <div className="site-footer-social">
-                        <Link href="#" aria-label="Instagram">
+                        <Link
+                          href="https://www.instagram.com/growncookiesuk?utm_source=qr"
+                          aria-label="Instagram"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
                           <FiInstagram />
                         </Link>
                         <Link href="#" aria-label="TikTok">

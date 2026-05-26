@@ -5,7 +5,19 @@ import {
   buildCheckoutQuote,
 } from "@/lib/checkout-quote";
 import type { BasketQuoteLine, BasketStoredItem, BasketTipInput } from "@/lib/basket";
-import { DEFAULT_DELIVERY_COST_CENTS } from "@/lib/store-settings";
+import {
+  finalizeGiftCardRedemptionsForOrder,
+  getGiftCardApplicationsForQuote,
+  releaseGiftCardRedemptionsForOrder,
+  reserveGiftCardRedemptionsForOrder,
+  restoreFinalizedGiftCardRedemptionsForOrder,
+} from "@/lib/gift-cards";
+import {
+  UK_POSTAL_SHIPPING_METHOD,
+  type DispatchSelection,
+} from "@/lib/dispatch";
+import { validateDispatchSelectionWithHolidayExclusions } from "@/lib/dispatch-availability";
+import { DEFAULT_DELIVERY_COST_CENTS, getDispatchSettings } from "@/lib/store-settings";
 
 const STRIPE_CHECKOUT_ORDER_PREFIX = "order";
 
@@ -19,6 +31,7 @@ export const STRIPE_CHECKOUT_ORDER_STATUS = {
   paid: "paid",
   failed: "failed",
   expired: "expired",
+  refunded: "refunded",
 } as const;
 
 export const PENDING_ORDER_WARNING_MINUTES = 2;
@@ -51,6 +64,9 @@ export type StripeCheckoutPayload = {
   contact: StripeCheckoutContactInput;
   delivery: StripeCheckoutDeliveryInput;
   tip: BasketTipInput;
+  dispatch?: DispatchSelection | null;
+  giftCardCodes?: string[];
+  initialStatus?: typeof STRIPE_CHECKOUT_ORDER_STATUS.pending | typeof STRIPE_CHECKOUT_ORDER_STATUS.paid;
   customer?: {
     supabaseUserId: string;
     customerProfileId: number;
@@ -63,6 +79,8 @@ export type StripeCheckoutOrderDraft = {
   shippingCents: number;
   tipCents: number;
   totalCents: number;
+  giftCardRedeemedCents: number;
+  stripeAmountCents: number;
   lines: BasketQuoteLine[];
 };
 
@@ -134,6 +152,8 @@ export async function expireStalePendingOrders() {
     ],
   );
 
+  await Promise.all(staleOrders.map((order) => releaseGiftCardRedemptionsForOrder(order.public_id)));
+
   const changedRows =
     typeof result.meta?.changes === "number"
       ? result.meta.changes
@@ -162,25 +182,55 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
   const quotePromise = buildCheckoutQuote({
     items: payload.items,
     tip: payload.tip,
+    dispatch: payload.dispatch,
+    giftCardCodes: payload.giftCardCodes,
   });
   const schemaPromise = ensureCustomerAccountSchema();
   const quote = await quotePromise;
+  const requiresDispatch = quote.lines.some((line) => !line.isGiftCard);
+  const redemptionApplications = await getGiftCardApplicationsForQuote({
+    codes: payload.giftCardCodes ?? [],
+    applicableCents: quote.giftCardApplicableCents,
+  });
+  const giftCardRedeemedCents = redemptionApplications.reduce(
+    (sum, application) => sum + application.appliedCents,
+    0,
+  );
+  const stripeAmountCents = Math.max(0, quote.totalCents - giftCardRedeemedCents);
+
+  if (giftCardRedeemedCents !== quote.giftCardAppliedCents) {
+    throw new Error("Gift card balance changed. Review your total and try again.");
+  }
+
+  const dispatchSettings = requiresDispatch ? await getDispatchSettings() : null;
+  const dispatch = dispatchSettings
+    ? await validateDispatchSelectionWithHolidayExclusions(payload.dispatch ?? null, dispatchSettings, {
+        required: true,
+      })
+    : null;
 
   await schemaPromise;
 
   const orderPublicId = generateOrderPublicId();
+  const initialStatus = payload.initialStatus ?? STRIPE_CHECKOUT_ORDER_STATUS.pending;
   const itemsSnapshot = JSON.stringify({
     lines: quote.lines,
     subtotalCents: quote.subtotalCents,
     shippingCents: quote.shippingCents,
     tipCents: quote.tipCents,
     totalCents: quote.totalCents,
+    giftCardApplicableCents: quote.giftCardApplicableCents,
+    giftCardRedeemedCents,
+    stripeAmountCents,
+    giftCardApplications: quote.giftCardApplications,
     tipCurrency: quote.currency,
     contact: {
       email: contactEmail,
       phone: normalizeText(payload.contact.phone),
     },
     delivery,
+    fulfilmentMethod: dispatch?.method ?? null,
+    dispatchDate: dispatch?.dispatchDate ?? null,
   });
 
   const orderInsertResult = await executeCloudflareD1(
@@ -192,6 +242,8 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
        shipping_cents,
        tip_cents,
        total_cents,
+       gift_card_redeemed_cents,
+       stripe_amount_cents,
        email,
        phone,
        first_name,
@@ -201,19 +253,23 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
        city,
        postcode,
        country,
+       fulfilment_method,
+       dispatch_date,
        supabase_user_id,
        customer_profile_id,
        items_json
      )
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       orderPublicId,
-      STRIPE_CHECKOUT_ORDER_STATUS.pending,
+      initialStatus,
       CHECKOUT_CURRENCY,
       quote.subtotalCents,
       quote.shippingCents,
       quote.tipCents,
       quote.totalCents,
+      giftCardRedeemedCents,
+      stripeAmountCents,
       contactEmail,
       normalizeText(payload.contact.phone),
       delivery.firstName,
@@ -223,6 +279,8 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
       delivery.city,
       delivery.postcode,
       delivery.country,
+      dispatch?.method ?? (requiresDispatch ? UK_POSTAL_SHIPPING_METHOD : null),
+      dispatch?.dispatchDate ?? null,
       normalizeText(payload.customer?.supabaseUserId) || null,
       payload.customer?.customerProfileId ?? null,
       itemsSnapshot,
@@ -272,12 +330,36 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
     );
   }
 
+  try {
+    await reserveGiftCardRedemptionsForOrder({
+      orderId,
+      orderPublicId,
+      applications: redemptionApplications,
+    });
+
+    if (initialStatus === STRIPE_CHECKOUT_ORDER_STATUS.paid) {
+      await finalizeGiftCardRedemptionsForOrder(orderPublicId);
+    }
+  } catch (error) {
+    await releaseGiftCardRedemptionsForOrder(orderPublicId);
+    await executeCloudflareD1(
+      `UPDATE orders
+       SET status = ?,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [STRIPE_CHECKOUT_ORDER_STATUS.failed, orderId],
+    );
+    throw error;
+  }
+
   return {
     orderPublicId,
     subtotalCents: quote.subtotalCents,
     shippingCents: quote.shippingCents,
     tipCents: quote.tipCents,
     totalCents: quote.totalCents,
+    giftCardRedeemedCents,
+    stripeAmountCents,
     lines: quote.lines,
   };
 }
@@ -306,8 +388,8 @@ export async function updateOrderStatusByIdentifiers(params: {
 
   await ensureCustomerAccountSchema();
 
-  const rows = await queryCloudflareD1<{ id: number; status: string }>(
-    `SELECT id, status
+  const rows = await queryCloudflareD1<{ id: number; public_id: string; status: string }>(
+    `SELECT id, public_id, status
      FROM orders
      WHERE public_id = ? OR stripe_payment_intent_id = ?
      LIMIT 1`,
@@ -321,6 +403,19 @@ export async function updateOrderStatusByIdentifiers(params: {
   const row = rows[0];
   if (status === STRIPE_CHECKOUT_ORDER_STATUS.failed && row.status === STRIPE_CHECKOUT_ORDER_STATUS.paid) {
     return true;
+  }
+
+  const resolvedOrderPublicId = normalizeText(row.public_id) || normalizeText(orderPublicId);
+
+  if (status === STRIPE_CHECKOUT_ORDER_STATUS.paid) {
+    await finalizeGiftCardRedemptionsForOrder(resolvedOrderPublicId);
+  } else if (
+    status === STRIPE_CHECKOUT_ORDER_STATUS.failed ||
+    status === STRIPE_CHECKOUT_ORDER_STATUS.expired
+  ) {
+    await releaseGiftCardRedemptionsForOrder(resolvedOrderPublicId);
+  } else if (status === STRIPE_CHECKOUT_ORDER_STATUS.refunded) {
+    await restoreFinalizedGiftCardRedemptionsForOrder(resolvedOrderPublicId);
   }
 
   await executeCloudflareD1(

@@ -35,6 +35,36 @@
   padding: 30px 30px 44px;
 }
 
+.formColumn:has(> .expressCheckoutTop) {
+  display: flex;
+  flex-direction: column;
+}
+
+.formColumn:has(> .expressCheckoutTop) > .expressCheckoutTop {
+  order: 1;
+}
+
+.formColumn:has(> .expressCheckoutTop) > .section {
+  order: 4;
+}
+
+.formColumn:has(> .expressCheckoutTop) > .section:has(.giftCardRedeemCard) {
+  order: 2;
+  margin-top: 0;
+}
+
+.formColumn:has(> .expressCheckoutTop) > .section:has(.tipCard) {
+  order: 3;
+}
+
+.formColumn:has(> .expressCheckoutTop) > .expressCheckoutTop + .section {
+  margin-top: 24px;
+}
+
+.formColumn:has(> .expressCheckoutTop) > .paymentFooter {
+  order: 5;
+}
+
 .section + .section {
   margin-top: 24px;
 }
@@ -114,6 +144,11 @@
   color: var(--public-ink-soft);
   line-height: 1.45;
   font-size: 0.88rem;
+}
+
+.methodCard + .sectionNote {
+  margin: 8px 0 0;
+  padding-inline: 20px;
 }
 
 .totalAmount {
@@ -555,6 +590,88 @@
   line-height: 1.45;
 }
 
+.giftCardRedeemCard {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--public-border);
+  border-radius: 18px;
+  background: rgba(255, 250, 247, 0.92);
+  padding: 14px;
+}
+
+.giftCardRedeemRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.giftCardApplyButton,
+.removeGiftCardButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--public-plum-deep);
+  color: var(--public-cream);
+  font-family: var(--font-public-ui);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.giftCardApplyButton {
+  padding: 0 1.35rem;
+}
+
+.giftCardApplyButton:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.appliedGiftCards {
+  display: grid;
+  gap: 10px;
+}
+
+.appliedGiftCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #ddd3df;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 12px 14px;
+}
+
+.appliedGiftCard div {
+  display: grid;
+  gap: 4px;
+}
+
+.appliedGiftCard strong {
+  color: #170b1a;
+  font-size: 0.96rem;
+}
+
+.appliedGiftCard span {
+  color: #6b5c6d;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.removeGiftCardButton {
+  min-height: 36px;
+  padding: 0 0.95rem;
+  background: #f1edf2;
+  color: #47354a;
+}
+
 .stripeForm {
   display: grid;
   gap: 18px;
@@ -661,6 +778,10 @@
 
 .expressCheckoutWrapHidden {
   display: none;
+}
+
+.expressCheckoutTop {
+  margin-bottom: 24px;
 }
 
 .expressCheckoutLabel {
@@ -1030,6 +1151,7 @@
 
   .expressRow,
   .twoUp,
+  .giftCardRedeemRow,
   .customTipRow {
     grid-template-columns: 1fr;
   }

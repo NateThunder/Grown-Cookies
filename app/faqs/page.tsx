@@ -1,6 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "@/components/site-header";
 import styles from "./page.module.css";
+
+export const metadata: Metadata = {
+  title: "FAQs",
+  description:
+    "Find answers about ordering, delivery, storage, allergens, payments, returns, and cookie care from Grown Cookies.",
+  alternates: {
+    canonical: "/faqs",
+  },
+};
 
 export default function FaqsPage() {
   return (

@@ -1,0 +1,18 @@
+
+> grown-cookies@0.1.0 dev
+> next dev --port 3101
+
+▲ Next.js 16.2.1 (Turbopack)
+- Local:         http://localhost:3101
+- Network:       http://192.168.1.53:3101
+- Environments: .env.local
+✓ Ready in 949ms
+Creating turbopack project { dir: 'E:\\Websites\\grown-cookies', testMode: true }
+- Experiments (use with caution):
+  · serverActions
+
+○ Compiling / ...
+ GET / 200 in 6.3s (next.js: 4.0s, application-code: 2.3s)
+✓ Compiled in 95ms
+ GET / 200 in 202ms (next.js: 10ms, application-code: 191ms)
+[?25h

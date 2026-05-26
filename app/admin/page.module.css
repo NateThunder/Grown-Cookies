@@ -464,9 +464,56 @@
   align-content: start;
 }
 
+.deliveryFormGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
 .deliveryField {
   display: grid;
   gap: 0.45rem;
+}
+
+.deliveryFieldset {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.deliveryFieldset legend {
+  color: #4b183f;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.dispatchWeekdayGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.dispatchWeekdayOption,
+.dispatchToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid rgba(118, 26, 108, 0.16);
+  border-radius: 0.8rem;
+  background: #ffffff;
+  color: #351927;
+  padding: 0.72rem 0.8rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.dispatchWeekdayOption input,
+.dispatchToggle input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #6c1d58;
 }
 
 .deliveryField > span {
@@ -1264,6 +1311,11 @@
     grid-template-columns: 1fr;
   }
 
+  .deliveryFormGrid,
+  .dispatchWeekdayGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .analyticsMetricGrid,
   .analyticsTwoColumn,
   .analyticsThreeColumn {
@@ -1364,6 +1416,11 @@
 
   .table {
     min-width: 48rem;
+  }
+
+  .deliveryFormGrid,
+  .dispatchWeekdayGrid {
+    grid-template-columns: 1fr;
   }
 
   .tablePanelHeader,

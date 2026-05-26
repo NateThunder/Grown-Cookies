@@ -173,6 +173,29 @@ async function ensureOrderTableColumns() {
   if (!orderColumns.has("delivered_at")) {
     await executeCloudflareD1("ALTER TABLE orders ADD COLUMN delivered_at TEXT");
   }
+
+  if (!orderColumns.has("fulfilment_method")) {
+    await executeCloudflareD1("ALTER TABLE orders ADD COLUMN fulfilment_method TEXT");
+  }
+
+  if (!orderColumns.has("dispatch_date")) {
+    await executeCloudflareD1("ALTER TABLE orders ADD COLUMN dispatch_date TEXT");
+  }
+
+  if (!orderColumns.has("gift_card_redeemed_cents")) {
+    await executeCloudflareD1(
+      "ALTER TABLE orders ADD COLUMN gift_card_redeemed_cents INTEGER NOT NULL DEFAULT 0",
+    );
+  }
+
+  if (!orderColumns.has("stripe_amount_cents")) {
+    await executeCloudflareD1("ALTER TABLE orders ADD COLUMN stripe_amount_cents INTEGER");
+    await executeCloudflareD1(
+      `UPDATE orders
+       SET stripe_amount_cents = total_cents
+       WHERE stripe_amount_cents IS NULL`,
+    );
+  }
 }
 
 async function ensureCustomerProfileTableColumns() {
@@ -201,6 +224,8 @@ export async function ensureCustomerAccountSchema() {
            shipping_cents INTEGER NOT NULL,
            tip_cents INTEGER NOT NULL DEFAULT 0,
            total_cents INTEGER NOT NULL,
+           gift_card_redeemed_cents INTEGER NOT NULL DEFAULT 0,
+           stripe_amount_cents INTEGER,
            email TEXT NOT NULL,
            phone TEXT,
            first_name TEXT,
@@ -210,6 +235,8 @@ export async function ensureCustomerAccountSchema() {
            city TEXT,
            postcode TEXT,
            country TEXT,
+           fulfilment_method TEXT,
+           dispatch_date TEXT,
            stripe_payment_intent_id TEXT,
            items_json TEXT NOT NULL,
            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -294,6 +321,9 @@ export async function ensureCustomerAccountSchema() {
       );
       await executeCloudflareD1(
         "CREATE INDEX IF NOT EXISTS idx_orders_delivered_at ON orders(delivered_at)",
+      );
+      await executeCloudflareD1(
+        "CREATE INDEX IF NOT EXISTS idx_orders_dispatch_date ON orders(dispatch_date)",
       );
       await executeCloudflareD1(
         "CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id)",

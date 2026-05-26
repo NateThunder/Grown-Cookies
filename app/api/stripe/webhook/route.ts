@@ -30,6 +30,41 @@ function getStripeClient() {
   });
 }
 
+function getPaymentIntentId(value: unknown) {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (value && typeof value === "object" && "id" in value && typeof value.id === "string") {
+    return value.id;
+  }
+
+  return "";
+}
+
+async function reconcileFullRefund(
+  stripe: Stripe,
+  input: { charge?: Stripe.Charge; refund?: Stripe.Refund },
+) {
+  const charge = input.charge
+    ? input.charge
+    : input.refund?.charge && typeof input.refund.charge === "object"
+      ? input.refund.charge
+    : input.refund?.charge && typeof input.refund.charge === "string"
+      ? await stripe.charges.retrieve(input.refund.charge)
+      : null;
+
+  if (!charge || !charge.id || charge.amount_refunded < charge.amount) {
+    return;
+  }
+
+  await updateOrderStatusByIdentifiers({
+    orderPublicId: typeof charge.metadata?.orderId === "string" ? charge.metadata.orderId : "",
+    paymentIntentId: getPaymentIntentId(charge.payment_intent),
+    status: STRIPE_CHECKOUT_ORDER_STATUS.refunded,
+  });
+}
+
 export async function POST(request: Request) {
   try {
     const signature = request.headers.get("stripe-signature");
@@ -88,6 +123,18 @@ export async function POST(request: Request) {
           }
         }
       }
+    }
+
+    if (event.type === "charge.refunded") {
+      await reconcileFullRefund(stripe, {
+        charge: event.data.object as Stripe.Charge,
+      });
+    }
+
+    if (event.type === "refund.updated") {
+      await reconcileFullRefund(stripe, {
+        refund: event.data.object as Stripe.Refund,
+      });
     }
 
     return NextResponse.json({ received: true });

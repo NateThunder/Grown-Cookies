@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import QuickAddButton from "@/components/quick-add-button";
@@ -41,6 +42,21 @@ const SORT_OPTIONS: SortOption[] = [
 ];
 
 const GIFT_CARD_FRAME_IMAGE = "/gift card frame no crumbs.png";
+
+export const metadata: Metadata = {
+  title: "Shop Cookies",
+  description:
+    "Browse Grown Cookies flavours, gift cards, and variety boxes baked fresh for delivery across the UK.",
+  alternates: {
+    canonical: "/shop",
+  },
+  openGraph: {
+    title: "Shop Grown Cookies",
+    description: "Browse handcrafted cookie flavours, gift cards, and variety boxes.",
+    url: "/shop",
+    type: "website",
+  },
+};
 
 function getFirstValue(value: SearchParamValue) {
   return Array.isArray(value) ? value[0] : value;

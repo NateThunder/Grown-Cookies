@@ -1,7 +1,17 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import PrivacyCookiePreferences from "@/components/privacy-cookie-preferences";
 import SiteHeader from "@/components/site-header";
 import styles from "../legal.module.css";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+  description:
+    "How Grown Cookies handles customer data, cookies, analytics preferences, orders, account information, and privacy choices.",
+  alternates: {
+    canonical: "/privacy",
+  },
+};
 
 export default function PrivacyPage() {
   return (

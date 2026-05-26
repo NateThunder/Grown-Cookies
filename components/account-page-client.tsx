@@ -1255,6 +1255,18 @@ export default function AccountPageClient() {
                       <p className={styles.orderMetaLabel}>Total</p>
                       <p>{formatMoney(order.totalCents, order.currency)}</p>
                     </div>
+                    {order.giftCardRedeemedCents > 0 ? (
+                      <>
+                        <div>
+                          <p className={styles.orderMetaLabel}>Gift cards</p>
+                          <p>-{formatMoney(order.giftCardRedeemedCents, order.currency)}</p>
+                        </div>
+                        <div>
+                          <p className={styles.orderMetaLabel}>Card paid</p>
+                          <p>{formatMoney(order.stripeAmountCents, order.currency)}</p>
+                        </div>
+                      </>
+                    ) : null}
                   </div>
 
                   {order.items.length > 0 ? (

@@ -8,9 +8,19 @@ import {
   type BasketTipInput,
   type BasketTipPercent,
 } from "@/lib/basket";
+import {
+  UK_POSTAL_SHIPPING_METHOD,
+  parseDispatchSelection,
+  type DispatchSelection,
+} from "@/lib/dispatch";
+import {
+  getAvailableDispatchDatesWithHolidayExclusions,
+  isDispatchDateAvailableWithHolidayExclusions,
+} from "@/lib/dispatch-availability";
 import { validateGiftCardAmountCents } from "@/lib/gift-card-amounts";
+import { getPublicGiftCardApplicationsForQuote, parseGiftCardCodes } from "@/lib/gift-cards";
 import { getAllProducts } from "@/lib/products";
-import { getDeliveryCostCents } from "@/lib/store-settings";
+import { getDeliveryCostCents, getDispatchSettings } from "@/lib/store-settings";
 
 export const CHECKOUT_CURRENCY = "gbp";
 
@@ -66,6 +76,14 @@ export function parseQuoteTip(raw: unknown): BasketTipInput {
   return { mode: "none" };
 }
 
+export function parseQuoteDispatch(raw: unknown): DispatchSelection | null {
+  return parseDispatchSelection(raw);
+}
+
+export function parseQuoteGiftCardCodes(raw: unknown) {
+  return parseGiftCardCodes(raw);
+}
+
 function getTipCents(subtotalCents: number, tip: BasketTipInput) {
   if (tip.mode === "percent") {
     return Math.round(subtotalCents * (tip.percent / 100));
@@ -96,9 +114,13 @@ export function parsePriceToMinorUnits(priceText: string) {
 export async function buildCheckoutQuote({
   items,
   tip,
+  dispatch,
+  giftCardCodes = [],
 }: {
   items: BasketStoredItem[];
   tip: BasketTipInput;
+  dispatch?: DispatchSelection | null;
+  giftCardCodes?: string[];
 }): Promise<BasketQuote> {
   if (!Array.isArray(items) || items.length === 0) {
     throw new Error("Your basket is empty.");
@@ -199,8 +221,32 @@ export async function buildCheckoutQuote({
 
   const subtotalCents = lines.reduce((sum, line) => sum + line.lineTotalCents, 0);
   const hasPhysicalProducts = lines.some((line) => !line.isGiftCard);
+  const physicalSubtotalCents = lines
+    .filter((line) => !line.isGiftCard)
+    .reduce((sum, line) => sum + line.lineTotalCents, 0);
   const shippingCents = hasPhysicalProducts ? deliveryShippingCents : 0;
   const tipCents = getTipCents(subtotalCents, tip);
+  const giftCardApplicableCents = physicalSubtotalCents + shippingCents;
+  const giftCardApplications = await getPublicGiftCardApplicationsForQuote({
+    codes: giftCardCodes,
+    applicableCents: giftCardApplicableCents,
+  });
+  const giftCardAppliedCents = giftCardApplications.reduce(
+    (sum, application) => sum + application.appliedCents,
+    0,
+  );
+  const totalCents = subtotalCents + shippingCents + tipCents;
+  const stripeAmountCents = Math.max(0, totalCents - giftCardAppliedCents);
+  const dispatchSettings = hasPhysicalProducts ? await getDispatchSettings() : null;
+  const availableDispatchDates = dispatchSettings
+    ? await getAvailableDispatchDatesWithHolidayExclusions(dispatchSettings)
+    : [];
+  const validDispatch =
+    dispatchSettings &&
+    dispatch &&
+    (await isDispatchDateAvailableWithHolidayExclusions(dispatch.dispatchDate, dispatchSettings))
+      ? dispatch
+      : null;
 
   return {
     currency: CHECKOUT_CURRENCY,
@@ -208,10 +254,17 @@ export async function buildCheckoutQuote({
     subtotalCents,
     shippingCents,
     tipCents,
-    totalCents: subtotalCents + shippingCents + tipCents,
+    totalCents,
+    giftCardApplicableCents,
+    giftCardAppliedCents,
+    stripeAmountCents,
+    giftCardApplications,
     tipOptions: TIP_PRESET_OPTIONS.map((percent) => ({
       percent,
       amountCents: Math.round(subtotalCents * (percent / 100)),
     })),
+    fulfilmentMethod: hasPhysicalProducts ? UK_POSTAL_SHIPPING_METHOD : null,
+    dispatchDate: validDispatch?.dispatchDate ?? null,
+    availableDispatchDates,
   };
 }

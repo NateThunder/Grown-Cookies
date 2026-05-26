@@ -83,13 +83,37 @@
 
 .statusPanel {
   width: min(100%, 18.25rem);
-  margin-top: clamp(1.25rem, 3vw, 2.1rem);
   padding: 1rem 1.15rem;
   border: 1px solid rgba(83, 37, 67, 0.14);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.58);
   box-shadow: 0 12px 28px rgba(83, 37, 67, 0.08);
   text-align: left;
+}
+
+.launchSwitch {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: clamp(1.25rem, 3vw, 2.1rem);
+}
+
+.launchState {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.launchStateExiting {
+  animation: launchButtonExit 0.3s ease both;
+}
+
+.successState {
+  gap: 1rem;
+  text-align: center;
+  animation: launchSuccessEnter 0.6s ease 0.2s both;
 }
 
 .statusLabel {
@@ -271,6 +295,43 @@
   text-align: center;
 }
 
+.successMark {
+  width: 4rem;
+  height: 4rem;
+  border: 2px solid rgba(170, 35, 77, 0.28);
+  border-radius: 999px;
+  color: #aa234d;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-public-display);
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1;
+  animation: launchSuccessPop 0.48s cubic-bezier(0.2, 1.4, 0.35, 1) 0.42s both;
+}
+
+.successTitle {
+  margin: 0;
+  color: #532543;
+  font-family: var(--font-public-display);
+  font-size: clamp(2.15rem, 4.2vw, 3rem);
+  font-weight: 700;
+  line-height: 0.98;
+  letter-spacing: 0;
+  animation: launchSuccessFade 0.45s ease 0.6s both;
+}
+
+.successMessage {
+  max-width: 19rem;
+  margin: -0.25rem 0 0;
+  color: #82516d;
+  font-family: var(--font-public-ui);
+  font-size: clamp(0.95rem, 1.7vw, 1.12rem);
+  line-height: 1.4;
+  animation: launchSuccessFade 0.45s ease 0.78s both;
+}
+
 .launchSectionLive .title {
   animation: launchSuccessTitle 0.62s ease both;
 }
@@ -309,6 +370,50 @@
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes launchButtonExit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes launchSuccessEnter {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes launchSuccessPop {
+  from {
+    transform: scale(0);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes launchSuccessFade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
   }
 }
 
@@ -373,8 +478,11 @@
   }
 
   .statusPanel {
-    margin-top: 1rem;
     padding: 0.85rem 1rem;
+  }
+
+  .launchSwitch {
+    margin-top: 1rem;
   }
 
   .buttonStage {
@@ -393,6 +501,11 @@
   .launchStack,
   .launchButton,
   .statusDot,
+  .launchStateExiting,
+  .successState,
+  .successMark,
+  .successTitle,
+  .successMessage,
   .launchSectionLive .title {
     animation: none;
   }

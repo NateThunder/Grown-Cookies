@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -12,16 +13,64 @@ import styles from "./page.module.css";
 
 const GIFT_CARD_FRAME_IMAGE = "/gift card frame no crumbs.png";
 
+type ProductPageProps = {
+  params: Promise<{ slug: string }>;
+};
+
+function getMetadataDescription(description: string) {
+  if (description.length <= 155) {
+    return description;
+  }
+
+  return `${description.slice(0, 152).trimEnd()}...`;
+}
+
 export async function generateStaticParams() {
   const products = await getAllProducts();
   return products.map((product) => ({ slug: product.slug }));
 }
 
-export default async function ProductPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const products = await getAllProducts();
+  const product = products.find((item) => item.slug === slug);
+
+  if (!product) {
+    return {
+      title: "Product not found",
+    };
+  }
+
+  const productImage = getProductImageForVariant(
+    product,
+    PRODUCT_IMAGE_VARIANTS.productDetail.key,
+  ) ?? product.image;
+  const description = getMetadataDescription(product.description);
+
+  return {
+    title: product.name,
+    description,
+    alternates: {
+      canonical: `/shop/${product.slug}`,
+    },
+    openGraph: {
+      title: `${product.name} | Grown Cookies`,
+      description,
+      url: `/shop/${product.slug}`,
+      type: "website",
+      images: productImage
+        ? [
+            {
+              url: productImage,
+              alt: product.imageAlt ?? product.name,
+            },
+          ]
+        : undefined,
+    },
+  };
+}
+
+export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
   const products = await getAllProducts();
   const product = products.find((item) => item.slug === slug);
