@@ -38,7 +38,36 @@
 }
 
 .authHero .panel {
+  --account-auth-texture-opacity: 0.20;
+  --account-auth-texture-wash: rgba(255, 255, 255, 0.82);
   width: min(100%, 36rem);
+  background-color: rgba(255, 248, 241, 0.92);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.authHero .panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background-image: var(--public-film-grain-image);
+  background-repeat: repeat;
+  background-position: center;
+  background-size: cover;
+  opacity: var(--account-auth-texture-opacity);
+  pointer-events: none;
+}
+
+.authHero .panel:global(.whiteFrame)::after {
+  content: none;
+  display: none;
+}
+
+.authHero .panel > * {
+  position: relative;
+  z-index: 1;
 }
 
 .copy {

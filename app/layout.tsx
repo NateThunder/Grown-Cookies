@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import { Abril_Fatface, Anonymous_Pro, Besley, Fraunces } from "next/font/google";
 import Link from "next/link";
@@ -52,6 +52,10 @@ export const metadata: Metadata = {
     shortcut: "/favicon.png",
     apple: "/favicon.png",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#f5bfd0",
 };
 
 export const dynamic = "force-dynamic";
@@ -144,6 +148,7 @@ export default async function RootLayout({
       className={`${besley.variable} ${fraunces.variable} ${anonymousPro.variable} ${abrilFatface.variable}`}
     >
       <head>
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         {siteLockEnabled ? <meta name="robots" content="noindex, nofollow" /> : null}
         {googleAnalyticsId ? (
           <Script id="google-consent-mode" strategy="beforeInteractive">
