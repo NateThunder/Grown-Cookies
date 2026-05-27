@@ -18,6 +18,8 @@
 
 :root {
   --background: #f4f4f4;
+  --browser-top-chrome: #f5bfd0;
+  --browser-bottom-chrome: #50146b;
   --foreground: #111111;
   --brand: #761a6c;
   --font-h1--family: "BJ Cree", Georgia, "Times New Roman", serif;
@@ -83,14 +85,27 @@
 }
 
 html {
+  background: var(--browser-top-chrome);
   scroll-behavior: auto;
 }
 
 body {
-  background: var(--background);
+  background: var(--browser-top-chrome);
   color: var(--foreground);
   font-family: var(--font-body--family);
   margin: 0;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 2147483647;
+  height: env(safe-area-inset-top, 0px);
+  background: var(--browser-top-chrome);
+  pointer-events: none;
 }
 
 h1,
@@ -182,7 +197,7 @@ a {
 
 .site-footer {
   margin-top: 0;
-  background: transparent;
+  background: var(--browser-bottom-chrome);
 }
 
 body:has(main.account-page) .site-footer {
@@ -193,9 +208,9 @@ body:has(main.account-page) .site-footer {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  background: #50146b;
+  background: var(--browser-bottom-chrome);
   color: var(--public-cream);
-  padding: 2.75rem var(--public-page-padding) 1.25rem;
+  padding: 2.75rem var(--public-page-padding) calc(1.25rem + env(safe-area-inset-bottom, 0px));
   border: 0;
   border-top: 1rem solid #fff8f1;
   border-radius: 0;
@@ -405,7 +420,7 @@ body:has(main.account-page) .site-footer {
 
 @media (max-width: 900px) {
   .site-footer-main {
-    padding: 2.35rem var(--public-page-padding) 1.15rem;
+    padding: 2.35rem var(--public-page-padding) calc(1.15rem + env(safe-area-inset-bottom, 0px));
   }
 
   .site-footer-upper {
@@ -439,7 +454,7 @@ body:has(main.account-page) .site-footer {
 
 @media (max-width: 640px) {
   .site-footer-main {
-    padding: 2rem 1rem 3.75rem;
+    padding: 2rem 1rem calc(3.75rem + env(safe-area-inset-bottom, 0px));
   }
 
   .site-footer-copy h2 {

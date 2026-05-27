@@ -3,6 +3,16 @@
   gap: 20px;
 }
 
+.authCard:global(.whiteFrame)::after {
+  content: none;
+  display: none;
+}
+
+.authCard button::before {
+  content: none;
+  display: none;
+}
+
 .recoveryIntro {
   display: grid;
   gap: 10px;
@@ -47,9 +57,14 @@
 }
 
 .modeButtonActive {
-  background: #ffffff;
+  background:
+    linear-gradient(var(--account-auth-texture-wash), var(--account-auth-texture-wash)),
+    var(--public-film-grain-image);
+  background-position: center;
+  background-repeat: repeat;
+  background-size: cover;
   color: #240f26;
-  box-shadow: 0 8px 20px rgba(118, 26, 108, 0.12);
+  box-shadow: none;
 }
 
 .form {
@@ -99,7 +114,12 @@
   width: 100%;
   border: 1px solid rgba(118, 26, 108, 0.22);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.95);
+  background:
+    linear-gradient(var(--account-auth-texture-wash), var(--account-auth-texture-wash)),
+    var(--public-film-grain-image);
+  background-position: center;
+  background-repeat: repeat;
+  background-size: cover;
   color: #1d1021;
   font: inherit;
   padding: 15px 16px;
@@ -206,7 +226,12 @@
   width: 100%;
   border: 1px solid rgba(118, 26, 108, 0.22);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.96);
+  background:
+    linear-gradient(var(--account-auth-texture-wash), var(--account-auth-texture-wash)),
+    var(--public-film-grain-image);
+  background-position: center;
+  background-repeat: repeat;
+  background-size: cover;
   color: #240f26;
   cursor: pointer;
   font-family: var(--font-heading--family);
@@ -224,7 +249,7 @@
 .oauthButton:hover,
 .oauthButton:focus-visible {
   border-color: rgba(118, 26, 108, 0.34);
-  box-shadow: 0 10px 24px rgba(118, 26, 108, 0.08);
+  box-shadow: none;
 }
 
 .oauthButton:disabled {

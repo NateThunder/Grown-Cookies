@@ -118,55 +118,59 @@ export default function HeaderAccountLink() {
 
   if (!isSignedIn) {
     return (
-      <Link href="/account" aria-label="Account" className={styles.accountLink}>
-        <FiUser aria-hidden="true" />
-      </Link>
+      <div className={styles.accountSlot}>
+        <Link href="/account" aria-label="Account" className={styles.accountLink}>
+          <FiUser aria-hidden="true" />
+        </Link>
+      </div>
     );
   }
 
   return (
-    <div className={styles.accountMenu} ref={menuRef}>
-      <button
-        type="button"
-        className={styles.accountMenuButton}
-        aria-label={displayName ? `Account menu, ${displayName}` : "Account menu"}
-        aria-haspopup="menu"
-        aria-expanded={isMenuOpen}
-        onClick={() => {
-          setIsMenuOpen((open) => !open);
-        }}
-      >
-        <span className={styles.accountBadge} aria-hidden="true">
-          {initials}
-        </span>
-      </button>
+    <div className={styles.accountSlot}>
+      <div className={styles.accountMenu} ref={menuRef}>
+        <button
+          type="button"
+          className={styles.accountMenuButton}
+          aria-label={displayName ? `Account menu, ${displayName}` : "Account menu"}
+          aria-haspopup="menu"
+          aria-expanded={isMenuOpen}
+          onClick={() => {
+            setIsMenuOpen((open) => !open);
+          }}
+        >
+          <span className={styles.accountBadge} aria-hidden="true">
+            {initials}
+          </span>
+        </button>
 
-      {isMenuOpen ? (
-        <div className={styles.accountDropdown} role="menu" aria-label="Account menu">
-          <p className={styles.accountDropdownLabel}>{displayName || "My account"}</p>
-          <Link
-            href="/account"
-            className={styles.accountDropdownLink}
-            role="menuitem"
-            onClick={() => {
-              setIsMenuOpen(false);
-            }}
-          >
-            Account
-          </Link>
-          <button
-            type="button"
-            className={styles.accountDropdownAction}
-            role="menuitem"
-            onClick={() => {
-              void handleSignOut();
-            }}
-            disabled={isSigningOut}
-          >
-            {isSigningOut ? "Logging out..." : "Log out"}
-          </button>
-        </div>
-      ) : null}
+        {isMenuOpen ? (
+          <div className={styles.accountDropdown} role="menu" aria-label="Account menu">
+            <p className={styles.accountDropdownLabel}>{displayName || "My account"}</p>
+            <Link
+              href="/account"
+              className={styles.accountDropdownLink}
+              role="menuitem"
+              onClick={() => {
+                setIsMenuOpen(false);
+              }}
+            >
+              Account
+            </Link>
+            <button
+              type="button"
+              className={styles.accountDropdownAction}
+              role="menuitem"
+              onClick={() => {
+                void handleSignOut();
+              }}
+              disabled={isSigningOut}
+            >
+              {isSigningOut ? "Logging out..." : "Log out"}
+            </button>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
