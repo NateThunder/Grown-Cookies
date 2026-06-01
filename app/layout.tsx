@@ -5,9 +5,9 @@ import Link from "next/link";
 import Script from "next/script";
 import { FaTiktok } from "react-icons/fa6";
 import { FiInstagram } from "react-icons/fi";
-import BasketLink from "@/components/basket-link";
 import CookieConsentBanner from "@/components/cookie-consent-banner";
 import MailingListSignupForm from "@/components/mailing-list-signup-form";
+import RouteAwareBasketLink from "@/components/route-aware-basket-link";
 import SiteLockGate from "@/components/site-lock-gate";
 import { COOKIE_CONSENT_STORAGE_KEY } from "@/lib/cookie-consent";
 import { getSiteUrl } from "@/lib/site-url";
@@ -161,7 +161,7 @@ export default async function RootLayout({
         <SiteLockGate enabled={siteLockEnabled} isUnlockedForAdmin={isUnlockedForAdmin}>
           <>
             {children}
-            <BasketLink position="floating" />
+            <RouteAwareBasketLink position="floating" />
             {googleAnalyticsId ? <CookieConsentBanner /> : null}
             <footer className="site-footer">
               <div className="site-footer-main">

@@ -26,6 +26,7 @@ import {
   updateBrandStorySectionSetting,
   updateCookieOfMonthProductSlug,
   updateCookieOfMonthSectionSetting,
+  updateDeliveryBannerSetting,
   updateDeliveryCostCents,
   updateDispatchSettings,
   updateSiteLockEnabled,
@@ -280,6 +281,41 @@ export async function updateDeliveryCostAction(formData: FormData) {
         error instanceof Error
           ? error.message
           : "The delivery cost could not be saved.",
+      returnView: getTextField(formData, "returnView"),
+    });
+  }
+}
+
+export async function updateDeliveryBannerAction(formData: FormData) {
+  try {
+    const returnView = getTextField(formData, "returnView");
+    const returnPath = getTextField(formData, "returnPath");
+    await requireAdminSession();
+
+    await updateDeliveryBannerSetting({
+      text: getTextField(formData, "deliveryBannerText"),
+      icon: getTextField(formData, "deliveryBannerIcon"),
+    });
+
+    revalidateTag("store-settings-delivery-banner", "max");
+    revalidatePath("/admin/delivery");
+
+    redirectToAdmin({
+      returnPath,
+      notice: "Delivery banner saved.",
+      returnView,
+    });
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    redirectToAdmin({
+      returnPath: getTextField(formData, "returnPath"),
+      error:
+        error instanceof Error
+          ? error.message
+          : "The delivery banner could not be saved.",
       returnView: getTextField(formData, "returnView"),
     });
   }

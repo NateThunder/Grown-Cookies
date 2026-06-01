@@ -7,6 +7,8 @@ import {
 } from "@/lib/dispatch";
 
 const DELIVERY_COST_SETTING_KEY = "delivery_cost_cents";
+const DELIVERY_BANNER_TEXT_KEY = "delivery_banner_text";
+const DELIVERY_BANNER_ICON_KEY = "delivery_banner_icon";
 const DISPATCH_ENABLED_WEEKDAYS_KEY = "dispatch_enabled_weekdays";
 const DISPATCH_SAME_DAY_ENABLED_KEY = "dispatch_same_day_enabled";
 const DISPATCH_CUTOFF_TIME_KEY = "dispatch_cutoff_time";
@@ -24,11 +26,17 @@ const SITE_LOCK_ENABLED_KEY = "site_lock_enabled";
 const STORE_SETTINGS_TAG = "store-settings";
 const HOMEPAGE_SETTINGS_TAG = "store-settings-homepage";
 const DELIVERY_SETTINGS_TAG = "store-settings-delivery";
+const DELIVERY_BANNER_SETTINGS_TAG = "store-settings-delivery-banner";
 const DISPATCH_SETTINGS_TAG = "store-settings-dispatch";
 const SITE_LOCK_SETTINGS_TAG = "store-settings-site-lock";
 const STORE_SETTINGS_REVALIDATE_SECONDS = 300;
 
 export const DEFAULT_DELIVERY_COST_CENTS = 1000;
+export const DELIVERY_BANNER_TEXT_MAX_LENGTH = 80;
+export const DEFAULT_DELIVERY_BANNER_TEXT = "Same day dispatch on orders before 12pm";
+export const DELIVERY_BANNER_ICON_OPTIONS = ["truck", "clock", "gift"] as const;
+export type DeliveryBannerIcon = (typeof DELIVERY_BANNER_ICON_OPTIONS)[number];
+export const DEFAULT_DELIVERY_BANNER_ICON: DeliveryBannerIcon = "truck";
 export const DEFAULT_COOKIE_OF_MONTH_TITLE =
   "Our Cookie of the Month is a limited-edition artisan flavour inspired by the season, celebrating the ingredients at their best.";
 export const DEFAULT_COOKIE_OF_MONTH_CTA_LABEL = "Cookie of the Month";
@@ -160,6 +168,13 @@ type DeliveryCostSetting = {
   updatedAt?: string;
 };
 
+export type DeliveryBannerSetting = {
+  text: string;
+  icon: DeliveryBannerIcon;
+  isDefault: boolean;
+  updatedAt?: string;
+};
+
 type CookieOfMonthSectionSetting = {
   title: string;
   ctaLabel: string;
@@ -211,6 +226,30 @@ function mapDeliveryCostSetting(row: StoreSettingRow | null): DeliveryCostSettin
     deliveryCostCents: parseStoredDeliveryCost(row.value),
     updatedAt: row.updated_at,
     isDefault: false,
+  };
+}
+
+function isDeliveryBannerIcon(value: string): value is DeliveryBannerIcon {
+  return DELIVERY_BANNER_ICON_OPTIONS.includes(value as DeliveryBannerIcon);
+}
+
+function normalizeDeliveryBannerIcon(value: unknown) {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return isDeliveryBannerIcon(normalized) ? normalized : DEFAULT_DELIVERY_BANNER_ICON;
+}
+
+function mapDeliveryBannerSetting(
+  settings: Map<string, StoreSettingValueRow>,
+): DeliveryBannerSetting {
+  const textRow = settings.get(DELIVERY_BANNER_TEXT_KEY);
+  const iconRow = settings.get(DELIVERY_BANNER_ICON_KEY);
+  const text = textRow?.value.trim() || DEFAULT_DELIVERY_BANNER_TEXT;
+
+  return {
+    text,
+    icon: normalizeDeliveryBannerIcon(iconRow?.value),
+    isDefault: !textRow && !iconRow,
+    updatedAt: getLatestUpdatedAt([textRow?.updated_at, iconRow?.updated_at]),
   };
 }
 
@@ -347,6 +386,22 @@ const getDeliveryCostSettingCached = unstable_cache(
   },
 );
 
+const getDeliveryBannerSettingCached = unstable_cache(
+  async (): Promise<DeliveryBannerSetting> => {
+    const settings = await getStoreSettings([
+      DELIVERY_BANNER_TEXT_KEY,
+      DELIVERY_BANNER_ICON_KEY,
+    ]);
+
+    return mapDeliveryBannerSetting(settings);
+  },
+  ["store-settings-delivery-banner"],
+  {
+    revalidate: STORE_SETTINGS_REVALIDATE_SECONDS,
+    tags: [STORE_SETTINGS_TAG, DELIVERY_BANNER_SETTINGS_TAG],
+  },
+);
+
 const getDispatchSettingsCached = unstable_cache(
   async (): Promise<DispatchSettings> => {
     const settings = await getStoreSettings([
@@ -437,6 +492,19 @@ export async function getDeliveryCostCents() {
   return setting.deliveryCostCents;
 }
 
+export async function getDeliveryBannerSetting() {
+  if (!hasCloudflareD1Config()) {
+    return {
+      text: DEFAULT_DELIVERY_BANNER_TEXT,
+      icon: DEFAULT_DELIVERY_BANNER_ICON,
+      isDefault: true,
+      updatedAt: undefined,
+    };
+  }
+
+  return getDeliveryBannerSettingCached();
+}
+
 export async function getDispatchSettings() {
   if (!hasCloudflareD1Config()) {
     return DEFAULT_DISPATCH_SETTINGS;
@@ -460,6 +528,43 @@ export async function updateDeliveryCostCents(deliveryCostCents: number) {
 
   return {
     deliveryCostCents: normalizedValue,
+  };
+}
+
+export async function updateDeliveryBannerSetting({
+  text,
+  icon,
+}: {
+  text: string;
+  icon: string;
+}) {
+  if (!hasCloudflareD1Config()) {
+    throw new Error("Cloudflare D1 is not configured.");
+  }
+
+  const normalizedText = text.trim();
+  const normalizedIcon = icon.trim().toLowerCase();
+
+  if (!normalizedText) {
+    throw new Error("Enter the banner text.");
+  }
+
+  if (normalizedText.length > DELIVERY_BANNER_TEXT_MAX_LENGTH) {
+    throw new Error(`Banner text must be ${DELIVERY_BANNER_TEXT_MAX_LENGTH} characters or fewer.`);
+  }
+
+  if (!isDeliveryBannerIcon(normalizedIcon)) {
+    throw new Error("Choose a valid banner icon.");
+  }
+
+  await Promise.all([
+    upsertStoreSetting(DELIVERY_BANNER_TEXT_KEY, normalizedText),
+    upsertStoreSetting(DELIVERY_BANNER_ICON_KEY, normalizedIcon),
+  ]);
+
+  return {
+    text: normalizedText,
+    icon: normalizedIcon,
   };
 }
 

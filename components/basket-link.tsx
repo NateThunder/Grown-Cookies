@@ -8,17 +8,33 @@ import CartClient from "@/components/cart-client";
 import styles from "./basket-link.module.css";
 
 type BasketLinkPosition = "top" | "floating" | "both";
+const OPEN_BASKET_EVENT = "grown-cookies:open-basket";
 
 type BasketLinkProps = {
   position?: BasketLinkPosition;
+  renderDrawer?: boolean;
+  triggerGlobalDrawer?: boolean;
 };
 
-export default function BasketLink({ position = "top" }: BasketLinkProps) {
+export default function BasketLink({
+  position = "top",
+  renderDrawer = true,
+  triggerGlobalDrawer = false,
+}: BasketLinkProps) {
   const [itemCount, setItemCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
   const hasTopTrigger = position === "top" || position === "both";
   const hasFloatingTrigger = position === "floating" || position === "both";
+
+  const openBasket = () => {
+    if (triggerGlobalDrawer) {
+      window.dispatchEvent(new Event(OPEN_BASKET_EVENT));
+      return;
+    }
+
+    setIsOpen(true);
+  };
 
   useEffect(() => {
     setHasMounted(true);
@@ -40,7 +56,21 @@ export default function BasketLink({ position = "top" }: BasketLinkProps) {
   }, []);
 
   useEffect(() => {
-    if (!isOpen) {
+    if (!renderDrawer) {
+      return;
+    }
+
+    const handleOpenBasket = () => setIsOpen(true);
+
+    window.addEventListener(OPEN_BASKET_EVENT, handleOpenBasket);
+
+    return () => {
+      window.removeEventListener(OPEN_BASKET_EVENT, handleOpenBasket);
+    };
+  }, [renderDrawer]);
+
+  useEffect(() => {
+    if (!renderDrawer || !isOpen) {
       document.body.style.overflow = "";
       return;
     }
@@ -64,7 +94,7 @@ export default function BasketLink({ position = "top" }: BasketLinkProps) {
   const floatingTrigger = (
     <button
       type="button"
-      onClick={() => setIsOpen(true)}
+      onClick={openBasket}
       aria-expanded={isOpen}
       aria-label={`Open basket (${label})`}
       className={`${styles.link} ${styles.floating}`}
@@ -106,7 +136,7 @@ export default function BasketLink({ position = "top" }: BasketLinkProps) {
       {hasTopTrigger && (
         <button
           type="button"
-          onClick={() => setIsOpen(true)}
+          onClick={openBasket}
           aria-expanded={isOpen}
           aria-label={`Open basket (${label})`}
           className={`${styles.link} ${styles.top}`}
@@ -117,7 +147,7 @@ export default function BasketLink({ position = "top" }: BasketLinkProps) {
       )}
       {hasFloatingTrigger && hasMounted ? createPortal(floatingTrigger, document.body) : null}
 
-      {hasMounted ? createPortal(drawerUi, document.body) : null}
+      {renderDrawer && hasMounted ? createPortal(drawerUi, document.body) : null}
     </>
   );
 }
