@@ -437,6 +437,17 @@ export default function CartClient({
                           ? `Gift card value: ${formatGiftCardAmount(item.unitPriceCents)}`
                           : formatPriceFromCents(item.unitPriceCents)}
                       </p>
+                      {item.gifting ? (
+                        <div className={styles.itemGifting}>
+                          <p>
+                            Gift: {item.gifting.cardLabel}
+                            {item.gifting.cardPriceCents > 0
+                              ? ` (+${formatPriceFromCents(item.gifting.cardPriceCents)})`
+                              : " (included)"}
+                          </p>
+                          {item.gifting.message ? <p>Message: {item.gifting.message}</p> : null}
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className={styles.itemActions}>

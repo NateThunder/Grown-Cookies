@@ -43,6 +43,10 @@ type OrderNotificationItemRow = {
   line_total_cents: number;
   is_gift_card: number | null;
   gift_card_code: string | null;
+  gifting_card_id: string | null;
+  gifting_card_label: string | null;
+  gifting_card_price_cents: number | null;
+  gifting_message: string | null;
 };
 
 function normalizeText(value: unknown) {
@@ -97,6 +101,34 @@ function isGiftCardItem(item: OrderNotificationItemRow) {
   return Boolean(item.is_gift_card) || normalizeText(item.product_slug) === "gift-card";
 }
 
+function getGiftingTextLines(item: OrderNotificationItemRow, currency: string) {
+  const cardLabel = normalizeText(item.gifting_card_label);
+
+  if (!cardLabel) {
+    return [];
+  }
+
+  const cardPriceCents = Math.max(0, Number(item.gifting_card_price_cents ?? 0));
+  const cardPriceLabel =
+    cardPriceCents > 0 ? ` (+${formatMoney(cardPriceCents, currency)})` : " (included)";
+  const message = normalizeText(item.gifting_message);
+
+  return [
+    `Gift: ${cardLabel}${cardPriceLabel}`,
+    ...(message ? [`Message: ${message}`] : []),
+  ];
+}
+
+function getGiftingHtml(item: OrderNotificationItemRow, currency: string) {
+  const lines = getGiftingTextLines(item, currency);
+
+  if (lines.length === 0) {
+    return "";
+  }
+
+  return lines.map((line) => `<br /><span>${escapeHtml(line)}</span>`).join("");
+}
+
 function getOrderDeliveryLabel(
   order: OrderNotificationOrderRow,
   items: OrderNotificationItemRow[],
@@ -143,6 +175,8 @@ function formatOrderItemText(item: OrderNotificationItemRow, currency: string) {
   const quantity = Number.isFinite(item.quantity) ? item.quantity : 0;
   const unitPrice = formatMoney(item.unit_price_cents, currency);
   const lineTotal = formatMoney(item.line_total_cents, currency);
+  const giftingLines = getGiftingTextLines(item, currency);
+  const giftingText = giftingLines.length > 0 ? `\n  ${giftingLines.join("\n  ")}` : "";
 
   if (isGiftCardItem(item)) {
     const giftCardCode = normalizeText(item.gift_card_code);
@@ -151,12 +185,13 @@ function formatOrderItemText(item: OrderNotificationItemRow, currency: string) {
       : `${item.product_name} - ${lineTotal}`;
   }
 
-  return `${quantity} x ${item.product_name} - ${unitPrice} each - ${lineTotal}`;
+  return `${quantity} x ${item.product_name} - ${unitPrice} each - ${lineTotal}${giftingText}`;
 }
 
 function formatOrderItemHtml(item: OrderNotificationItemRow, currency: string) {
   const quantity = Number.isFinite(item.quantity) ? item.quantity : 0;
   const lineTotal = escapeHtml(formatMoney(item.line_total_cents, currency));
+  const giftingHtml = getGiftingHtml(item, currency);
 
   if (isGiftCardItem(item)) {
     const giftCardCode = normalizeText(item.gift_card_code);
@@ -168,7 +203,7 @@ function formatOrderItemHtml(item: OrderNotificationItemRow, currency: string) {
 
   const name = escapeHtml(`${quantity} x ${item.product_name}`);
   const unitPrice = escapeHtml(formatMoney(item.unit_price_cents, currency));
-  return `<li>${name}<br /><span>Unit price: ${unitPrice}</span><br /><strong>Line total: ${lineTotal}</strong></li>`;
+  return `<li>${name}<br /><span>Unit price: ${unitPrice}</span>${giftingHtml}<br /><strong>Line total: ${lineTotal}</strong></li>`;
 }
 
 function formatOrderDateTime(value: string) {
@@ -313,7 +348,11 @@ async function getOrderItemsForNotification(orderPublicId: string) {
        item.unit_price_cents,
        item.line_total_cents,
        product.is_gift_card,
-       card.code AS gift_card_code
+       card.code AS gift_card_code,
+       item.gifting_card_id,
+       item.gifting_card_label,
+       item.gifting_card_price_cents,
+       item.gifting_message
      FROM order_items item
      INNER JOIN orders ord ON ord.id = item.order_id
      LEFT JOIN products product ON product.slug = item.product_slug
@@ -528,12 +567,7 @@ function buildDeliveredOrderEmail(
   const customerName = [order.first_name, order.last_name].map(normalizeText).filter(Boolean).join(" ");
   const addressLines = buildAddressLines(order);
   const dispatch = getOrderDispatchLabel(order, items);
-  const itemLines = items.map((item) => {
-    const quantity = Number.isFinite(item.quantity) ? item.quantity : 0;
-    const unitPrice = formatMoney(item.unit_price_cents, order.currency);
-    const lineTotal = formatMoney(item.line_total_cents, order.currency);
-    return `${quantity} x ${item.product_name} - ${unitPrice} each - ${lineTotal}`;
-  });
+  const itemLines = items.map((item) => formatOrderItemText(item, order.currency));
   const deliveredAt = normalizeText(order.delivered_at);
   const deliveredAtLabel = deliveredAt ? formatOrderDateTime(deliveredAt) : "Just now";
   const placedAtLabel = formatOrderDateTime(order.created_at);
@@ -571,13 +605,7 @@ function buildDeliveredOrderEmail(
   ];
 
   const htmlItems = items
-    .map((item) => {
-      const quantity = Number.isFinite(item.quantity) ? item.quantity : 0;
-      const name = escapeHtml(`${quantity} x ${item.product_name}`);
-      const unitPrice = escapeHtml(formatMoney(item.unit_price_cents, order.currency));
-      const lineTotal = escapeHtml(formatMoney(item.line_total_cents, order.currency));
-      return `<li>${name}<br /><span>Unit price: ${unitPrice}</span><br /><strong>Line total: ${lineTotal}</strong></li>`;
-    })
+    .map((item) => formatOrderItemHtml(item, order.currency))
     .join("");
   const htmlAddress = (addressLines.length > 0 ? addressLines : ["Not provided"])
     .map((line) => escapeHtml(line))

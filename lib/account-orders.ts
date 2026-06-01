@@ -27,6 +27,12 @@ export type AccountOrderItem = {
   quantity: number;
   unitPriceCents: number;
   lineTotalCents: number;
+  gifting?: {
+    cardId: string;
+    cardLabel: string;
+    cardPriceCents: number;
+    message: string;
+  };
 };
 
 type AccountOrderRow = {
@@ -58,6 +64,10 @@ type AccountOrderItemRow = {
   line_total_cents: number | null;
   image_path: string | null;
   image_alt: string | null;
+  gifting_card_id: string | null;
+  gifting_card_label: string | null;
+  gifting_card_price_cents: number | null;
+  gifting_message: string | null;
 };
 
 function normalizeText(value: string | null | undefined) {
@@ -94,6 +104,7 @@ function parseOrderItems(itemsJson: string | null | undefined): AccountOrderItem
           quantity?: unknown;
           unitPriceCents?: unknown;
           lineTotalCents?: unknown;
+          gifting?: unknown;
         };
 
         const name = normalizeText(typeof item.name === "string" ? item.name : null);
@@ -110,6 +121,38 @@ function parseOrderItems(itemsJson: string | null | undefined): AccountOrderItem
           quantity: Math.max(0, normalizeInteger(item.quantity)),
           unitPriceCents: Math.max(0, normalizeInteger(item.unitPriceCents)),
           lineTotalCents: Math.max(0, normalizeInteger(item.lineTotalCents)),
+          ...(item.gifting && typeof item.gifting === "object"
+            ? (() => {
+                const gifting = item.gifting as {
+                  cardId?: unknown;
+                  cardLabel?: unknown;
+                  cardPriceCents?: unknown;
+                  message?: unknown;
+                };
+                const cardId = normalizeText(
+                  typeof gifting.cardId === "string" ? gifting.cardId : null,
+                );
+                const cardLabel = normalizeText(
+                  typeof gifting.cardLabel === "string" ? gifting.cardLabel : null,
+                );
+
+                return cardId && cardLabel
+                  ? {
+                      gifting: {
+                        cardId,
+                        cardLabel,
+                        cardPriceCents: Math.max(
+                          0,
+                          normalizeInteger(gifting.cardPriceCents),
+                        ),
+                        message: normalizeText(
+                          typeof gifting.message === "string" ? gifting.message : null,
+                        ),
+                      },
+                    }
+                  : {};
+              })()
+            : {}),
         };
       })
       .filter((item): item is AccountOrderItem => item !== null);
@@ -133,6 +176,16 @@ function mapItemRow(row: AccountOrderItemRow): AccountOrderItem | null {
     quantity: Math.max(0, normalizeInteger(row.quantity)),
     unitPriceCents: Math.max(0, normalizeInteger(row.unit_price_cents)),
     lineTotalCents: Math.max(0, normalizeInteger(row.line_total_cents)),
+    ...(normalizeText(row.gifting_card_id) && normalizeText(row.gifting_card_label)
+      ? {
+          gifting: {
+            cardId: normalizeText(row.gifting_card_id),
+            cardLabel: normalizeText(row.gifting_card_label),
+            cardPriceCents: Math.max(0, normalizeInteger(row.gifting_card_price_cents)),
+            message: normalizeText(row.gifting_message),
+          },
+        }
+      : {}),
   };
 }
 
@@ -151,7 +204,11 @@ async function getOrderItemsByOrderId(orderIds: number[]) {
        oi.quantity,
        oi.line_total_cents,
        p.image_path,
-       p.alt_text AS image_alt
+       p.alt_text AS image_alt,
+       oi.gifting_card_id,
+       oi.gifting_card_label,
+       oi.gifting_card_price_cents,
+       oi.gifting_message
      FROM order_items oi
      LEFT JOIN products p ON p.slug = oi.product_slug
      WHERE oi.order_id IN (${placeholders})

@@ -134,12 +134,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
           <hr className={styles.divider} />
 
           {product.isGiftCard ? null : (
-            <>
-              <p className={styles.optionLabel}>Box Size</p>
-              <button type="button" className={styles.optionButton}>
-                6 Cookies
-              </button>
-            </>
+            <p className={styles.optionInline}>
+              <span className={styles.optionLabel}>Box Size:</span>
+              <strong>6 cookies</strong>
+            </p>
           )}
 
           <ProductBasketControls

@@ -241,6 +241,22 @@ export default function AdminOrdersTable({ orders }: AdminOrdersTableProps) {
                                 ? ` at ${formatAdminCurrency(item.unitPriceCents, selectedOrder.currency)} each`
                                 : ""}
                             </span>
+                            {item.gifting ? (
+                              <>
+                                <span>
+                                  Gift: {item.gifting.cardLabel}
+                                  {item.gifting.cardPriceCents > 0
+                                    ? ` (+${formatAdminCurrency(
+                                        item.gifting.cardPriceCents,
+                                        selectedOrder.currency,
+                                      )})`
+                                    : " (included)"}
+                                </span>
+                                {item.gifting.message ? (
+                                  <span>Message: {item.gifting.message}</span>
+                                ) : null}
+                              </>
+                            ) : null}
                           </div>
                           <strong className={styles.priceCell}>
                             {formatAdminCurrency(

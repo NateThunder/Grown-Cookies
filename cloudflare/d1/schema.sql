@@ -63,6 +63,10 @@ CREATE TABLE IF NOT EXISTS order_items (
   unit_price_cents INTEGER NOT NULL,
   quantity INTEGER NOT NULL,
   line_total_cents INTEGER NOT NULL,
+  gifting_card_id TEXT,
+  gifting_card_label TEXT,
+  gifting_card_price_cents INTEGER,
+  gifting_message TEXT,
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 );
 

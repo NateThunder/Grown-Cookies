@@ -670,11 +670,16 @@ function buildExpressShipping(
 
 function buildExpressLineItems(quote: BasketQuote) {
   const lineItems = quote.lines.map((line) => ({
-    name: line.isGiftCard
-      ? `${line.name} ${formatGiftCardAmount(line.unitPriceCents)}`
-      : line.quantity > 1
-        ? `${line.name} x${line.quantity}`
-        : line.name,
+    name: [
+      line.isGiftCard
+        ? `${line.name} ${formatGiftCardAmount(line.unitPriceCents)}`
+        : line.quantity > 1
+          ? `${line.name} x${line.quantity}`
+          : line.name,
+      line.gifting ? line.gifting.cardLabel : "",
+    ]
+      .filter(Boolean)
+      .join(" + "),
     amount: line.lineTotalCents,
   }));
 
@@ -1291,6 +1296,7 @@ function PaymentElementForm({
 
 export default function CheckoutClient() {
   const [items, setItems] = useState<BasketStoredItem[]>([]);
+  const [hasHydratedBasket, setHasHydratedBasket] = useState(false);
   const [dispatchSelection, setDispatchSelection] = useState<DispatchSelection | null>(null);
   const [quote, setQuote] = useState<BasketQuote | null>(null);
   const [quoteError, setQuoteError] = useState("");
@@ -1506,6 +1512,7 @@ export default function CheckoutClient() {
     const handleUpdate = () => refresh();
 
     refresh();
+    setHasHydratedBasket(true);
     window.addEventListener("storage", handleUpdate);
     window.addEventListener(BASKET_UPDATED_EVENT, handleUpdate);
 
@@ -1808,6 +1815,7 @@ export default function CheckoutClient() {
     isDigitalOnly || (quote?.dispatchDate && dispatchSelection?.dispatchDate === quote.dispatchDate)
       ? dispatchSelection
       : null;
+  const subtotalCents = quote?.subtotalCents ?? 0;
   const shippingCents = quote?.shippingCents ?? 0;
   const tipCents = quote?.tipCents ?? 0;
   const totalCents = quote?.totalCents ?? 0;
@@ -1829,7 +1837,12 @@ export default function CheckoutClient() {
     <section className={styles.checkout}>
       <div className={styles.columns}>
         <div className={styles.formColumn}>
-          {items.length === 0 ? (
+          {!hasHydratedBasket ? (
+            <div className={`${styles.emptyState} whiteFrame`}>
+              <h1>Loading your basket</h1>
+              <p>Checking your saved basket before checkout.</p>
+            </div>
+          ) : items.length === 0 ? (
             <div className={`${styles.emptyState} whiteFrame`}>
               <h1>Your basket is empty</h1>
               <p>Add some cookies to your basket before heading to checkout.</p>
@@ -2307,6 +2320,7 @@ export default function CheckoutClient() {
           )}
         </div>
 
+        {hasHydratedBasket && items.length > 0 ? (
         <aside className={styles.summaryColumn}>
           <div className={styles.summaryInner}>
             <ul className={styles.summaryItems}>
@@ -2354,6 +2368,15 @@ export default function CheckoutClient() {
                         ? `Gift card value: ${formatGiftCardAmount(item.unitPriceCents)}`
                         : `${item.quantity} ${item.quantity === 1 ? "cookie" : "cookies"}`}
                     </span>
+                    {item.gifting ? (
+                      <span className={styles.summaryGiftText}>
+                        Gift: {item.gifting.cardLabel}
+                        {item.gifting.cardPriceCents > 0
+                          ? ` (+${formatPriceFromCents(item.gifting.cardPriceCents)})`
+                          : " (included)"}
+                        {item.gifting.message ? ` - ${item.gifting.message}` : ""}
+                      </span>
+                    ) : null}
                   </div>
 
                   <strong>{formatPriceFromCents(item.lineTotalCents)}</strong>
@@ -2362,6 +2385,10 @@ export default function CheckoutClient() {
             </ul>
 
             <dl className={styles.totals}>
+              <div className={styles.mobileSubtotalRow}>
+                <dt>Subtotal</dt>
+                <dd>{formatPriceFromCents(subtotalCents)}</dd>
+              </div>
               <div>
                 <dt>{isDigitalOnly ? "Digital delivery" : "Delivery fee"}</dt>
                 <dd>{isDigitalOnly ? "Email" : formatPriceFromCents(shippingCents)}</dd>
@@ -2393,6 +2420,7 @@ export default function CheckoutClient() {
             </div>
           </div>
         </aside>
+        ) : null}
       </div>
     </section>
   );

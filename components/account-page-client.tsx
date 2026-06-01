@@ -1297,6 +1297,22 @@ export default function AccountPageClient() {
                                   ? ` · ${formatMoney(item.unitPriceCents, order.currency)} each`
                                   : ""}
                               </p>
+                              {item.gifting ? (
+                                <div className={styles.orderItemGift}>
+                                  <p>
+                                    Gift: {item.gifting.cardLabel}
+                                    {item.gifting.cardPriceCents > 0
+                                      ? ` (+${formatMoney(
+                                          item.gifting.cardPriceCents,
+                                          order.currency,
+                                        )})`
+                                      : " (included)"}
+                                  </p>
+                                  {item.gifting.message ? (
+                                    <p>Message: {item.gifting.message}</p>
+                                  ) : null}
+                                </div>
+                              ) : null}
                             </div>
                             <p className={styles.orderItemTotal}>
                               {formatMoney(getOrderItemSubtotal(item), order.currency)}

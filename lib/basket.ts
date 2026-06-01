@@ -1,10 +1,16 @@
 import type { DispatchMethod } from "@/lib/dispatch";
+import {
+  normalizeBasketLineGifting,
+  type BasketLineGifting,
+  type ResolvedBasketLineGifting,
+} from "@/lib/gifting";
 
 export type BasketStoredItem = {
   lineId: string;
   slug: string;
   quantity: number;
   giftCardAmountCents?: number;
+  gifting?: BasketLineGifting;
 };
 
 export const TIP_PRESET_OPTIONS = [10, 15, 20] as const;
@@ -32,6 +38,7 @@ export type BasketQuoteLine = {
   unitPriceCents: number;
   quantity: number;
   lineTotalCents: number;
+  gifting?: ResolvedBasketLineGifting;
 };
 
 export type BasketGiftCardApplication = {
@@ -101,6 +108,9 @@ export function normalizeStoredBasketItems(raw: unknown) {
       const giftCardAmountCents = hasGiftCardAmount
         ? normalizeStrictInteger(rawGiftCardAmountCents)
         : 0;
+      const gifting = normalizeBasketLineGifting(
+        (item as { gifting?: unknown }).gifting,
+      );
 
       if (!slug || quantity <= 0) {
         return null;
@@ -116,6 +126,7 @@ export function normalizeStoredBasketItems(raw: unknown) {
         slug,
         quantity: giftCardAmountCents > 0 ? 1 : Math.floor(quantity),
         ...(hasGiftCardAmount ? { giftCardAmountCents } : {}),
+        ...(gifting ? { gifting } : {}),
       };
     })
     .filter((item): item is BasketStoredItem => item !== null);

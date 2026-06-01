@@ -637,6 +637,20 @@
   line-height: 1.5;
 }
 
+.orderItemGift {
+  display: grid;
+  gap: 3px;
+  margin-top: 8px;
+  color: #5c495f;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.orderItemGift p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .orderTopRow,
 .orderMetaGrid {
   display: flex;

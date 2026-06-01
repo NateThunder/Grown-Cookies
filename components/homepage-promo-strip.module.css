@@ -775,12 +775,16 @@
   }
 
   .benefitItem {
+    align-items: start;
+    grid-template-columns: 1.2rem minmax(0, 1fr);
+    gap: 0.58rem;
     font-size: 0.86rem;
     line-height: 1.26;
   }
 
   .benefitIcon {
-    width: 1.65rem;
+    width: 1.2rem;
+    margin-top: 0.18rem;
     text-align: center;
   }
 
