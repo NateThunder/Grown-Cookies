@@ -105,17 +105,20 @@
   text-transform: uppercase;
 }
 
-.optionButton {
-  width: 100%;
-  min-height: 3.5rem;
-  border: 1px solid rgba(87, 31, 108, 0.12);
-  border-radius: 999px;
-  background: rgba(255, 248, 241, 0.92);
+.optionInline {
+  margin: 0 0 0.85rem;
   color: var(--public-ink);
   font-family: var(--font-public-ui);
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 700;
-  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.optionInline strong {
+  font-size: 1rem;
+  text-transform: lowercase;
 }
 
 .descriptionBlock {

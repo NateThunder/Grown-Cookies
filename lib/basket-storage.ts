@@ -1,4 +1,5 @@
 import { normalizeStoredBasketItems, type BasketStoredItem } from "@/lib/basket";
+import { normalizeBasketLineGifting, type BasketLineGifting } from "@/lib/gifting";
 
 const BASKET_STORAGE_KEY = "grown-cookies-basket";
 export const BASKET_UPDATED_EVENT = "grown-cookies:basket-updated";
@@ -52,15 +53,36 @@ export function getBasketQuantity() {
   return getBasket().reduce((total, item) => total + item.quantity, 0);
 }
 
-export function addToBasket(slug: string, quantity: number) {
+export function addToBasket(
+  slug: string,
+  quantity: number,
+  gifting?: BasketLineGifting | null,
+) {
   const nextQuantity = Math.floor(quantity);
 
   if (!Number.isFinite(nextQuantity) || nextQuantity <= 0) {
     return;
   }
 
+  const normalizedGifting = normalizeBasketLineGifting(gifting);
   const current = getBasket();
-  const existing = current.find((item) => item.slug === slug && !item.giftCardAmountCents);
+
+  if (normalizedGifting) {
+    writeBasketRaw([
+      ...current,
+      {
+        lineId: createBasketLineId(slug),
+        slug,
+        quantity: nextQuantity,
+        gifting: normalizedGifting,
+      },
+    ]);
+    return;
+  }
+
+  const existing = current.find(
+    (item) => item.slug === slug && !item.giftCardAmountCents && !item.gifting,
+  );
 
   const next = existing
     ? current.map((item) =>
@@ -100,7 +122,7 @@ export function setBasketQuantity(slug: string, quantity: number) {
   }
 
   const next = getBasket().map((item) =>
-    item.slug === slug && !item.giftCardAmountCents
+    item.slug === slug && !item.giftCardAmountCents && !item.gifting
       ? { ...item, quantity: nextQuantity }
       : item,
   );

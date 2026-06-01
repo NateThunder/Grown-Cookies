@@ -177,6 +177,21 @@
   font-weight: 600;
 }
 
+.itemGifting {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.65rem;
+  color: var(--public-ink-soft);
+  font-family: var(--font-public-ui);
+  font-size: 0.88rem;
+  line-height: 1.42;
+}
+
+.itemGifting p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .itemActions {
   width: 100%;
   margin-top: 1rem;

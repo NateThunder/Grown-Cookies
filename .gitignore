@@ -47,6 +47,7 @@ yarn-error.log*
 
 # local dev logs
 .next-dev*.log
+/output/
 
 # local database files
 Products.db

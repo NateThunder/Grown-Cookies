@@ -42,6 +42,12 @@ export type AdminOrderItem = {
   quantity: number;
   unitPriceCents: number;
   lineTotalCents: number;
+  gifting?: {
+    cardId: string;
+    cardLabel: string;
+    cardPriceCents: number;
+    message: string;
+  };
 };
 
 export type AdminOrderGiftCardRedemption = {
@@ -88,6 +94,10 @@ type AdminOrderItemRow = {
   unit_price_cents: number | null;
   quantity: number | null;
   line_total_cents: number | null;
+  gifting_card_id: string | null;
+  gifting_card_label: string | null;
+  gifting_card_price_cents: number | null;
+  gifting_message: string | null;
 };
 
 function normalizeText(value: unknown) {
@@ -134,6 +144,16 @@ function mapOrderItemRow(row: AdminOrderItemRow): AdminOrderItem | null {
     quantity: Math.max(0, normalizeInteger(row.quantity)),
     unitPriceCents: Math.max(0, normalizeInteger(row.unit_price_cents)),
     lineTotalCents: Math.max(0, normalizeInteger(row.line_total_cents)),
+    ...(normalizeText(row.gifting_card_id) && normalizeText(row.gifting_card_label)
+      ? {
+          gifting: {
+            cardId: normalizeText(row.gifting_card_id),
+            cardLabel: normalizeText(row.gifting_card_label),
+            cardPriceCents: Math.max(0, normalizeInteger(row.gifting_card_price_cents)),
+            message: normalizeText(row.gifting_message),
+          },
+        }
+      : {}),
   };
 }
 
@@ -150,7 +170,11 @@ async function getOrderItemsByOrderId(orderIds: number[]) {
        product_name,
        unit_price_cents,
        quantity,
-       line_total_cents
+       line_total_cents,
+       gifting_card_id,
+       gifting_card_label,
+       gifting_card_price_cents,
+       gifting_message
      FROM order_items
      WHERE order_id IN (${placeholders})
      ORDER BY order_id ASC, id ASC`,

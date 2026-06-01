@@ -198,6 +198,28 @@ async function ensureOrderTableColumns() {
   }
 }
 
+async function ensureOrderItemTableColumns() {
+  const orderItemColumns = await getTableColumnNames("order_items");
+
+  if (!orderItemColumns.has("gifting_card_id")) {
+    await executeCloudflareD1("ALTER TABLE order_items ADD COLUMN gifting_card_id TEXT");
+  }
+
+  if (!orderItemColumns.has("gifting_card_label")) {
+    await executeCloudflareD1("ALTER TABLE order_items ADD COLUMN gifting_card_label TEXT");
+  }
+
+  if (!orderItemColumns.has("gifting_card_price_cents")) {
+    await executeCloudflareD1(
+      "ALTER TABLE order_items ADD COLUMN gifting_card_price_cents INTEGER",
+    );
+  }
+
+  if (!orderItemColumns.has("gifting_message")) {
+    await executeCloudflareD1("ALTER TABLE order_items ADD COLUMN gifting_message TEXT");
+  }
+}
+
 async function ensureCustomerProfileTableColumns() {
   const profileColumns = await getTableColumnNames("customer_profiles");
 
@@ -253,6 +275,10 @@ export async function ensureCustomerAccountSchema() {
            unit_price_cents INTEGER NOT NULL,
            quantity INTEGER NOT NULL,
            line_total_cents INTEGER NOT NULL,
+           gifting_card_id TEXT,
+           gifting_card_label TEXT,
+           gifting_card_price_cents INTEGER,
+           gifting_message TEXT,
            FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
          )`,
       );
@@ -269,6 +295,7 @@ export async function ensureCustomerAccountSchema() {
       );
 
       await ensureOrderTableColumns();
+      await ensureOrderItemTableColumns();
 
       await executeCloudflareD1(
         `CREATE TABLE IF NOT EXISTS customer_profiles (

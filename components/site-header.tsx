@@ -96,7 +96,7 @@ export default async function SiteHeader({
                 <SearchModalTrigger products={products} />
               </div>
               <HeaderAccountLink />
-              <BasketLink position="both" />
+              <BasketLink position="top" renderDrawer={false} triggerGlobalDrawer />
             </div>
           </div>
         </div>

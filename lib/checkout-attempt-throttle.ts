@@ -122,12 +122,16 @@ function getBasketFingerprint(items: BasketStoredItem[]) {
       giftCardAmountCents: Number.isFinite(item.giftCardAmountCents)
         ? item.giftCardAmountCents
         : 0,
+      giftingCardId: normalizeText(item.gifting?.cardId),
+      giftingMessage: normalizeText(item.gifting?.message),
     }))
     .filter((item) => item.slug && item.quantity > 0)
     .sort(
       (left, right) =>
         left.slug.localeCompare(right.slug) ||
         (left.giftCardAmountCents ?? 0) - (right.giftCardAmountCents ?? 0) ||
+        left.giftingCardId.localeCompare(right.giftingCardId) ||
+        left.giftingMessage.localeCompare(right.giftingMessage) ||
         left.quantity - right.quantity,
     )
     .map((item) => {
@@ -135,7 +139,7 @@ function getBasketFingerprint(items: BasketStoredItem[]) {
 
       return giftCardAmountCents > 0
         ? `${item.slug}:${giftCardAmountCents}:1`
-        : `${item.slug}:${item.quantity}`;
+        : `${item.slug}:${item.quantity}:${item.giftingCardId}:${item.giftingMessage}`;
     })
     .join("|");
 }

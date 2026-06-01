@@ -316,9 +316,13 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
          product_name,
          unit_price_cents,
          quantity,
-         line_total_cents
+         line_total_cents,
+         gifting_card_id,
+         gifting_card_label,
+         gifting_card_price_cents,
+         gifting_message
        )
-       VALUES ${quote.lines.map(() => "(?, ?, ?, ?, ?, ?)").join(", ")}`,
+       VALUES ${quote.lines.map(() => "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", ")}`,
       quote.lines.flatMap((line) => [
         orderId,
         line.slug,
@@ -326,6 +330,10 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
         line.unitPriceCents,
         line.quantity,
         line.lineTotalCents,
+        line.gifting?.cardId ?? null,
+        line.gifting?.cardLabel ?? null,
+        line.gifting?.cardPriceCents ?? null,
+        line.gifting?.message ?? null,
       ]),
     );
   }

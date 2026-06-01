@@ -19,6 +19,7 @@ import {
 } from "@/lib/dispatch-availability";
 import { validateGiftCardAmountCents } from "@/lib/gift-card-amounts";
 import { getPublicGiftCardApplicationsForQuote, parseGiftCardCodes } from "@/lib/gift-cards";
+import { resolveBasketLineGifting } from "@/lib/gifting";
 import { getAllProducts } from "@/lib/products";
 import { getDeliveryCostCents, getDispatchSettings } from "@/lib/store-settings";
 
@@ -152,6 +153,10 @@ export async function buildCheckoutQuote({
     }
 
     if (product.isGiftCard) {
+      if (item.gifting) {
+        throw new Error("Gift options are only valid for cookie products.");
+      }
+
       if (!hasGiftCardAmount) {
         throw new Error("Select a gift card amount before checkout.");
       }
@@ -179,6 +184,32 @@ export async function buildCheckoutQuote({
 
     if (hasGiftCardAmount) {
       throw new Error("Gift card amount is only valid for gift card products.");
+    }
+
+    const gifting = resolveBasketLineGifting(item.gifting);
+
+    if (gifting) {
+      const unitPriceCents = parsePriceToMinorUnits(product.price);
+      const productTotalCents = unitPriceCents * quantity;
+      const lineTotalCents = productTotalCents + gifting.cardPriceCents;
+
+      if (!Number.isFinite(unitPriceCents) || lineTotalCents < 0) {
+        throw new Error("Invalid product price.");
+      }
+
+      lines.push({
+        lineId,
+        slug,
+        name: product.name,
+        image: product.image,
+        imageAlt: product.imageAlt,
+        isGiftCard: false,
+        unitPriceCents,
+        quantity,
+        lineTotalCents,
+        gifting,
+      });
+      continue;
     }
 
     const existing = standardItems.get(slug);
