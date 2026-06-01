@@ -1,13 +1,22 @@
 import AdminLoginScreen from "@/components/admin-login-screen";
 import AdminShell, { AdminD1RequiredState } from "@/components/admin-shell";
 import {
+  DEFAULT_DELIVERY_BANNER_ICON,
+  DEFAULT_DELIVERY_BANNER_TEXT,
   DEFAULT_DELIVERY_COST_CENTS,
+  DELIVERY_BANNER_ICON_OPTIONS,
+  DELIVERY_BANNER_TEXT_MAX_LENGTH,
+  getDeliveryBannerSetting,
   getDeliveryCostSetting,
   getDispatchSettings,
 } from "@/lib/store-settings";
 import { formatDispatchDate } from "@/lib/dispatch";
 import { getAvailableDispatchDatesWithHolidayExclusions } from "@/lib/dispatch-availability";
-import { updateDeliveryCostAction, updateDispatchSettingsAction } from "../actions";
+import {
+  updateDeliveryBannerAction,
+  updateDeliveryCostAction,
+  updateDispatchSettingsAction,
+} from "../actions";
 import { getAdminPageContext } from "../admin-page-context";
 import { formatAdminCurrency, formatAdminDate, type SearchParamValue } from "../admin-ui";
 import styles from "../page.module.css";
@@ -17,6 +26,12 @@ export const dynamic = "force-dynamic";
 
 type DeliveryAdminPageProps = {
   searchParams: Promise<Record<string, SearchParamValue>>;
+};
+
+const DELIVERY_BANNER_ICON_LABELS: Record<(typeof DELIVERY_BANNER_ICON_OPTIONS)[number], string> = {
+  truck: "Truck",
+  clock: "Clock",
+  gift: "Gift",
 };
 
 export default async function DeliveryAdminPage({ searchParams }: DeliveryAdminPageProps) {
@@ -42,6 +57,14 @@ export default async function DeliveryAdminPage({ searchParams }: DeliveryAdminP
         updatedAt: undefined,
       };
   const dispatchSettings = context.d1Configured ? await getDispatchSettings() : undefined;
+  const deliveryBannerSetting = context.d1Configured
+    ? await getDeliveryBannerSetting()
+    : {
+        text: DEFAULT_DELIVERY_BANNER_TEXT,
+        icon: DEFAULT_DELIVERY_BANNER_ICON,
+        isDefault: true,
+        updatedAt: undefined,
+      };
   const dispatchPreviewDates = dispatchSettings
     ? await getAvailableDispatchDatesWithHolidayExclusions(dispatchSettings, { limit: 8 })
     : [];
@@ -216,6 +239,60 @@ export default async function DeliveryAdminPage({ searchParams }: DeliveryAdminP
                 </div>
               </section>
             ) : null}
+
+            <section className={styles.settingsPanel}>
+              <div className={styles.settingsPanelHeader}>
+                <div>
+                  <p className={styles.tableEyebrow}>Announcement</p>
+                  <h2>Delivery banner</h2>
+                </div>
+                <p className={styles.tableHint}>
+                  Edit the message and icon in the public header banner.
+                </p>
+              </div>
+
+              <div className={styles.deliveryCardBody}>
+                <div className={styles.deliverySummary}>
+                  <span>Current banner</span>
+                  <strong>{deliveryBannerSetting.text}</strong>
+                  <small>
+                    {deliveryBannerSetting.isDefault
+                      ? `Icon: ${DELIVERY_BANNER_ICON_LABELS[deliveryBannerSetting.icon]}. Using the default banner until you save changes.`
+                      : `Icon: ${DELIVERY_BANNER_ICON_LABELS[deliveryBannerSetting.icon]}. Last updated ${formatAdminDate(deliveryBannerSetting.updatedAt)}`}
+                  </small>
+                </div>
+
+                <form action={updateDeliveryBannerAction} className={styles.deliveryForm}>
+                  <input type="hidden" name="returnPath" value="/admin/delivery" />
+
+                  <label className={styles.deliveryField}>
+                    <span>Banner text</span>
+                    <input
+                      name="deliveryBannerText"
+                      type="text"
+                      maxLength={DELIVERY_BANNER_TEXT_MAX_LENGTH}
+                      defaultValue={deliveryBannerSetting.text}
+                      required
+                    />
+                  </label>
+
+                  <label className={styles.deliveryField}>
+                    <span>Banner icon</span>
+                    <select name="deliveryBannerIcon" defaultValue={deliveryBannerSetting.icon} required>
+                      {DELIVERY_BANNER_ICON_OPTIONS.map((icon) => (
+                        <option key={icon} value={icon}>
+                          {DELIVERY_BANNER_ICON_LABELS[icon]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <button type="submit" className={styles.deliverySaveButton}>
+                    Save delivery banner
+                  </button>
+                </form>
+              </div>
+            </section>
           </div>
         </section>
       )}

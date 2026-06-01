@@ -523,6 +523,7 @@
 }
 
 .deliveryField input,
+.deliveryField select,
 .settingsTextarea {
   width: 100%;
   box-sizing: border-box;
@@ -534,6 +535,7 @@
 }
 
 .deliveryField input:focus,
+.deliveryField select:focus,
 .settingsTextarea:focus {
   outline: none;
   border-color: rgba(108, 29, 88, 0.45);
