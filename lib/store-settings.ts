@@ -1,6 +1,19 @@
+import { unstable_cache } from "next/cache";
 import { executeCloudflareD1, hasCloudflareD1Config, queryCloudflareD1 } from "@/lib/cloudflare-d1";
+import {
+  DEFAULT_DISPATCH_SETTINGS,
+  normalizeDispatchSettings,
+  type DispatchSettings,
+} from "@/lib/dispatch";
 
 const DELIVERY_COST_SETTING_KEY = "delivery_cost_cents";
+const DELIVERY_BANNER_TEXT_KEY = "delivery_banner_text";
+const DELIVERY_BANNER_ICON_KEY = "delivery_banner_icon";
+const DISPATCH_ENABLED_WEEKDAYS_KEY = "dispatch_enabled_weekdays";
+const DISPATCH_SAME_DAY_ENABLED_KEY = "dispatch_same_day_enabled";
+const DISPATCH_CUTOFF_TIME_KEY = "dispatch_cutoff_time";
+const DISPATCH_MINIMUM_PREP_DAYS_KEY = "dispatch_minimum_prep_days";
+const DISPATCH_BOOKING_HORIZON_DAYS_KEY = "dispatch_booking_horizon_days";
 const COOKIE_OF_MONTH_TITLE_KEY = "cookie_of_month_title";
 const COOKIE_OF_MONTH_CTA_LABEL_KEY = "cookie_of_month_cta_label";
 const COOKIE_OF_MONTH_PRODUCT_SLUG_KEY = "cookie_of_month_product_slug";
@@ -9,8 +22,21 @@ const SHOP_INTRO_TITLE_KEY = "shop_intro_title";
 const SHOP_INTRO_BODY_KEY = "shop_intro_body";
 const SHOP_INTRO_CTA_LABEL_KEY = "shop_intro_cta_label";
 const BRAND_STORY_BODY_KEY = "brand_story_body";
+const SITE_LOCK_ENABLED_KEY = "site_lock_enabled";
+const STORE_SETTINGS_TAG = "store-settings";
+const HOMEPAGE_SETTINGS_TAG = "store-settings-homepage";
+const DELIVERY_SETTINGS_TAG = "store-settings-delivery";
+const DELIVERY_BANNER_SETTINGS_TAG = "store-settings-delivery-banner";
+const DISPATCH_SETTINGS_TAG = "store-settings-dispatch";
+const SITE_LOCK_SETTINGS_TAG = "store-settings-site-lock";
+const STORE_SETTINGS_REVALIDATE_SECONDS = 300;
 
 export const DEFAULT_DELIVERY_COST_CENTS = 1000;
+export const DELIVERY_BANNER_TEXT_MAX_LENGTH = 80;
+export const DEFAULT_DELIVERY_BANNER_TEXT = "Same day dispatch on orders before 12pm";
+export const DELIVERY_BANNER_ICON_OPTIONS = ["truck", "clock", "gift"] as const;
+export type DeliveryBannerIcon = (typeof DELIVERY_BANNER_ICON_OPTIONS)[number];
+export const DEFAULT_DELIVERY_BANNER_ICON: DeliveryBannerIcon = "truck";
 export const DEFAULT_COOKIE_OF_MONTH_TITLE =
   "Our Cookie of the Month is a limited-edition artisan flavour inspired by the season, celebrating the ingredients at their best.";
 export const DEFAULT_COOKIE_OF_MONTH_CTA_LABEL = "Cookie of the Month";
@@ -30,6 +56,13 @@ type StoreSettingRow = {
   updated_at?: string;
 };
 
+type StoreSettingValueRow = Required<Pick<StoreSettingRow, "key" | "value">> & {
+  updated_at?: string;
+};
+
+let storeSettingsSchemaEnsured = false;
+let storeSettingsSchemaPromise: Promise<void> | null = null;
+
 function parseStoredDeliveryCost(value: unknown) {
   const parsed = Number.parseInt(String(value ?? ""), 10);
 
@@ -45,50 +78,386 @@ async function ensureStoreSettingsSchema() {
     return;
   }
 
-  await executeCloudflareD1(
-    `CREATE TABLE IF NOT EXISTS store_settings (
-       key TEXT PRIMARY KEY,
-       value TEXT NOT NULL,
-       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-     )`,
-  );
+  if (storeSettingsSchemaEnsured) {
+    return;
+  }
+
+  if (!storeSettingsSchemaPromise) {
+    storeSettingsSchemaPromise = (async () => {
+      await executeCloudflareD1(
+        `CREATE TABLE IF NOT EXISTS store_settings (
+           key TEXT PRIMARY KEY,
+           value TEXT NOT NULL,
+           updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+         )`,
+      );
+      storeSettingsSchemaEnsured = true;
+    })();
+  }
+
+  try {
+    await storeSettingsSchemaPromise;
+  } catch (error) {
+    storeSettingsSchemaPromise = null;
+    throw error;
+  }
 }
 
 async function getStoreSetting(key: string) {
-  await ensureStoreSettingsSchema();
+  try {
+    const rows = await queryCloudflareD1<StoreSettingRow>(
+      `SELECT value, updated_at
+       FROM store_settings
+       WHERE key = ?
+       LIMIT 1`,
+      [key],
+      { cache: "no-store" },
+    );
 
-  const rows = await queryCloudflareD1<StoreSettingRow>(
-    `SELECT value, updated_at
-     FROM store_settings
-     WHERE key = ?
-     LIMIT 1`,
-    [key],
-    { cache: "no-store" },
-  );
+    return rows[0] ?? null;
+  } catch {
+    await ensureStoreSettingsSchema();
 
-  return rows[0] ?? null;
+    const rows = await queryCloudflareD1<StoreSettingRow>(
+      `SELECT value, updated_at
+       FROM store_settings
+       WHERE key = ?
+       LIMIT 1`,
+      [key],
+      { cache: "no-store" },
+    );
+
+    return rows[0] ?? null;
+  }
 }
 
-async function getStoreSettings(keys: string[]) {
-  await ensureStoreSettingsSchema();
-
+async function getStoreSettings(keys: string[]): Promise<Map<string, StoreSettingValueRow>> {
   if (keys.length === 0) {
-    return new Map<string, StoreSettingRow>();
+    return new Map<string, StoreSettingValueRow>();
   }
 
   const placeholders = keys.map(() => "?").join(", ");
-  const rows = await queryCloudflareD1<Required<Pick<StoreSettingRow, "key" | "value">> & {
-    updated_at?: string;
-  }>(
-    `SELECT key, value, updated_at
-     FROM store_settings
-     WHERE key IN (${placeholders})`,
-    keys,
-    { cache: "no-store" },
-  );
+  try {
+    const rows = await queryCloudflareD1<StoreSettingValueRow>(
+      `SELECT key, value, updated_at
+       FROM store_settings
+       WHERE key IN (${placeholders})`,
+      keys,
+      { cache: "no-store" },
+    );
 
-  return new Map(rows.map((row) => [row.key, row]));
+    return new Map<string, StoreSettingValueRow>(rows.map((row) => [row.key, row]));
+  } catch {
+    await ensureStoreSettingsSchema();
+
+    const rows = await queryCloudflareD1<StoreSettingValueRow>(
+      `SELECT key, value, updated_at
+       FROM store_settings
+       WHERE key IN (${placeholders})`,
+      keys,
+      { cache: "no-store" },
+    );
+
+    return new Map<string, StoreSettingValueRow>(rows.map((row) => [row.key, row]));
+  }
 }
+
+type DeliveryCostSetting = {
+  deliveryCostCents: number;
+  isDefault: boolean;
+  updatedAt?: string;
+};
+
+export type DeliveryBannerSetting = {
+  text: string;
+  icon: DeliveryBannerIcon;
+  isDefault: boolean;
+  updatedAt?: string;
+};
+
+type CookieOfMonthSectionSetting = {
+  title: string;
+  ctaLabel: string;
+  productSlug?: string;
+  isDefault: boolean;
+  updatedAt?: string;
+};
+
+type ShopIntroSectionSetting = {
+  eyebrow: string;
+  title: string;
+  body: string;
+  ctaLabel: string;
+  isDefault: boolean;
+  updatedAt?: string;
+};
+
+type BrandStorySectionSetting = {
+  body: string;
+  isDefault: boolean;
+  updatedAt?: string;
+};
+
+export type SiteLockSetting = {
+  enabled: boolean;
+  isDefault: boolean;
+  updatedAt?: string;
+};
+
+export type HomepageSectionSettings = {
+  cookieOfMonth: CookieOfMonthSectionSetting;
+  shopIntro: ShopIntroSectionSetting;
+  brandStory: BrandStorySectionSetting;
+};
+
+function getLatestUpdatedAt(values: Array<string | undefined>) {
+  return values.filter((value): value is string => Boolean(value)).sort().at(-1);
+}
+
+function mapDeliveryCostSetting(row: StoreSettingRow | null): DeliveryCostSetting {
+  if (!row) {
+    return {
+      deliveryCostCents: DEFAULT_DELIVERY_COST_CENTS,
+      isDefault: true,
+    };
+  }
+
+  return {
+    deliveryCostCents: parseStoredDeliveryCost(row.value),
+    updatedAt: row.updated_at,
+    isDefault: false,
+  };
+}
+
+function isDeliveryBannerIcon(value: string): value is DeliveryBannerIcon {
+  return DELIVERY_BANNER_ICON_OPTIONS.includes(value as DeliveryBannerIcon);
+}
+
+function normalizeDeliveryBannerIcon(value: unknown) {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return isDeliveryBannerIcon(normalized) ? normalized : DEFAULT_DELIVERY_BANNER_ICON;
+}
+
+function mapDeliveryBannerSetting(
+  settings: Map<string, StoreSettingValueRow>,
+): DeliveryBannerSetting {
+  const textRow = settings.get(DELIVERY_BANNER_TEXT_KEY);
+  const iconRow = settings.get(DELIVERY_BANNER_ICON_KEY);
+  const text = textRow?.value.trim() || DEFAULT_DELIVERY_BANNER_TEXT;
+
+  return {
+    text,
+    icon: normalizeDeliveryBannerIcon(iconRow?.value),
+    isDefault: !textRow && !iconRow,
+    updatedAt: getLatestUpdatedAt([textRow?.updated_at, iconRow?.updated_at]),
+  };
+}
+
+function parseStoredWeekdays(value: unknown) {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  if (!normalized) {
+    return DEFAULT_DISPATCH_SETTINGS.enabledWeekdays;
+  }
+
+  try {
+    const parsed = JSON.parse(normalized) as unknown;
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((day) => Number.parseInt(String(day), 10))
+        .filter((day) => Number.isFinite(day));
+    }
+  } catch {
+    return normalized
+      .split(",")
+      .map((day) => Number.parseInt(day, 10))
+      .filter((day) => Number.isFinite(day));
+  }
+
+  return DEFAULT_DISPATCH_SETTINGS.enabledWeekdays;
+}
+
+function mapDispatchSettings(settings: Map<string, StoreSettingValueRow>): DispatchSettings {
+  const enabledWeekdaysRow = settings.get(DISPATCH_ENABLED_WEEKDAYS_KEY);
+  const sameDayRow = settings.get(DISPATCH_SAME_DAY_ENABLED_KEY);
+  const cutoffRow = settings.get(DISPATCH_CUTOFF_TIME_KEY);
+  const prepDaysRow = settings.get(DISPATCH_MINIMUM_PREP_DAYS_KEY);
+  const horizonRow = settings.get(DISPATCH_BOOKING_HORIZON_DAYS_KEY);
+  const isDefault = !enabledWeekdaysRow && !sameDayRow && !cutoffRow && !prepDaysRow && !horizonRow;
+
+  return normalizeDispatchSettings({
+    enabledWeekdays: enabledWeekdaysRow
+      ? parseStoredWeekdays(enabledWeekdaysRow.value)
+      : DEFAULT_DISPATCH_SETTINGS.enabledWeekdays,
+    sameDayEnabled: sameDayRow?.value === "1",
+    cutoffTime: cutoffRow?.value || DEFAULT_DISPATCH_SETTINGS.cutoffTime,
+    minimumPrepDays: prepDaysRow
+      ? Number.parseInt(prepDaysRow.value, 10)
+      : DEFAULT_DISPATCH_SETTINGS.minimumPrepDays,
+    bookingHorizonDays: horizonRow
+      ? Number.parseInt(horizonRow.value, 10)
+      : DEFAULT_DISPATCH_SETTINGS.bookingHorizonDays,
+    isDefault,
+    updatedAt: getLatestUpdatedAt([
+      enabledWeekdaysRow?.updated_at,
+      sameDayRow?.updated_at,
+      cutoffRow?.updated_at,
+      prepDaysRow?.updated_at,
+      horizonRow?.updated_at,
+    ]),
+  });
+}
+
+function mapCookieOfMonthSectionSetting(
+  settings: Map<string, StoreSettingValueRow>,
+): CookieOfMonthSectionSetting {
+  const titleRow = settings.get(COOKIE_OF_MONTH_TITLE_KEY);
+  const ctaLabelRow = settings.get(COOKIE_OF_MONTH_CTA_LABEL_KEY);
+  const productSlugRow = settings.get(COOKIE_OF_MONTH_PRODUCT_SLUG_KEY);
+
+  return {
+    title: titleRow?.value.trim() || DEFAULT_COOKIE_OF_MONTH_TITLE,
+    ctaLabel: ctaLabelRow?.value.trim() || DEFAULT_COOKIE_OF_MONTH_CTA_LABEL,
+    productSlug: productSlugRow?.value.trim() || DEFAULT_COOKIE_OF_MONTH_PRODUCT_SLUG,
+    isDefault: !titleRow && !ctaLabelRow && !productSlugRow,
+    updatedAt: getLatestUpdatedAt([
+      titleRow?.updated_at,
+      ctaLabelRow?.updated_at,
+      productSlugRow?.updated_at,
+    ]),
+  };
+}
+
+function mapShopIntroSectionSetting(
+  settings: Map<string, StoreSettingValueRow>,
+): ShopIntroSectionSetting {
+  const eyebrowRow = settings.get(SHOP_INTRO_EYEBROW_KEY);
+  const titleRow = settings.get(SHOP_INTRO_TITLE_KEY);
+  const bodyRow = settings.get(SHOP_INTRO_BODY_KEY);
+  const ctaLabelRow = settings.get(SHOP_INTRO_CTA_LABEL_KEY);
+
+  return {
+    eyebrow: eyebrowRow?.value.trim() || DEFAULT_SHOP_INTRO_EYEBROW,
+    title: titleRow?.value.trim() || DEFAULT_SHOP_INTRO_TITLE,
+    body: bodyRow?.value.trim() || DEFAULT_SHOP_INTRO_BODY,
+    ctaLabel: ctaLabelRow?.value.trim() || DEFAULT_SHOP_INTRO_CTA_LABEL,
+    isDefault: !eyebrowRow && !titleRow && !bodyRow && !ctaLabelRow,
+    updatedAt: getLatestUpdatedAt([
+      eyebrowRow?.updated_at,
+      titleRow?.updated_at,
+      bodyRow?.updated_at,
+      ctaLabelRow?.updated_at,
+    ]),
+  };
+}
+
+function mapBrandStorySectionSetting(row: StoreSettingRow | null): BrandStorySectionSetting {
+  return {
+    body: row?.value.trim() || DEFAULT_BRAND_STORY_BODY,
+    isDefault: !row,
+    updatedAt: row?.updated_at,
+  };
+}
+
+function mapSiteLockSetting(row: StoreSettingRow | null, defaultEnabled: boolean): SiteLockSetting {
+  if (!row) {
+    return {
+      enabled: defaultEnabled,
+      isDefault: true,
+      updatedAt: undefined,
+    };
+  }
+
+  return {
+    enabled: row.value.trim().toLowerCase() === "1",
+    isDefault: false,
+    updatedAt: row.updated_at,
+  };
+}
+
+const getDeliveryCostSettingCached = unstable_cache(
+  async (): Promise<DeliveryCostSetting> => {
+    const row = await getStoreSetting(DELIVERY_COST_SETTING_KEY);
+    return mapDeliveryCostSetting(row);
+  },
+  ["store-settings-delivery"],
+  {
+    revalidate: STORE_SETTINGS_REVALIDATE_SECONDS,
+    tags: [STORE_SETTINGS_TAG, DELIVERY_SETTINGS_TAG],
+  },
+);
+
+const getDeliveryBannerSettingCached = unstable_cache(
+  async (): Promise<DeliveryBannerSetting> => {
+    const settings = await getStoreSettings([
+      DELIVERY_BANNER_TEXT_KEY,
+      DELIVERY_BANNER_ICON_KEY,
+    ]);
+
+    return mapDeliveryBannerSetting(settings);
+  },
+  ["store-settings-delivery-banner"],
+  {
+    revalidate: STORE_SETTINGS_REVALIDATE_SECONDS,
+    tags: [STORE_SETTINGS_TAG, DELIVERY_BANNER_SETTINGS_TAG],
+  },
+);
+
+const getDispatchSettingsCached = unstable_cache(
+  async (): Promise<DispatchSettings> => {
+    const settings = await getStoreSettings([
+      DISPATCH_ENABLED_WEEKDAYS_KEY,
+      DISPATCH_SAME_DAY_ENABLED_KEY,
+      DISPATCH_CUTOFF_TIME_KEY,
+      DISPATCH_MINIMUM_PREP_DAYS_KEY,
+      DISPATCH_BOOKING_HORIZON_DAYS_KEY,
+    ]);
+
+    return mapDispatchSettings(settings);
+  },
+  ["store-settings-dispatch"],
+  {
+    revalidate: STORE_SETTINGS_REVALIDATE_SECONDS,
+    tags: [STORE_SETTINGS_TAG, DISPATCH_SETTINGS_TAG],
+  },
+);
+
+const getHomepageSectionSettingsCached = unstable_cache(
+  async (): Promise<HomepageSectionSettings> => {
+    const settings = await getStoreSettings([
+      COOKIE_OF_MONTH_TITLE_KEY,
+      COOKIE_OF_MONTH_CTA_LABEL_KEY,
+      COOKIE_OF_MONTH_PRODUCT_SLUG_KEY,
+      SHOP_INTRO_EYEBROW_KEY,
+      SHOP_INTRO_TITLE_KEY,
+      SHOP_INTRO_BODY_KEY,
+      SHOP_INTRO_CTA_LABEL_KEY,
+      BRAND_STORY_BODY_KEY,
+    ]);
+
+    return {
+      cookieOfMonth: mapCookieOfMonthSectionSetting(settings),
+      shopIntro: mapShopIntroSectionSetting(settings),
+      brandStory: mapBrandStorySectionSetting(settings.get(BRAND_STORY_BODY_KEY) ?? null),
+    };
+  },
+  ["store-settings-homepage"],
+  {
+    revalidate: STORE_SETTINGS_REVALIDATE_SECONDS,
+    tags: [STORE_SETTINGS_TAG, HOMEPAGE_SETTINGS_TAG],
+  },
+);
+
+const getSiteLockSettingCached = unstable_cache(
+  async (defaultEnabled: boolean): Promise<SiteLockSetting> => {
+    const row = await getStoreSetting(SITE_LOCK_ENABLED_KEY);
+    return mapSiteLockSetting(row, defaultEnabled);
+  },
+  ["store-settings-site-lock"],
+  {
+    revalidate: STORE_SETTINGS_REVALIDATE_SECONDS,
+    tags: [STORE_SETTINGS_TAG, SITE_LOCK_SETTINGS_TAG],
+  },
+);
 
 async function upsertStoreSetting(key: string, value: string) {
   await ensureStoreSettingsSchema();
@@ -115,25 +484,33 @@ export async function getDeliveryCostSetting() {
     };
   }
 
-  const row = await getStoreSetting(DELIVERY_COST_SETTING_KEY);
-
-  if (!row) {
-    return {
-      deliveryCostCents: DEFAULT_DELIVERY_COST_CENTS,
-      isDefault: true,
-    };
-  }
-
-  return {
-    deliveryCostCents: parseStoredDeliveryCost(row.value),
-    updatedAt: row.updated_at,
-    isDefault: false,
-  };
+  return getDeliveryCostSettingCached();
 }
 
 export async function getDeliveryCostCents() {
   const setting = await getDeliveryCostSetting();
   return setting.deliveryCostCents;
+}
+
+export async function getDeliveryBannerSetting() {
+  if (!hasCloudflareD1Config()) {
+    return {
+      text: DEFAULT_DELIVERY_BANNER_TEXT,
+      icon: DEFAULT_DELIVERY_BANNER_ICON,
+      isDefault: true,
+      updatedAt: undefined,
+    };
+  }
+
+  return getDeliveryBannerSettingCached();
+}
+
+export async function getDispatchSettings() {
+  if (!hasCloudflareD1Config()) {
+    return DEFAULT_DISPATCH_SETTINGS;
+  }
+
+  return getDispatchSettingsCached();
 }
 
 export async function updateDeliveryCostCents(deliveryCostCents: number) {
@@ -154,6 +531,61 @@ export async function updateDeliveryCostCents(deliveryCostCents: number) {
   };
 }
 
+export async function updateDeliveryBannerSetting({
+  text,
+  icon,
+}: {
+  text: string;
+  icon: string;
+}) {
+  if (!hasCloudflareD1Config()) {
+    throw new Error("Cloudflare D1 is not configured.");
+  }
+
+  const normalizedText = text.trim();
+  const normalizedIcon = icon.trim().toLowerCase();
+
+  if (!normalizedText) {
+    throw new Error("Enter the banner text.");
+  }
+
+  if (normalizedText.length > DELIVERY_BANNER_TEXT_MAX_LENGTH) {
+    throw new Error(`Banner text must be ${DELIVERY_BANNER_TEXT_MAX_LENGTH} characters or fewer.`);
+  }
+
+  if (!isDeliveryBannerIcon(normalizedIcon)) {
+    throw new Error("Choose a valid banner icon.");
+  }
+
+  await Promise.all([
+    upsertStoreSetting(DELIVERY_BANNER_TEXT_KEY, normalizedText),
+    upsertStoreSetting(DELIVERY_BANNER_ICON_KEY, normalizedIcon),
+  ]);
+
+  return {
+    text: normalizedText,
+    icon: normalizedIcon,
+  };
+}
+
+export async function updateDispatchSettings(settings: Partial<DispatchSettings>) {
+  if (!hasCloudflareD1Config()) {
+    throw new Error("Cloudflare D1 is not configured.");
+  }
+
+  const normalized = normalizeDispatchSettings(settings);
+
+  await Promise.all([
+    upsertStoreSetting(DISPATCH_ENABLED_WEEKDAYS_KEY, JSON.stringify(normalized.enabledWeekdays)),
+    upsertStoreSetting(DISPATCH_SAME_DAY_ENABLED_KEY, normalized.sameDayEnabled ? "1" : "0"),
+    upsertStoreSetting(DISPATCH_CUTOFF_TIME_KEY, normalized.cutoffTime),
+    upsertStoreSetting(DISPATCH_MINIMUM_PREP_DAYS_KEY, String(normalized.minimumPrepDays)),
+    upsertStoreSetting(DISPATCH_BOOKING_HORIZON_DAYS_KEY, String(normalized.bookingHorizonDays)),
+  ]);
+
+  return normalized;
+}
+
 export async function getCookieOfMonthSectionSetting() {
   if (!hasCloudflareD1Config()) {
     return {
@@ -165,32 +597,8 @@ export async function getCookieOfMonthSectionSetting() {
     };
   }
 
-  const settings = await getStoreSettings([
-    COOKIE_OF_MONTH_TITLE_KEY,
-    COOKIE_OF_MONTH_CTA_LABEL_KEY,
-    COOKIE_OF_MONTH_PRODUCT_SLUG_KEY,
-  ]);
-
-  const titleRow = settings.get(COOKIE_OF_MONTH_TITLE_KEY);
-  const ctaLabelRow = settings.get(COOKIE_OF_MONTH_CTA_LABEL_KEY);
-  const productSlugRow = settings.get(COOKIE_OF_MONTH_PRODUCT_SLUG_KEY);
-
-  const title = titleRow?.value.trim() || DEFAULT_COOKIE_OF_MONTH_TITLE;
-  const ctaLabel = ctaLabelRow?.value.trim() || DEFAULT_COOKIE_OF_MONTH_CTA_LABEL;
-  const productSlug =
-    productSlugRow?.value.trim() || DEFAULT_COOKIE_OF_MONTH_PRODUCT_SLUG;
-  const updatedAt = [titleRow?.updated_at, ctaLabelRow?.updated_at, productSlugRow?.updated_at]
-    .filter((value): value is string => Boolean(value))
-    .sort()
-    .at(-1);
-
-  return {
-    title,
-    ctaLabel,
-    productSlug,
-    isDefault: !titleRow && !ctaLabelRow && !productSlugRow,
-    updatedAt,
-  };
+  const settings = await getHomepageSectionSettingsCached();
+  return settings.cookieOfMonth;
 }
 
 export async function updateCookieOfMonthSectionSetting({
@@ -257,35 +665,8 @@ export async function getShopIntroSectionSetting() {
     };
   }
 
-  const settings = await getStoreSettings([
-    SHOP_INTRO_EYEBROW_KEY,
-    SHOP_INTRO_TITLE_KEY,
-    SHOP_INTRO_BODY_KEY,
-    SHOP_INTRO_CTA_LABEL_KEY,
-  ]);
-
-  const eyebrowRow = settings.get(SHOP_INTRO_EYEBROW_KEY);
-  const titleRow = settings.get(SHOP_INTRO_TITLE_KEY);
-  const bodyRow = settings.get(SHOP_INTRO_BODY_KEY);
-  const ctaLabelRow = settings.get(SHOP_INTRO_CTA_LABEL_KEY);
-
-  const eyebrow = eyebrowRow?.value.trim() || DEFAULT_SHOP_INTRO_EYEBROW;
-  const title = titleRow?.value.trim() || DEFAULT_SHOP_INTRO_TITLE;
-  const body = bodyRow?.value.trim() || DEFAULT_SHOP_INTRO_BODY;
-  const ctaLabel = ctaLabelRow?.value.trim() || DEFAULT_SHOP_INTRO_CTA_LABEL;
-  const updatedAt = [eyebrowRow?.updated_at, titleRow?.updated_at, bodyRow?.updated_at, ctaLabelRow?.updated_at]
-    .filter((value): value is string => Boolean(value))
-    .sort()
-    .at(-1);
-
-  return {
-    eyebrow,
-    title,
-    body,
-    ctaLabel,
-    isDefault: !eyebrowRow && !titleRow && !bodyRow && !ctaLabelRow,
-    updatedAt,
-  };
+  const settings = await getHomepageSectionSettingsCached();
+  return settings.shopIntro;
 }
 
 export async function updateShopIntroSectionSetting({
@@ -346,13 +727,49 @@ export async function getBrandStorySectionSetting() {
     };
   }
 
-  const row = await getStoreSetting(BRAND_STORY_BODY_KEY);
+  const settings = await getHomepageSectionSettingsCached();
+  return settings.brandStory;
+}
 
-  return {
-    body: row?.value.trim() || DEFAULT_BRAND_STORY_BODY,
-    isDefault: !row,
-    updatedAt: row?.updated_at,
-  };
+export async function getSiteLockSetting(defaultEnabled: boolean) {
+  if (!hasCloudflareD1Config()) {
+    return {
+      enabled: defaultEnabled,
+      isDefault: true,
+      updatedAt: undefined,
+    };
+  }
+
+  return getSiteLockSettingCached(defaultEnabled);
+}
+
+export async function getHomepageSectionSettings() {
+  if (!hasCloudflareD1Config()) {
+    return {
+      cookieOfMonth: {
+        title: DEFAULT_COOKIE_OF_MONTH_TITLE,
+        ctaLabel: DEFAULT_COOKIE_OF_MONTH_CTA_LABEL,
+        productSlug: DEFAULT_COOKIE_OF_MONTH_PRODUCT_SLUG,
+        isDefault: true,
+        updatedAt: undefined,
+      },
+      shopIntro: {
+        eyebrow: DEFAULT_SHOP_INTRO_EYEBROW,
+        title: DEFAULT_SHOP_INTRO_TITLE,
+        body: DEFAULT_SHOP_INTRO_BODY,
+        ctaLabel: DEFAULT_SHOP_INTRO_CTA_LABEL,
+        isDefault: true,
+        updatedAt: undefined,
+      },
+      brandStory: {
+        body: DEFAULT_BRAND_STORY_BODY,
+        isDefault: true,
+        updatedAt: undefined,
+      },
+    };
+  }
+
+  return getHomepageSectionSettingsCached();
 }
 
 export async function updateBrandStorySectionSetting({
@@ -374,5 +791,17 @@ export async function updateBrandStorySectionSetting({
 
   return {
     body: normalizedBody,
+  };
+}
+
+export async function updateSiteLockEnabled(enabled: boolean) {
+  if (!hasCloudflareD1Config()) {
+    throw new Error("Cloudflare D1 is not configured.");
+  }
+
+  await upsertStoreSetting(SITE_LOCK_ENABLED_KEY, enabled ? "1" : "0");
+
+  return {
+    enabled,
   };
 }
