@@ -2,7 +2,7 @@
 
 A custom Next.js storefront for Grown Cookies with product discovery, basket and Stripe checkout, customer accounts, and a lightweight admin studio.
 
-![Grown Cookies homepage](<public/growncookies.co.uk_ (1).png>)
+![Grown Cookies homepage](public/growncookies.co.uk.png)
 
 *Homepage hero and featured products from the current storefront UI.*
 
@@ -26,6 +26,33 @@ The site focuses on pretty, responsive UI design that supports the buying journe
 - Stripe for checkout and payment reconciliation
 - Cloudflare D1 for storefront data
 - Cloudflare R2 for media storage
+
+## Admin Data Map
+
+All Cloudflare D1-backed admin data uses the `DB` binding in `wrangler.toml`, which points to the D1 database `grown-cookies` with database id `8fe24791-e39c-42ea-afd0-f4ec4a60b56c`.
+
+| Admin area / element | Connected storage |
+| --- | --- |
+| Admin sign-in | Supabase Auth. Cloudflare D1 only stores failed login throttle records in `admin_login_attempts`. |
+| Product list | D1 `products`, joined with `featured_products`, `product_images`, and `product_image_variants`. |
+| Add/edit product fields | D1 `products`: `name`, `slug`, `price`, `description`, `allergens`, `is_gift_card`, `hidden`, `featured`, and `sort_order`. |
+| Product image upload, thumbnail, and crop data | Image files are uploaded to Cloudflare R2 under `products/{slug}/...`; D1 stores image keys and crop metadata in `product_images` and `product_image_variants`. |
+| Show on homepage / featured position | D1 `products.featured` plus `featured_products.product_slug` and `featured_products.position`. |
+| Hide/show product | D1 `products.hidden`; hiding the selected Cookie of the Month product can also clear `store_settings.cookie_of_month_product_slug`. |
+| Catalogue reorder buttons | D1 `products.sort_order`. |
+| Featured reorder buttons | D1 `featured_products.position`. |
+| Cookie of the Month product tickbox | D1 `store_settings` key `cookie_of_month_product_slug`. |
+| Cookie of the Month page text/button | D1 `store_settings` keys `cookie_of_month_title`, `cookie_of_month_cta_label`, and `cookie_of_month_product_slug`. |
+| Orders page, order details, and gift card redemptions | D1 `orders`, `order_items`, and `gift_card_redemptions`. |
+| Mark delivered | Updates D1 `orders.status`, `orders.delivered_at`, and `orders.updated_at`. |
+| Delivery fee | D1 `store_settings` key `delivery_cost_cents`. |
+| Dispatch availability | D1 `store_settings` keys `dispatch_enabled_weekdays`, `dispatch_same_day_enabled`, `dispatch_cutoff_time`, `dispatch_minimum_prep_days`, and `dispatch_booking_horizon_days`. |
+| Delivery banner | D1 `store_settings` keys `delivery_banner_text` and `delivery_banner_icon`. |
+| Analytics traffic | Google Analytics Data API, not Cloudflare D1. |
+| Analytics sales/revenue/top products | D1 `orders` and `order_items`. |
+| Mailing list | D1 `mailing_list_subscribers`. |
+| Mailing list delete | Deletes from D1 `mailing_list_subscribers`. |
+| Launch/site lock | D1 `store_settings` key `site_lock_enabled`. |
 
 ## Local Setup
 

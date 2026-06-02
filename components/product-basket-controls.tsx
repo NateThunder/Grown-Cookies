@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FiChevronUp, FiGift, FiShoppingBag } from "react-icons/fi";
+import { FiGift, FiShoppingBag } from "react-icons/fi";
 import type { ShopProduct } from "@/lib/products";
 import { addGiftCardToBasket, addToBasket } from "@/lib/basket-storage";
 import {
@@ -167,7 +167,6 @@ export default function ProductBasketControls({ product }: ProductBasketControls
               <h2>Sending as a gift?</h2>
               <p>Add a notecard and optional message</p>
             </div>
-            <FiChevronUp className={styles.giftingChevron} aria-hidden="true" />
           </div>
 
           <label className={styles.giftingRadioOption}>
