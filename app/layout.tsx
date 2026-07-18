@@ -163,7 +163,7 @@ export default async function RootLayout({
             {children}
             <RouteAwareBasketLink position="floating" />
             {googleAnalyticsId ? <CookieConsentBanner /> : null}
-            <footer className="site-footer">
+            <footer id="mailing-list" className="site-footer">
               <div className="site-footer-main">
                 <div className="site-footer-inner">
                   <div className="site-footer-upper">
