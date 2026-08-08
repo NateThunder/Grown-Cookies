@@ -10,6 +10,8 @@ declare global {
   }
 }
 
+export const COOKIE_CONSENT_UPDATED_EVENT = "grown-cookies:cookie-consent-updated";
+
 export function readStoredCookieConsent() {
   if (typeof window === "undefined") {
     return null;
@@ -88,5 +90,8 @@ export function writeStoredCookieConsent(nextConsent: CookieConsentStatus) {
   }
 
   syncAnalyticsConsent(nextConsent);
+  window.dispatchEvent(
+    new CustomEvent(COOKIE_CONSENT_UPDATED_EVENT, { detail: { consent: nextConsent } }),
+  );
   return true;
 }

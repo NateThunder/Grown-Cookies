@@ -13,11 +13,13 @@ import {
   restoreFinalizedGiftCardRedemptionsForOrder,
 } from "@/lib/gift-cards";
 import {
+  BAKERY_COLLECTION_METHOD,
   UK_POSTAL_SHIPPING_METHOD,
   type DispatchSelection,
 } from "@/lib/dispatch";
 import { validateDispatchSelectionWithHolidayExclusions } from "@/lib/dispatch-availability";
 import { DEFAULT_DELIVERY_COST_CENTS, getDispatchSettings } from "@/lib/store-settings";
+import { sanitizeOrderJourney } from "@/lib/order-journey";
 
 const STRIPE_CHECKOUT_ORDER_PREFIX = "order";
 
@@ -47,6 +49,8 @@ export type StripeCheckoutLineInput = {
 export type StripeCheckoutContactInput = {
   email: string;
   phone?: string;
+  firstName?: string;
+  lastName?: string;
 };
 
 export type StripeCheckoutDeliveryInput = {
@@ -62,11 +66,12 @@ export type StripeCheckoutDeliveryInput = {
 export type StripeCheckoutPayload = {
   items: BasketStoredItem[];
   contact: StripeCheckoutContactInput;
-  delivery: StripeCheckoutDeliveryInput;
+  delivery?: StripeCheckoutDeliveryInput | null;
   tip: BasketTipInput;
   dispatch?: DispatchSelection | null;
   giftCardCodes?: string[];
   initialStatus?: typeof STRIPE_CHECKOUT_ORDER_STATUS.pending | typeof STRIPE_CHECKOUT_ORDER_STATUS.paid;
+  orderJourney?: unknown;
   customer?: {
     supabaseUserId: string;
     customerProfileId: number;
@@ -93,15 +98,15 @@ function generateOrderPublicId() {
   return `${STRIPE_CHECKOUT_ORDER_PREFIX}_${Date.now()}_${suffix}`;
 }
 
-function sanitizeDelivery(input: StripeCheckoutDeliveryInput) {
+function sanitizeDelivery(input?: StripeCheckoutDeliveryInput | null) {
   return {
-    firstName: normalizeText(input.firstName),
-    lastName: normalizeText(input.lastName),
-    address: normalizeText(input.address),
-    flatNumber: normalizeText(input.flatNumber),
-    city: normalizeText(input.city),
-    postcode: normalizeText(input.postcode),
-    country: normalizeText(input.country),
+    firstName: normalizeText(input?.firstName),
+    lastName: normalizeText(input?.lastName),
+    address: normalizeText(input?.address),
+    flatNumber: normalizeText(input?.flatNumber),
+    city: normalizeText(input?.city),
+    postcode: normalizeText(input?.postcode),
+    country: normalizeText(input?.country),
   };
 }
 
@@ -208,11 +213,19 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
         required: true,
       })
     : null;
+  const isCollection = dispatch?.method === BAKERY_COLLECTION_METHOD;
+  const firstName = normalizeText(payload.contact.firstName) || delivery.firstName;
+  const lastName = normalizeText(payload.contact.lastName) || delivery.lastName;
+
+  if (isCollection && (!firstName || !lastName || !normalizeText(payload.contact.phone))) {
+    throw new Error("Enter your name, email, and phone number for collection.");
+  }
 
   await schemaPromise;
 
   const orderPublicId = generateOrderPublicId();
   const initialStatus = payload.initialStatus ?? STRIPE_CHECKOUT_ORDER_STATUS.pending;
+  const orderJourney = sanitizeOrderJourney(payload.orderJourney, quote.lines);
   const itemsSnapshot = JSON.stringify({
     lines: quote.lines,
     subtotalCents: quote.subtotalCents,
@@ -227,16 +240,20 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
     contact: {
       email: contactEmail,
       phone: normalizeText(payload.contact.phone),
+      firstName,
+      lastName,
     },
-    delivery,
+    delivery: isCollection ? null : delivery,
     fulfilmentMethod: dispatch?.method ?? null,
-    dispatchDate: dispatch?.dispatchDate ?? null,
+    scheduledDate: dispatch?.scheduledDate ?? null,
+    collection: isCollection ? quote.collection : null,
   });
 
   const orderInsertResult = await executeCloudflareD1(
     `INSERT INTO orders (
        public_id,
        status,
+       paid_at,
        currency,
        subtotal_cents,
        shipping_cents,
@@ -255,14 +272,22 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
        country,
        fulfilment_method,
        dispatch_date,
+       collection_venue,
+       collection_address_line1,
+       collection_city,
+       collection_postcode,
+       collection_window_start,
+       collection_window_end,
        supabase_user_id,
        customer_profile_id,
+       order_journey_json,
        items_json
      )
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       orderPublicId,
       initialStatus,
+      initialStatus === STRIPE_CHECKOUT_ORDER_STATUS.paid ? new Date().toISOString() : null,
       CHECKOUT_CURRENCY,
       quote.subtotalCents,
       quote.shippingCents,
@@ -272,17 +297,24 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
       stripeAmountCents,
       contactEmail,
       normalizeText(payload.contact.phone),
-      delivery.firstName,
-      delivery.lastName,
-      delivery.address,
-      delivery.flatNumber,
-      delivery.city,
-      delivery.postcode,
-      delivery.country,
+      firstName,
+      lastName,
+      isCollection ? null : delivery.address,
+      isCollection ? null : delivery.flatNumber,
+      isCollection ? null : delivery.city,
+      isCollection ? null : delivery.postcode,
+      isCollection ? null : delivery.country,
       dispatch?.method ?? (requiresDispatch ? UK_POSTAL_SHIPPING_METHOD : null),
-      dispatch?.dispatchDate ?? null,
+      dispatch?.scheduledDate ?? null,
+      isCollection ? quote.collection?.venue ?? null : null,
+      isCollection ? quote.collection?.addressLine1 ?? null : null,
+      isCollection ? quote.collection?.city ?? null : null,
+      isCollection ? quote.collection?.postcode ?? null : null,
+      isCollection ? quote.collection?.windowStart ?? null : null,
+      isCollection ? quote.collection?.windowEnd ?? null : null,
       normalizeText(payload.customer?.supabaseUserId) || null,
       payload.customer?.customerProfileId ?? null,
+      orderJourney ? JSON.stringify(orderJourney) : null,
       itemsSnapshot,
     ],
   );
@@ -428,9 +460,11 @@ export async function updateOrderStatusByIdentifiers(params: {
 
   await executeCloudflareD1(
     `UPDATE orders
-     SET status = ?, updated_at = CURRENT_TIMESTAMP
+     SET status = ?,
+         paid_at = CASE WHEN ? = ? THEN COALESCE(paid_at, CURRENT_TIMESTAMP) ELSE paid_at END,
+         updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
-    [status, row.id],
+    [status, status, STRIPE_CHECKOUT_ORDER_STATUS.paid, row.id],
   );
 
   return true;

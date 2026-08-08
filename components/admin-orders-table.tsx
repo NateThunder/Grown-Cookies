@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import type { AdminOrderSummary } from "@/lib/admin-orders";
-import { markOrderDeliveredAction } from "@/app/admin/actions";
+import { markOrderCollectedAction, markOrderDeliveredAction } from "@/app/admin/actions";
+import { BAKERY_COLLECTION_METHOD } from "@/lib/dispatch";
 import { formatAdminCurrency, formatAdminDateTime } from "@/app/admin/admin-ui";
 import styles from "@/app/admin/page.module.css";
 
@@ -17,6 +18,7 @@ function getOrderStatusClass(status: string) {
     case "paid":
       return styles.statusPaid;
     case "delivered":
+    case "collected":
       return styles.statusDelivered;
     case "refunded":
       return styles.statusMuted;
@@ -41,6 +43,18 @@ function getPaymentSummary(order: AdminOrderSummary) {
   }
 
   return `${formatAdminCurrency(order.stripeAmountCents, order.currency)} card`;
+}
+
+function isCompletedOrder(status: string) {
+  return ["paid", "delivered", "collected", "refunded"].includes(status.trim().toLowerCase());
+}
+
+function getJourneySources(order: AdminOrderSummary) {
+  const sources = order.orderJourney?.events?.filter((event) => event.type === "source") ?? [];
+  return {
+    first: sources[0]?.label ?? "Unknown",
+    last: sources.at(-1)?.label ?? "Unknown",
+  };
 }
 
 export default function AdminOrdersTable({ orders }: AdminOrdersTableProps) {
@@ -82,7 +96,7 @@ export default function AdminOrdersTable({ orders }: AdminOrdersTableProps) {
               <th scope="col">Total</th>
               <th scope="col">Status</th>
               <th scope="col">Placed</th>
-              <th scope="col">Delivered</th>
+              <th scope="col">Fulfilled</th>
               <th scope="col" className={styles.actionsColumn}>
                 Actions
               </th>
@@ -94,8 +108,8 @@ export default function AdminOrdersTable({ orders }: AdminOrdersTableProps) {
                 <td>
                   <div className={styles.orderCell}>
                     <strong>{order.orderId}</strong>
-                    <span>{order.deliveryAddress || "Delivery address unavailable"}</span>
-                    <span>Dispatch: {order.dispatchDateLabel}</span>
+                    <span>{order.fulfilmentMethod === BAKERY_COLLECTION_METHOD ? order.collectionAddress : order.deliveryAddress || "Address unavailable"}</span>
+                    <span>{order.fulfilmentMethod === BAKERY_COLLECTION_METHOD ? "Collection" : "Dispatch"}: {order.dispatchDateLabel}</span>
                   </div>
                 </td>
                 <td>
@@ -127,7 +141,7 @@ export default function AdminOrdersTable({ orders }: AdminOrdersTableProps) {
                   </span>
                 </td>
                 <td>{formatAdminDateTime(order.createdAt)}</td>
-                <td>{formatAdminDateTime(order.deliveredAt)}</td>
+                <td>{formatAdminDateTime(order.collectedAt || order.deliveredAt)}</td>
                 <td className={styles.actionsColumn}>
                   <button
                     type="button"
@@ -161,8 +175,7 @@ export default function AdminOrdersTable({ orders }: AdminOrdersTableProps) {
                 <p className={styles.modalEyebrow}>Order details</p>
                 <h2 id="order-details-title">{selectedOrder.orderId}</h2>
                 <p>
-                  Review customer, delivery, and item details, then mark the order delivered once it has
-                  reached the customer.
+                  Review customer, fulfilment, and item details, then complete the order after handoff.
                 </p>
               </div>
               <button
@@ -185,22 +198,28 @@ export default function AdminOrdersTable({ orders }: AdminOrdersTableProps) {
                   </section>
 
                   <section className={styles.orderDetailsSection}>
-                    <p className={styles.orderDetailsLabel}>Delivery</p>
-                    <p>{selectedOrder.addressLine1 || "Address line 1 unavailable"}</p>
-                    {selectedOrder.addressLine2 ? <p>{selectedOrder.addressLine2}</p> : null}
-                    <p>
-                      {[selectedOrder.city, selectedOrder.postcode].filter(Boolean).join(", ") ||
-                        "City/postcode unavailable"}
-                    </p>
-                    <p>{selectedOrder.country || "Country unavailable"}</p>
+                    <p className={styles.orderDetailsLabel}>{selectedOrder.fulfilmentMethod === BAKERY_COLLECTION_METHOD ? "Collection" : "Delivery"}</p>
+                    {selectedOrder.fulfilmentMethod === BAKERY_COLLECTION_METHOD ? (
+                      <>
+                        <p>{selectedOrder.collectionAddress || "Collection address unavailable"}</p>
+                        <p>Window: {selectedOrder.collectionWindow || "Unavailable"}</p>
+                      </>
+                    ) : (
+                      <>
+                        <p>{selectedOrder.addressLine1 || "Address line 1 unavailable"}</p>
+                        {selectedOrder.addressLine2 ? <p>{selectedOrder.addressLine2}</p> : null}
+                        <p>{[selectedOrder.city, selectedOrder.postcode].filter(Boolean).join(", ") || "City/postcode unavailable"}</p>
+                        <p>{selectedOrder.country || "Country unavailable"}</p>
+                      </>
+                    )}
                     <p>Method: {selectedOrder.fulfilmentMethodLabel}</p>
-                    <p>Dispatch: {selectedOrder.dispatchDateLabel}</p>
+                    <p>{selectedOrder.fulfilmentMethod === BAKERY_COLLECTION_METHOD ? "Collection" : "Dispatch"}: {selectedOrder.dispatchDateLabel}</p>
                   </section>
 
                   <section className={styles.orderDetailsSection}>
                     <p className={styles.orderDetailsLabel}>Order</p>
                     <p>Placed: {formatAdminDateTime(selectedOrder.createdAt)}</p>
-                    <p>Delivered: {formatAdminDateTime(selectedOrder.deliveredAt)}</p>
+                    <p>Fulfilled: {formatAdminDateTime(selectedOrder.collectedAt || selectedOrder.deliveredAt)}</p>
                     <p>Gross total: {formatAdminCurrency(selectedOrder.totalCents, selectedOrder.currency)}</p>
                     <p>
                       Gift cards: -{formatAdminCurrency(
@@ -272,23 +291,59 @@ export default function AdminOrdersTable({ orders }: AdminOrdersTableProps) {
                   )}
                 </section>
 
-                <form action={markOrderDeliveredAction} className={styles.tickboxForm}>
+                {isCompletedOrder(selectedOrder.status) ? (
+                  <details className={styles.orderJourneyDetails}>
+                    <summary>Order journey</summary>
+                    <div className={styles.orderJourneyContent}>
+                      {!selectedOrder.orderJourney ? (
+                        <p>Journey unavailable for this order.</p>
+                      ) : selectedOrder.orderJourney.consent === "denied" ? (
+                        <p>Journey unavailable — analytics consent was not granted.</p>
+                      ) : (
+                        <>
+                          <div className={styles.orderJourneySources}>
+                            <p>First touch: {getJourneySources(selectedOrder).first}</p>
+                            <p>Last touch: {getJourneySources(selectedOrder).last}</p>
+                          </div>
+                          <ol className={styles.orderJourneyTimeline}>
+                            {(selectedOrder.orderJourney.events ?? []).map((event, index) => (
+                              <li key={`${event.type}-${event.occurredAt}-${index}`}>
+                                <time dateTime={event.occurredAt}>
+                                  {formatAdminDateTime(event.occurredAt)}
+                                </time>
+                                <span>{event.label}</span>
+                              </li>
+                            ))}
+                            <li>
+                              <time dateTime={selectedOrder.paidAt || selectedOrder.createdAt}>
+                                {formatAdminDateTime(selectedOrder.paidAt || selectedOrder.createdAt)}
+                              </time>
+                              <span>Order completed</span>
+                            </li>
+                          </ol>
+                        </>
+                      )}
+                    </div>
+                  </details>
+                ) : null}
+
+                <form action={selectedOrder.fulfilmentMethod === BAKERY_COLLECTION_METHOD ? markOrderCollectedAction : markOrderDeliveredAction} className={styles.tickboxForm}>
                   <input type="hidden" name="returnPath" value="/admin/orders" />
                   <input type="hidden" name="orderId" value={selectedOrder.orderId} />
                   <button
                     type="submit"
                     className={`${styles.tickboxButton} ${
-                      selectedOrder.status.trim().toLowerCase() === "delivered" ? styles.tickboxButtonActive : ""
+                      ["delivered", "collected"].includes(selectedOrder.status.trim().toLowerCase()) ? styles.tickboxButtonActive : ""
                     }`.trim()}
                     disabled={
                       selectedOrder.status.trim().toLowerCase() !== "paid" &&
-                      selectedOrder.status.trim().toLowerCase() !== "delivered"
+                      !["delivered", "collected"].includes(selectedOrder.status.trim().toLowerCase())
                     }
                   >
-                    {selectedOrder.status.trim().toLowerCase() === "delivered"
-                      ? "Delivered"
+                    {["delivered", "collected"].includes(selectedOrder.status.trim().toLowerCase())
+                      ? selectedOrder.fulfilmentMethod === BAKERY_COLLECTION_METHOD ? "Collected" : "Delivered"
                       : selectedOrder.status.trim().toLowerCase() === "paid"
-                        ? "Mark delivered"
+                        ? selectedOrder.fulfilmentMethod === BAKERY_COLLECTION_METHOD ? "Mark collected" : "Mark delivered"
                         : "Await payment"}
                   </button>
                 </form>

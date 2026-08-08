@@ -7,6 +7,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import type { Session, User } from "@supabase/supabase-js";
 import AccountSignupForm from "@/components/account-signup-form";
 import type { AccountOrderItem, AccountOrderSummary } from "@/lib/account-orders";
+import { BAKERY_COLLECTION_METHOD, formatDispatchDate, formatDispatchMethod } from "@/lib/dispatch";
 import type { CustomerAddress, CustomerProfile } from "@/lib/customer-profiles";
 import type { SavedPaymentMethod } from "@/lib/saved-payment-methods";
 import { publicStripeAppearance } from "@/lib/stripe-appearance";
@@ -1255,6 +1256,16 @@ export default function AccountPageClient() {
                       <p className={styles.orderMetaLabel}>Total</p>
                       <p>{formatMoney(order.totalCents, order.currency)}</p>
                     </div>
+                    {order.fulfilmentMethod ? (
+                      <div>
+                        <p className={styles.orderMetaLabel}>Fulfilment</p>
+                        <p>{formatDispatchMethod(order.fulfilmentMethod)}</p>
+                        {order.scheduledDate ? <p>{formatDispatchDate(order.scheduledDate)}</p> : null}
+                        {order.fulfilmentMethod === BAKERY_COLLECTION_METHOD ? (
+                          <p>{order.collectionAddress} · {order.collectionWindow}</p>
+                        ) : null}
+                      </div>
+                    ) : null}
                     {order.giftCardRedeemedCents > 0 ? (
                       <>
                         <div>

@@ -39,6 +39,8 @@ const CHECKOUT_PAYMENT_METHOD_TYPES = ["card", "link", "revolut_pay", "klarna", 
 type CheckoutContactPayload = {
   email: string;
   phone: string;
+  firstName: string;
+  lastName: string;
 };
 
 type CheckoutDeliveryPayload = {
@@ -184,12 +186,14 @@ function buildCheckoutSuccessReturnUrl(returnUrlBase: string, orderPublicId: str
 
 function parseCheckoutContact(raw: unknown): CheckoutContactPayload {
   if (!raw || typeof raw !== "object") {
-    return { email: "", phone: "" };
+    return { email: "", phone: "", firstName: "", lastName: "" };
   }
 
   return {
     email: normalizeText((raw as { email?: unknown }).email),
     phone: normalizeText((raw as { phone?: unknown }).phone),
+    firstName: normalizeText((raw as { firstName?: unknown }).firstName),
+    lastName: normalizeText((raw as { lastName?: unknown }).lastName),
   };
 }
 
@@ -254,6 +258,8 @@ function getContactFromSources(
   return {
     email,
     phone: normalizeText(paymentContact.phone) || normalizeText(fallbackContact.phone),
+    firstName: normalizeText(paymentContact.firstName) || normalizeText(fallbackContact.firstName),
+    lastName: normalizeText(paymentContact.lastName) || normalizeText(fallbackContact.lastName),
   };
 }
 
@@ -311,9 +317,11 @@ export async function POST(request: Request) {
       paymentContact?: unknown;
       paymentDelivery?: unknown;
       dispatch?: unknown;
+      fulfilment?: unknown;
       giftCardCodes?: unknown;
       savePaymentMethod?: unknown;
       savedPaymentMethodId?: unknown;
+      orderJourney?: unknown;
     };
 
     const confirmationTokenId = normalizeText(body.confirmationTokenId);
@@ -325,8 +333,9 @@ export async function POST(request: Request) {
     const items = parseItems(body.items);
     const tip = parseQuoteTip(body.tip);
     const giftCardCodes = parseQuoteGiftCardCodes(body.giftCardCodes);
-    const quote = await buildCheckoutQuote({ items, tip, giftCardCodes });
-    const requiresDelivery = quote.lines.some((line) => !line.isGiftCard);
+    const dispatch = parseDispatchSelection(body.fulfilment ?? body.dispatch);
+    const quote = await buildCheckoutQuote({ items, tip, dispatch, giftCardCodes });
+    const requiresDelivery = quote.lines.some((line) => !line.isGiftCard) && quote.fulfilmentMethod === "uk_postal_shipping";
     if (quote.stripeAmountCents <= 0) {
       throw new Error("No card payment is due. Place this order with your gift card balance.");
     }
@@ -337,7 +346,6 @@ export async function POST(request: Request) {
     const fallbackDelivery = parseCheckoutDelivery(body.delivery);
     const paymentContact = parseCheckoutContact(body.paymentContact);
     const paymentDelivery = parseCheckoutDelivery(body.paymentDelivery);
-    const dispatch = parseDispatchSelection(body.dispatch);
     const authenticatedUserPromise = getAuthenticatedSupabaseUser(request);
     const contact = getContactFromSources(paymentContact, fallbackContact);
     const delivery = getDeliveryFromSources(paymentDelivery, fallbackDelivery, {
@@ -427,6 +435,7 @@ export async function POST(request: Request) {
           tip,
           dispatch,
           giftCardCodes,
+          orderJourney: body.orderJourney,
           customer: customerProfile
             ? {
                 supabaseUserId: customerProfile.supabaseUserId,

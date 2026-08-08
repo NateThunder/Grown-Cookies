@@ -1,12 +1,18 @@
 export const UK_POSTAL_SHIPPING_METHOD = "uk_postal_shipping" as const;
 export const UK_POSTAL_SHIPPING_LABEL = "UK Postal Shipping";
+export const BAKERY_COLLECTION_METHOD = "bakery_collection" as const;
+export const BAKERY_COLLECTION_LABEL = "Collection from Akara Bakery";
 
-export type DispatchMethod = typeof UK_POSTAL_SHIPPING_METHOD;
+export type DispatchMethod =
+  | typeof UK_POSTAL_SHIPPING_METHOD
+  | typeof BAKERY_COLLECTION_METHOD;
 
-export type DispatchSelection = {
+export type FulfilmentSelection = {
   method: DispatchMethod;
-  dispatchDate: string;
+  scheduledDate: string;
 };
+
+export type DispatchSelection = FulfilmentSelection;
 
 export type DispatchSettings = {
   enabledWeekdays: number[];
@@ -63,15 +69,21 @@ export function parseDispatchSelection(raw: unknown): DispatchSelection | null {
   }
 
   const method = normalizeText((raw as { method?: unknown }).method);
-  const dispatchDate = normalizeText((raw as { dispatchDate?: unknown }).dispatchDate);
+  const scheduledDate = normalizeText(
+    (raw as { scheduledDate?: unknown }).scheduledDate ??
+      (raw as { dispatchDate?: unknown }).dispatchDate,
+  );
 
-  if (method !== UK_POSTAL_SHIPPING_METHOD || !isIsoDate(dispatchDate)) {
+  if (
+    (method !== UK_POSTAL_SHIPPING_METHOD && method !== BAKERY_COLLECTION_METHOD) ||
+    (scheduledDate && !isIsoDate(scheduledDate))
+  ) {
     return null;
   }
 
   return {
-    method: UK_POSTAL_SHIPPING_METHOD,
-    dispatchDate,
+    method,
+    scheduledDate,
   };
 }
 
@@ -223,12 +235,15 @@ export function validateDispatchSelection(
     throw new Error("Choose a dispatch date before checkout.");
   }
 
-  if (selection.method !== UK_POSTAL_SHIPPING_METHOD) {
-    throw new Error("Choose a valid shipping method.");
+  if (
+    selection.method !== UK_POSTAL_SHIPPING_METHOD &&
+    selection.method !== BAKERY_COLLECTION_METHOD
+  ) {
+    throw new Error("Choose a valid fulfilment method.");
   }
 
-  if (!isDispatchDateAvailable(selection.dispatchDate, settings, { now: options.now })) {
-    throw new Error("That dispatch date is no longer available. Choose a new dispatch date.");
+  if (!isDispatchDateAvailable(selection.scheduledDate, settings, { now: options.now })) {
+    throw new Error("That date is no longer available. Choose a new date.");
   }
 
   return selection;
@@ -249,5 +264,9 @@ export function formatDispatchDate(date: string) {
 }
 
 export function formatDispatchMethod(method: unknown) {
-  return method === UK_POSTAL_SHIPPING_METHOD ? UK_POSTAL_SHIPPING_LABEL : "";
+  if (method === UK_POSTAL_SHIPPING_METHOD) {
+    return UK_POSTAL_SHIPPING_LABEL;
+  }
+
+  return method === BAKERY_COLLECTION_METHOD ? BAKERY_COLLECTION_LABEL : "";
 }

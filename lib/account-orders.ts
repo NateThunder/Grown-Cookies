@@ -16,6 +16,10 @@ export type AccountOrderSummary = {
   city: string;
   postcode: string;
   country: string;
+  fulfilmentMethod: string;
+  scheduledDate: string;
+  collectionAddress: string;
+  collectionWindow: string;
   items: AccountOrderItem[];
 };
 
@@ -51,6 +55,14 @@ type AccountOrderRow = {
   city: string | null;
   postcode: string | null;
   country: string | null;
+  fulfilment_method: string | null;
+  dispatch_date: string | null;
+  collection_venue: string | null;
+  collection_address_line1: string | null;
+  collection_city: string | null;
+  collection_postcode: string | null;
+  collection_window_start: string | null;
+  collection_window_end: string | null;
   supabase_user_id: string | null;
   items_json: string | null;
 };
@@ -265,6 +277,14 @@ export async function getAccountOrderSummariesForCustomer(params: {
        city,
        postcode,
        country,
+       fulfilment_method,
+       dispatch_date,
+       collection_venue,
+       collection_address_line1,
+       collection_city,
+       collection_postcode,
+       collection_window_start,
+       collection_window_end,
        supabase_user_id,
        items_json
      FROM orders
@@ -293,6 +313,10 @@ export async function getAccountOrderSummariesForCustomer(params: {
     city: normalizeText(row.city),
     postcode: normalizeText(row.postcode),
     country: normalizeText(row.country),
+    fulfilmentMethod: normalizeText(row.fulfilment_method),
+    scheduledDate: normalizeText(row.dispatch_date),
+    collectionAddress: [row.collection_venue, row.collection_address_line1, row.collection_city, row.collection_postcode].map(normalizeText).filter(Boolean).join(", "),
+    collectionWindow: [row.collection_window_start, row.collection_window_end].map(normalizeText).filter(Boolean).join("–"),
     items: itemsByOrderId.get(row.id) ?? parseOrderItems(row.items_json),
   }));
 }
@@ -324,6 +348,14 @@ export async function getAccountOrderSummariesByEmail(email: string): Promise<Ac
        city,
        postcode,
        country,
+       fulfilment_method,
+       dispatch_date,
+       collection_venue,
+       collection_address_line1,
+       collection_city,
+       collection_postcode,
+       collection_window_start,
+       collection_window_end,
        supabase_user_id,
        items_json
      FROM orders
@@ -351,6 +383,10 @@ export async function getAccountOrderSummariesByEmail(email: string): Promise<Ac
     city: normalizeText(row.city),
     postcode: normalizeText(row.postcode),
     country: normalizeText(row.country),
+    fulfilmentMethod: normalizeText(row.fulfilment_method),
+    scheduledDate: normalizeText(row.dispatch_date),
+    collectionAddress: [row.collection_venue, row.collection_address_line1, row.collection_city, row.collection_postcode].map(normalizeText).filter(Boolean).join(", "),
+    collectionWindow: [row.collection_window_start, row.collection_window_end].map(normalizeText).filter(Boolean).join("–"),
     items: itemsByOrderId.get(row.id) ?? parseOrderItems(row.items_json),
   }));
 }

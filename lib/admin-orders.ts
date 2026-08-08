@@ -1,12 +1,13 @@
 import { executeCloudflareD1, hasCloudflareD1Config, queryCloudflareD1 } from "@/lib/cloudflare-d1";
 import { ensureCustomerAccountSchema } from "@/lib/customer-profiles";
-import { sendDeliveredOrderEmail } from "@/lib/order-notifications";
-import { formatDispatchDate, formatDispatchMethod } from "@/lib/dispatch";
+import { sendCollectedOrderEmail, sendDeliveredOrderEmail } from "@/lib/order-notifications";
+import { BAKERY_COLLECTION_METHOD, formatDispatchDate, formatDispatchMethod } from "@/lib/dispatch";
 import {
   expireStalePendingOrders,
   PENDING_ORDER_WARNING_MINUTES,
   STRIPE_CHECKOUT_ORDER_STATUS,
 } from "@/lib/stripe-checkout";
+import { parseStoredOrderJourney, type OrderJourneySnapshot } from "@/lib/order-journey";
 
 export type AdminOrderSummary = {
   orderId: string;
@@ -23,6 +24,8 @@ export type AdminOrderSummary = {
   fulfilmentMethodLabel: string;
   dispatchDate: string;
   dispatchDateLabel: string;
+  collectionAddress: string;
+  collectionWindow: string;
   itemCount: number;
   itemsSummary: string;
   totalCents: number;
@@ -30,10 +33,13 @@ export type AdminOrderSummary = {
   stripeAmountCents: number;
   currency: string;
   createdAt: string;
+  paidAt: string;
   deliveredAt: string;
+  collectedAt: string;
   isPendingWarning: boolean;
   items: AdminOrderItem[];
   giftCardRedemptions: AdminOrderGiftCardRedemption[];
+  orderJourney: OrderJourneySnapshot | null;
 };
 
 export type AdminOrderItem = {
@@ -70,14 +76,23 @@ type AdminOrderRow = {
   country: string | null;
   fulfilment_method: string | null;
   dispatch_date: string | null;
+  collection_venue: string | null;
+  collection_address_line1: string | null;
+  collection_city: string | null;
+  collection_postcode: string | null;
+  collection_window_start: string | null;
+  collection_window_end: string | null;
+  collected_at: string | null;
   total_cents: number;
   gift_card_redeemed_cents: number | null;
   stripe_amount_cents: number | null;
   currency: string;
   created_at: string;
+  paid_at: string | null;
   delivered_at: string | null;
   item_count: number | null;
   items_summary: string | null;
+  order_journey_json: string | null;
 };
 
 type AdminOrderGiftCardRedemptionRow = {
@@ -262,12 +277,21 @@ export async function getAdminOrders(limit = 100): Promise<AdminOrderSummary[]> 
        o.country,
        o.fulfilment_method,
        o.dispatch_date,
+       o.collection_venue,
+       o.collection_address_line1,
+       o.collection_city,
+       o.collection_postcode,
+       o.collection_window_start,
+       o.collection_window_end,
+       o.collected_at,
        o.total_cents,
        o.gift_card_redeemed_cents,
        o.stripe_amount_cents,
        o.currency,
        o.created_at,
+       o.paid_at,
        o.delivered_at,
+       o.order_journey_json,
        COALESCE(SUM(oi.quantity), 0) AS item_count,
        COALESCE(GROUP_CONCAT(oi.product_name || ' x' || oi.quantity, ', '), '') AS items_summary
      FROM orders o
@@ -286,12 +310,21 @@ export async function getAdminOrders(limit = 100): Promise<AdminOrderSummary[]> 
        o.country,
        o.fulfilment_method,
        o.dispatch_date,
+       o.collection_venue,
+       o.collection_address_line1,
+       o.collection_city,
+       o.collection_postcode,
+       o.collection_window_start,
+       o.collection_window_end,
+       o.collected_at,
        o.total_cents,
        o.gift_card_redeemed_cents,
        o.stripe_amount_cents,
        o.currency,
        o.created_at,
-       o.delivered_at
+       o.paid_at,
+       o.delivered_at,
+       o.order_journey_json
      ORDER BY datetime(o.created_at) DESC, o.id DESC
      LIMIT ?`,
     [limit],
@@ -325,6 +358,13 @@ export async function getAdminOrders(limit = 100): Promise<AdminOrderSummary[]> 
       fulfilmentMethodLabel: formatDispatchMethod(fulfilmentMethod) || "Not selected",
       dispatchDate,
       dispatchDateLabel: formatDispatchDate(dispatchDate) || "Not selected",
+      collectionAddress: [
+        normalizeText(row.collection_venue),
+        normalizeText(row.collection_address_line1),
+        normalizeText(row.collection_city),
+        normalizeText(row.collection_postcode),
+      ].filter(Boolean).join(", "),
+      collectionWindow: [normalizeText(row.collection_window_start), normalizeText(row.collection_window_end)].filter(Boolean).join("–"),
       itemCount: Number.isFinite(row.item_count) ? Number(row.item_count) : 0,
       itemsSummary: normalizeText(row.items_summary),
       totalCents: Number.isFinite(row.total_cents) ? Number(row.total_cents) : 0,
@@ -335,12 +375,15 @@ export async function getAdminOrders(limit = 100): Promise<AdminOrderSummary[]> 
           : Math.max(0, normalizeInteger(row.stripe_amount_cents)),
       currency: normalizeText(row.currency) || "gbp",
       createdAt,
+      paidAt: normalizeText(row.paid_at),
       deliveredAt: normalizeText(row.delivered_at),
+      collectedAt: normalizeText(row.collected_at),
       isPendingWarning:
         status === STRIPE_CHECKOUT_ORDER_STATUS.pending &&
         getPendingAgeMinutes(createdAt) >= PENDING_ORDER_WARNING_MINUTES,
       items: itemsByOrderId.get(row.id) ?? [],
       giftCardRedemptions: giftCardRedemptionsByOrderId.get(row.id) ?? [],
+      orderJourney: parseStoredOrderJourney(row.order_journey_json),
     };
   });
 }
@@ -372,8 +415,8 @@ export async function markAdminOrderDelivered(orderPublicId: string) {
 
   await ensureCustomerAccountSchema();
 
-  const existingRows = await queryCloudflareD1<{ id: number; delivered_at: string | null; status: string }>(
-    `SELECT id, delivered_at, status
+  const existingRows = await queryCloudflareD1<{ id: number; delivered_at: string | null; status: string; fulfilment_method: string | null }>(
+    `SELECT id, delivered_at, status, fulfilment_method
      FROM orders
      WHERE public_id = ?
      LIMIT 1`,
@@ -388,6 +431,10 @@ export async function markAdminOrderDelivered(orderPublicId: string) {
   }
 
   const existingStatus = normalizeText(existingOrder.status);
+
+  if (normalizeText(existingOrder.fulfilment_method) === BAKERY_COLLECTION_METHOD) {
+    throw new Error("Collection orders must be marked as collected.");
+  }
 
   if (normalizeText(existingOrder.delivered_at) && existingStatus === "delivered") {
     return { alreadyDelivered: true };
@@ -412,5 +459,45 @@ export async function markAdminOrderDelivered(orderPublicId: string) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "The delivery confirmation email could not be sent.";
     return { alreadyDelivered: false, emailWarning: message };
+  }
+}
+
+export async function markAdminOrderCollected(orderPublicId: string) {
+  const normalizedOrderId = normalizeText(orderPublicId);
+  if (!normalizedOrderId) throw new Error("The order could not be found.");
+  await ensureCustomerAccountSchema();
+  const rows = await queryCloudflareD1<{
+    id: number;
+    status: string;
+    fulfilment_method: string | null;
+    collected_at: string | null;
+  }>(
+    `SELECT id, status, fulfilment_method, collected_at FROM orders WHERE public_id = ? LIMIT 1`,
+    [normalizedOrderId],
+    { cache: "no-store" },
+  );
+  const order = rows[0];
+  if (!order) throw new Error("The order could not be found.");
+  if (normalizeText(order.fulfilment_method) !== BAKERY_COLLECTION_METHOD) {
+    throw new Error("Only collection orders can be marked as collected.");
+  }
+  const alreadyCollected = normalizeText(order.status) === "collected" && Boolean(normalizeText(order.collected_at));
+  if (!alreadyCollected && normalizeText(order.status) !== STRIPE_CHECKOUT_ORDER_STATUS.paid) {
+    throw new Error("Only paid orders can be marked as collected.");
+  }
+  if (!alreadyCollected) {
+    await executeCloudflareD1(
+      `UPDATE orders SET status = 'collected', collected_at = COALESCE(collected_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      [order.id],
+    );
+  }
+  try {
+    await sendCollectedOrderEmail(normalizedOrderId);
+    return { alreadyCollected, emailWarning: "" };
+  } catch (error) {
+    return {
+      alreadyCollected,
+      emailWarning: error instanceof Error ? error.message : "The collection confirmation email could not be sent.",
+    };
   }
 }

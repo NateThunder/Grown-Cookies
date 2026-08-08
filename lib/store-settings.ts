@@ -14,6 +14,12 @@ const DISPATCH_SAME_DAY_ENABLED_KEY = "dispatch_same_day_enabled";
 const DISPATCH_CUTOFF_TIME_KEY = "dispatch_cutoff_time";
 const DISPATCH_MINIMUM_PREP_DAYS_KEY = "dispatch_minimum_prep_days";
 const DISPATCH_BOOKING_HORIZON_DAYS_KEY = "dispatch_booking_horizon_days";
+const COLLECTION_VENUE_KEY = "collection_venue";
+const COLLECTION_ADDRESS_LINE1_KEY = "collection_address_line1";
+const COLLECTION_CITY_KEY = "collection_city";
+const COLLECTION_POSTCODE_KEY = "collection_postcode";
+const COLLECTION_WINDOW_START_KEY = "collection_window_start";
+const COLLECTION_WINDOW_END_KEY = "collection_window_end";
 const COOKIE_OF_MONTH_TITLE_KEY = "cookie_of_month_title";
 const COOKIE_OF_MONTH_CTA_LABEL_KEY = "cookie_of_month_cta_label";
 const COOKIE_OF_MONTH_PRODUCT_SLUG_KEY = "cookie_of_month_product_slug";
@@ -28,10 +34,29 @@ const HOMEPAGE_SETTINGS_TAG = "store-settings-homepage";
 const DELIVERY_SETTINGS_TAG = "store-settings-delivery";
 const DELIVERY_BANNER_SETTINGS_TAG = "store-settings-delivery-banner";
 const DISPATCH_SETTINGS_TAG = "store-settings-dispatch";
+const COLLECTION_SETTINGS_TAG = "store-settings-collection";
 const SITE_LOCK_SETTINGS_TAG = "store-settings-site-lock";
 const STORE_SETTINGS_REVALIDATE_SECONDS = 300;
 
 export const DEFAULT_DELIVERY_COST_CENTS = 1000;
+export const DEFAULT_COLLECTION_SETTINGS = {
+  venue: "Akara Bakery",
+  addressLine1: "537 Duke Street",
+  city: "Glasgow",
+  postcode: "G31 1DL",
+  windowStart: "12:00",
+  windowEnd: "15:00",
+} as const;
+export type CollectionSettings = {
+  venue: string;
+  addressLine1: string;
+  city: string;
+  postcode: string;
+  windowStart: string;
+  windowEnd: string;
+  isDefault?: boolean;
+  updatedAt?: string;
+};
 export const DELIVERY_BANNER_TEXT_MAX_LENGTH = 80;
 export const DEFAULT_DELIVERY_BANNER_TEXT = "Same day dispatch on orders before 12pm";
 export const DELIVERY_BANNER_ICON_OPTIONS = ["truck", "clock", "gift"] as const;
@@ -358,6 +383,27 @@ function mapBrandStorySectionSetting(row: StoreSettingRow | null): BrandStorySec
   };
 }
 
+function mapCollectionSettings(settings: Map<string, StoreSettingValueRow>): CollectionSettings {
+  const venue = settings.get(COLLECTION_VENUE_KEY);
+  const addressLine1 = settings.get(COLLECTION_ADDRESS_LINE1_KEY);
+  const city = settings.get(COLLECTION_CITY_KEY);
+  const postcode = settings.get(COLLECTION_POSTCODE_KEY);
+  const windowStart = settings.get(COLLECTION_WINDOW_START_KEY);
+  const windowEnd = settings.get(COLLECTION_WINDOW_END_KEY);
+  const rows = [venue, addressLine1, city, postcode, windowStart, windowEnd];
+
+  return {
+    venue: venue?.value.trim() || DEFAULT_COLLECTION_SETTINGS.venue,
+    addressLine1: addressLine1?.value.trim() || DEFAULT_COLLECTION_SETTINGS.addressLine1,
+    city: city?.value.trim() || DEFAULT_COLLECTION_SETTINGS.city,
+    postcode: postcode?.value.trim().toUpperCase() || DEFAULT_COLLECTION_SETTINGS.postcode,
+    windowStart: windowStart?.value.trim() || DEFAULT_COLLECTION_SETTINGS.windowStart,
+    windowEnd: windowEnd?.value.trim() || DEFAULT_COLLECTION_SETTINGS.windowEnd,
+    isDefault: rows.every((row) => !row),
+    updatedAt: getLatestUpdatedAt(rows.map((row) => row?.updated_at)),
+  };
+}
+
 function mapSiteLockSetting(row: StoreSettingRow | null, defaultEnabled: boolean): SiteLockSetting {
   if (!row) {
     return {
@@ -418,6 +464,25 @@ const getDispatchSettingsCached = unstable_cache(
   {
     revalidate: STORE_SETTINGS_REVALIDATE_SECONDS,
     tags: [STORE_SETTINGS_TAG, DISPATCH_SETTINGS_TAG],
+  },
+);
+
+const getCollectionSettingsCached = unstable_cache(
+  async (): Promise<CollectionSettings> => {
+    const settings = await getStoreSettings([
+      COLLECTION_VENUE_KEY,
+      COLLECTION_ADDRESS_LINE1_KEY,
+      COLLECTION_CITY_KEY,
+      COLLECTION_POSTCODE_KEY,
+      COLLECTION_WINDOW_START_KEY,
+      COLLECTION_WINDOW_END_KEY,
+    ]);
+    return mapCollectionSettings(settings);
+  },
+  ["store-settings-collection"],
+  {
+    revalidate: STORE_SETTINGS_REVALIDATE_SECONDS,
+    tags: [STORE_SETTINGS_TAG, COLLECTION_SETTINGS_TAG],
   },
 );
 
@@ -513,6 +578,14 @@ export async function getDispatchSettings() {
   return getDispatchSettingsCached();
 }
 
+export async function getCollectionSettings(): Promise<CollectionSettings> {
+  if (!hasCloudflareD1Config()) {
+    return { ...DEFAULT_COLLECTION_SETTINGS, isDefault: true };
+  }
+
+  return getCollectionSettingsCached();
+}
+
 export async function updateDeliveryCostCents(deliveryCostCents: number) {
   if (!hasCloudflareD1Config()) {
     throw new Error("Cloudflare D1 is not configured.");
@@ -581,6 +654,47 @@ export async function updateDispatchSettings(settings: Partial<DispatchSettings>
     upsertStoreSetting(DISPATCH_CUTOFF_TIME_KEY, normalized.cutoffTime),
     upsertStoreSetting(DISPATCH_MINIMUM_PREP_DAYS_KEY, String(normalized.minimumPrepDays)),
     upsertStoreSetting(DISPATCH_BOOKING_HORIZON_DAYS_KEY, String(normalized.bookingHorizonDays)),
+  ]);
+
+  return normalized;
+}
+
+export async function updateCollectionSettings(
+  input: Omit<CollectionSettings, "isDefault" | "updatedAt">,
+) {
+  if (!hasCloudflareD1Config()) {
+    throw new Error("Cloudflare D1 is not configured.");
+  }
+
+  const normalized = {
+    venue: input.venue.trim(),
+    addressLine1: input.addressLine1.trim(),
+    city: input.city.trim(),
+    postcode: input.postcode.trim().toUpperCase(),
+    windowStart: input.windowStart.trim(),
+    windowEnd: input.windowEnd.trim(),
+  };
+
+  if (!normalized.venue || !normalized.addressLine1 || !normalized.city || !normalized.postcode) {
+    throw new Error("Complete the collection venue and address.");
+  }
+
+  const validTime = /^([01]\d|2[0-3]):[0-5]\d$/;
+  if (!validTime.test(normalized.windowStart) || !validTime.test(normalized.windowEnd)) {
+    throw new Error("Enter valid collection opening and closing times.");
+  }
+
+  if (normalized.windowEnd <= normalized.windowStart) {
+    throw new Error("Collection closing time must be after opening time.");
+  }
+
+  await Promise.all([
+    upsertStoreSetting(COLLECTION_VENUE_KEY, normalized.venue),
+    upsertStoreSetting(COLLECTION_ADDRESS_LINE1_KEY, normalized.addressLine1),
+    upsertStoreSetting(COLLECTION_CITY_KEY, normalized.city),
+    upsertStoreSetting(COLLECTION_POSTCODE_KEY, normalized.postcode),
+    upsertStoreSetting(COLLECTION_WINDOW_START_KEY, normalized.windowStart),
+    upsertStoreSetting(COLLECTION_WINDOW_END_KEY, normalized.windowEnd),
   ]);
 
   return normalized;

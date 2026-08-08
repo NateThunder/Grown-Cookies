@@ -63,9 +63,11 @@ export default function PrivacyPage() {
             <h2>Cookies and analytics</h2>
             <p>
               Essential storage is used to keep your basket, account, and
-              checkout working. Optional Google Analytics only loads if you
-              allow analytics cookies, and you can change that choice here at
-              any time.
+              checkout working. If you allow analytics cookies, Google Analytics
+              loads and we may attach a same-day summary of key shopping steps
+              and referral platforms to a completed order. This summary does not
+              include unrelated pages or products removed before ordering. You
+              can change your analytics choice here at any time.
             </p>
             <PrivacyCookiePreferences />
           </div>

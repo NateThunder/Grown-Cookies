@@ -4,11 +4,13 @@ import {
   DEFAULT_DELIVERY_BANNER_ICON,
   DEFAULT_DELIVERY_BANNER_TEXT,
   DEFAULT_DELIVERY_COST_CENTS,
+  DEFAULT_COLLECTION_SETTINGS,
   DELIVERY_BANNER_ICON_OPTIONS,
   DELIVERY_BANNER_TEXT_MAX_LENGTH,
   getDeliveryBannerSetting,
   getDeliveryCostSetting,
   getDispatchSettings,
+  getCollectionSettings,
 } from "@/lib/store-settings";
 import { formatDispatchDate } from "@/lib/dispatch";
 import { getAvailableDispatchDatesWithHolidayExclusions } from "@/lib/dispatch-availability";
@@ -16,6 +18,7 @@ import {
   updateDeliveryBannerAction,
   updateDeliveryCostAction,
   updateDispatchSettingsAction,
+  updateCollectionSettingsAction,
 } from "../actions";
 import { getAdminPageContext } from "../admin-page-context";
 import { formatAdminCurrency, formatAdminDate, type SearchParamValue } from "../admin-ui";
@@ -57,6 +60,9 @@ export default async function DeliveryAdminPage({ searchParams }: DeliveryAdminP
         updatedAt: undefined,
       };
   const dispatchSettings = context.d1Configured ? await getDispatchSettings() : undefined;
+  const collectionSettings = context.d1Configured
+    ? await getCollectionSettings()
+    : { ...DEFAULT_COLLECTION_SETTINGS, isDefault: true, updatedAt: undefined };
   const deliveryBannerSetting = context.d1Configured
     ? await getDeliveryBannerSetting()
     : {
@@ -239,6 +245,59 @@ export default async function DeliveryAdminPage({ searchParams }: DeliveryAdminP
                 </div>
               </section>
             ) : null}
+
+            <section className={styles.settingsPanel}>
+              <div className={styles.settingsPanelHeader}>
+                <div>
+                  <p className={styles.tableEyebrow}>Collection</p>
+                  <h2>Pickup location</h2>
+                </div>
+                <p className={styles.tableHint}>
+                  Collection uses the same available dates and preparation rules as delivery.
+                </p>
+              </div>
+
+              <div className={styles.deliveryCardBody}>
+                <div className={styles.deliverySummary}>
+                  <span>Current pickup point</span>
+                  <strong>{collectionSettings.venue}</strong>
+                  <small>
+                    {collectionSettings.addressLine1}, {collectionSettings.city}, {collectionSettings.postcode} · {collectionSettings.windowStart}–{collectionSettings.windowEnd}
+                  </small>
+                </div>
+
+                <form action={updateCollectionSettingsAction} className={styles.deliveryForm}>
+                  <input type="hidden" name="returnPath" value="/admin/delivery" />
+                  <div className={styles.deliveryFormGrid}>
+                    <label className={styles.deliveryField}>
+                      <span>Venue name</span>
+                      <input name="collectionVenue" defaultValue={collectionSettings.venue} required />
+                    </label>
+                    <label className={styles.deliveryField}>
+                      <span>Address</span>
+                      <input name="collectionAddressLine1" defaultValue={collectionSettings.addressLine1} required />
+                    </label>
+                    <label className={styles.deliveryField}>
+                      <span>City</span>
+                      <input name="collectionCity" defaultValue={collectionSettings.city} required />
+                    </label>
+                    <label className={styles.deliveryField}>
+                      <span>Postcode</span>
+                      <input name="collectionPostcode" defaultValue={collectionSettings.postcode} required />
+                    </label>
+                    <label className={styles.deliveryField}>
+                      <span>Collection starts</span>
+                      <input name="collectionWindowStart" type="time" defaultValue={collectionSettings.windowStart} required />
+                    </label>
+                    <label className={styles.deliveryField}>
+                      <span>Collection ends</span>
+                      <input name="collectionWindowEnd" type="time" defaultValue={collectionSettings.windowEnd} required />
+                    </label>
+                  </div>
+                  <button type="submit" className={styles.deliverySaveButton}>Save collection settings</button>
+                </form>
+              </div>
+            </section>
 
             <section className={styles.settingsPanel}>
               <div className={styles.settingsPanelHeader}>

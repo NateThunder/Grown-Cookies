@@ -1,5 +1,6 @@
 import { normalizeStoredBasketItems, type BasketStoredItem } from "@/lib/basket";
 import { normalizeBasketLineGifting, type BasketLineGifting } from "@/lib/gifting";
+import { recordOrderJourneyEvent } from "@/lib/order-journey-client";
 
 const BASKET_STORAGE_KEY = "grown-cookies-basket";
 export const BASKET_UPDATED_EVENT = "grown-cookies:basket-updated";
@@ -64,6 +65,8 @@ export function addToBasket(
     return;
   }
 
+  recordOrderJourneyEvent("product_added", { productSlug: slug });
+
   const normalizedGifting = normalizeBasketLineGifting(gifting);
   const current = getBasket();
 
@@ -101,6 +104,8 @@ export function addGiftCardToBasket(slug: string, amountCents: number) {
   if (!Number.isFinite(giftCardAmountCents) || giftCardAmountCents <= 0) {
     return;
   }
+
+  recordOrderJourneyEvent("product_added", { productSlug: slug });
 
   writeBasketRaw([
     ...getBasket(),

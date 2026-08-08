@@ -1,4 +1,5 @@
 import {
+  BAKERY_COLLECTION_METHOD,
   UK_POSTAL_SHIPPING_METHOD,
   parseDispatchSelection,
   type DispatchSelection,
@@ -52,11 +53,24 @@ export function getDispatchSelection() {
   return selection;
 }
 
-export function setDispatchDate(dispatchDate: string) {
+export function setFulfilmentSelection(method: DispatchSelection["method"], scheduledDate: string) {
   writeDispatchRaw({
-    method: UK_POSTAL_SHIPPING_METHOD,
-    dispatchDate,
+    method,
+    scheduledDate,
   });
+}
+
+export function setFulfilmentMethod(method: DispatchSelection["method"]) {
+  const current = getDispatchSelection();
+  setFulfilmentSelection(method, current?.scheduledDate ?? "");
+}
+
+export function setDispatchDate(scheduledDate: string) {
+  setFulfilmentSelection(getDispatchSelection()?.method ?? UK_POSTAL_SHIPPING_METHOD, scheduledDate);
+}
+
+export function setCollectionDate(scheduledDate: string) {
+  setFulfilmentSelection(BAKERY_COLLECTION_METHOD, scheduledDate);
 }
 
 export function clearDispatchSelection() {

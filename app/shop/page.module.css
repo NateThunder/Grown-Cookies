@@ -166,10 +166,6 @@
   outline: none;
 }
 
-.giftCardPositioned {
-  justify-content: space-between;
-}
-
 .cardMediaLink,
 .cardContentLink {
   display: block;

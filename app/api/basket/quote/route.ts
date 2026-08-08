@@ -13,13 +13,14 @@ export async function POST(request: Request) {
       items?: unknown;
       tip?: unknown;
       dispatch?: unknown;
+      fulfilment?: unknown;
       giftCardCodes?: unknown;
     };
 
     const quote = await buildCheckoutQuote({
       items: parseQuoteItems(body.items),
       tip: parseQuoteTip(body.tip),
-      dispatch: parseQuoteDispatch(body.dispatch),
+      dispatch: parseQuoteDispatch(body.fulfilment ?? body.dispatch),
       giftCardCodes: parseQuoteGiftCardCodes(body.giftCardCodes),
     });
 
