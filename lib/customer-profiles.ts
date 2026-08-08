@@ -196,6 +196,14 @@ async function ensureOrderTableColumns() {
        WHERE stripe_amount_cents IS NULL`,
     );
   }
+
+  if (!orderColumns.has("order_journey_json")) {
+    await executeCloudflareD1("ALTER TABLE orders ADD COLUMN order_journey_json TEXT");
+  }
+
+  if (!orderColumns.has("paid_at")) {
+    await executeCloudflareD1("ALTER TABLE orders ADD COLUMN paid_at TEXT");
+  }
 }
 
 async function ensureOrderItemTableColumns() {
@@ -241,6 +249,7 @@ export async function ensureCustomerAccountSchema() {
            public_id TEXT NOT NULL UNIQUE,
            status TEXT NOT NULL DEFAULT 'pending',
            delivered_at TEXT,
+           paid_at TEXT,
            currency TEXT NOT NULL,
            subtotal_cents INTEGER NOT NULL,
            shipping_cents INTEGER NOT NULL,
@@ -260,6 +269,7 @@ export async function ensureCustomerAccountSchema() {
            fulfilment_method TEXT,
            dispatch_date TEXT,
            stripe_payment_intent_id TEXT,
+           order_journey_json TEXT,
            items_json TEXT NOT NULL,
            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP

@@ -1,0 +1,83 @@
+.selector,
+.compact {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0.8rem 0;
+  padding: 0;
+  border: 0;
+  color: #4b3155;
+  font-family: var(--font-public-ui);
+}
+
+.compact {
+  margin: 0.6rem 0 0;
+}
+
+.selector legend,
+.compact legend {
+  grid-column: 1 / -1;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.selector label[data-active="true"]::before,
+.compact label[data-active="true"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: var(--public-film-grain-image);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  opacity: var(--public-film-grain-opacity);
+  pointer-events: none;
+}
+
+.selector label span,
+.compact label span {
+  position: relative;
+  z-index: 1;
+}
+
+.selector label,
+.compact label {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 2.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--public-plum-deep);
+  border-radius: 999px;
+  background: var(--public-cream);
+  cursor: pointer;
+  color: var(--public-plum-deep);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.selector label[data-active="true"],
+.compact label[data-active="true"] {
+  background: var(--public-plum-deep);
+  color: var(--public-cream);
+}
+
+.selector input,
+.compact input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.selector label:focus-within,
+.compact label:focus-within {
+  outline: 2px solid #4b3155;
+  outline-offset: 2px;
+}

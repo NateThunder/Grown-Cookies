@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import {
+  BAKERY_COLLECTION_METHOD,
   UK_POSTAL_SHIPPING_METHOD,
   getAvailableDispatchDates,
   isIsoDate,
@@ -77,16 +78,16 @@ export async function validateDispatchSelectionWithHolidayExclusions(
     throw new Error("Choose a dispatch date before checkout.");
   }
 
-  if (selection.method !== UK_POSTAL_SHIPPING_METHOD) {
-    throw new Error("Choose a valid shipping method.");
+  if (selection.method !== UK_POSTAL_SHIPPING_METHOD && selection.method !== BAKERY_COLLECTION_METHOD) {
+    throw new Error("Choose a valid fulfilment method.");
   }
 
   if (
-    !(await isDispatchDateAvailableWithHolidayExclusions(selection.dispatchDate, settings, {
+    !(await isDispatchDateAvailableWithHolidayExclusions(selection.scheduledDate, settings, {
       now: options.now,
     }))
   ) {
-    throw new Error("That dispatch date is no longer available. Choose a new dispatch date.");
+    throw new Error("That date is no longer available. Choose a new date.");
   }
 
   return selection;

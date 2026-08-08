@@ -26,6 +26,8 @@ const SUPPORTED_COUNTRIES = {
 type CheckoutContactPayload = {
   email: string;
   phone: string;
+  firstName: string;
+  lastName: string;
 };
 
 type CheckoutDeliveryPayload = {
@@ -60,12 +62,14 @@ function buildFullName(firstName: string, lastName: string) {
 
 function parseCheckoutContact(raw: unknown): CheckoutContactPayload {
   if (!raw || typeof raw !== "object") {
-    return { email: "", phone: "" };
+    return { email: "", phone: "", firstName: "", lastName: "" };
   }
 
   return {
     email: normalizeText((raw as { email?: unknown }).email),
     phone: normalizeText((raw as { phone?: unknown }).phone),
+    firstName: normalizeText((raw as { firstName?: unknown }).firstName),
+    lastName: normalizeText((raw as { lastName?: unknown }).lastName),
   };
 }
 
@@ -123,6 +127,8 @@ function getContactFromSource(contact: CheckoutContactPayload): StripeCheckoutCo
   return {
     email,
     phone: normalizeText(contact.phone),
+    firstName: normalizeText(contact.firstName),
+    lastName: normalizeText(contact.lastName),
   };
 }
 
@@ -169,24 +175,26 @@ export async function POST(request: Request) {
       contact?: unknown;
       delivery?: unknown;
       dispatch?: unknown;
+      fulfilment?: unknown;
       giftCardCodes?: unknown;
+      orderJourney?: unknown;
     };
 
     const items = parseQuoteItems(body.items);
     const tip = parseQuoteTip(body.tip);
     const giftCardCodes = parseQuoteGiftCardCodes(body.giftCardCodes);
-    const quote = await buildCheckoutQuote({ items, tip, giftCardCodes });
+    const dispatch = parseDispatchSelection(body.fulfilment ?? body.dispatch);
+    const quote = await buildCheckoutQuote({ items, tip, dispatch, giftCardCodes });
 
     if (quote.giftCardAppliedCents <= 0 || quote.stripeAmountCents > 0) {
       throw new Error("A card payment is still due for this order.");
     }
 
-    const requiresDelivery = quote.lines.some((line) => !line.isGiftCard);
+    const requiresDelivery = quote.lines.some((line) => !line.isGiftCard) && quote.fulfilmentMethod === "uk_postal_shipping";
     const contact = getContactFromSource(parseCheckoutContact(body.contact));
     const delivery = getDeliveryFromSource(parseCheckoutDelivery(body.delivery), {
       requiresDelivery,
     });
-    const dispatch = parseDispatchSelection(body.dispatch);
     const authenticatedUser = await getAuthenticatedSupabaseUser(request);
 
     await consumeCheckoutAttempt({
@@ -210,6 +218,7 @@ export async function POST(request: Request) {
       tip,
       dispatch,
       giftCardCodes,
+      orderJourney: body.orderJourney,
       initialStatus: STRIPE_CHECKOUT_ORDER_STATUS.paid,
       customer: customerProfile
         ? {

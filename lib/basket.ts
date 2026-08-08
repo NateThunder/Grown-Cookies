@@ -48,6 +48,15 @@ export type BasketGiftCardApplication = {
   balanceAfterCents: number;
 };
 
+export type CollectionSnapshot = {
+  venue: string;
+  addressLine1: string;
+  city: string;
+  postcode: string;
+  windowStart: string;
+  windowEnd: string;
+};
+
 export type BasketQuote = {
   currency: string;
   lines: BasketQuoteLine[];
@@ -61,6 +70,10 @@ export type BasketQuote = {
   giftCardApplications: BasketGiftCardApplication[];
   tipOptions: BasketTipOption[];
   fulfilmentMethod: DispatchMethod | null;
+  scheduledDate: string | null;
+  availableDates: string[];
+  collection: CollectionSnapshot | null;
+  /** Legacy aliases retained while existing clients migrate. */
   dispatchDate: string | null;
   availableDispatchDates: string[];
 };

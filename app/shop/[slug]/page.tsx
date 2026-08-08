@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import GiftCardTile from "@/components/gift-card-tile";
 import ProductBasketControls from "@/components/product-basket-controls";
 import QuickAddButton from "@/components/quick-add-button";
+import FulfilmentSelector from "@/components/fulfilment-selector";
 import { MIN_GIFT_CARD_AMOUNT_CENTS, formatGiftCardAmount } from "@/lib/gift-card-amounts";
 import { getAllProducts } from "@/lib/products";
 import { getProductImageForVariant, PRODUCT_IMAGE_VARIANTS } from "@/lib/product-image-variants";
@@ -139,6 +140,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
               <strong>6 cookies</strong>
             </p>
           )}
+
+          {product.isGiftCard ? null : <FulfilmentSelector />}
 
           <ProductBasketControls
             product={{

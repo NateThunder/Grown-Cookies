@@ -19,13 +19,14 @@ import {
   type ProductImageCropState,
   type ProductImageVariantMap,
 } from "@/lib/product-image-variants";
-import { markAdminOrderDelivered } from "@/lib/admin-orders";
+import { markAdminOrderCollected, markAdminOrderDelivered } from "@/lib/admin-orders";
 import { deleteMailingListSubscriber } from "@/lib/mailing-list";
 import {
   getCookieOfMonthSectionSetting,
   updateBrandStorySectionSetting,
   updateCookieOfMonthProductSlug,
   updateCookieOfMonthSectionSetting,
+  updateCollectionSettings,
   updateDeliveryBannerSetting,
   updateDeliveryCostCents,
   updateDispatchSettings,
@@ -366,6 +367,34 @@ export async function updateDispatchSettingsAction(formData: FormData) {
           ? error.message
           : "The dispatch settings could not be saved.",
       returnView: getTextField(formData, "returnView"),
+    });
+  }
+}
+
+export async function updateCollectionSettingsAction(formData: FormData) {
+  try {
+    const returnPath = getTextField(formData, "returnPath");
+    await requireAdminSession();
+    await updateCollectionSettings({
+      venue: getTextField(formData, "collectionVenue"),
+      addressLine1: getTextField(formData, "collectionAddressLine1"),
+      city: getTextField(formData, "collectionCity"),
+      postcode: getTextField(formData, "collectionPostcode"),
+      windowStart: getTextField(formData, "collectionWindowStart"),
+      windowEnd: getTextField(formData, "collectionWindowEnd"),
+    });
+    revalidateTag("store-settings-collection", "max");
+    revalidatePath("/admin/delivery");
+    revalidatePath("/cart");
+    revalidatePath("/checkout");
+    revalidatePath("/delivery");
+
+    redirectToAdmin({ returnPath, notice: "Collection settings saved." });
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
+    redirectToAdmin({
+      returnPath: getTextField(formData, "returnPath"),
+      error: error instanceof Error ? error.message : "Collection settings could not be saved.",
     });
   }
 }
@@ -863,6 +892,30 @@ export async function markOrderDeliveredAction(formData: FormData) {
       throw error;
     }
 
+    redirectToAdmin({
+      returnPath: getTextField(formData, "returnPath"),
+      returnView: getTextField(formData, "returnView"),
+      error: error instanceof Error ? error.message : "The order could not be updated.",
+    });
+  }
+}
+
+export async function markOrderCollectedAction(formData: FormData) {
+  try {
+    await requireAdminSession();
+    const returnView = getTextField(formData, "returnView");
+    const returnPath = getTextField(formData, "returnPath");
+    const result = await markAdminOrderCollected(getTextField(formData, "orderId"));
+    revalidatePath("/admin");
+    revalidatePath("/account");
+    redirectToAdmin({
+      returnPath,
+      returnView,
+      notice: result.alreadyCollected ? "Order already marked as collected." : "Order marked as collected.",
+      warning: result.emailWarning || undefined,
+    });
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
     redirectToAdmin({
       returnPath: getTextField(formData, "returnPath"),
       returnView: getTextField(formData, "returnView"),

@@ -19,7 +19,7 @@ import {
   loadStripe,
 } from "@stripe/stripe-js";
 import { BASKET_UPDATED_EVENT, getBasket } from "@/lib/basket-storage";
-import { DISPATCH_UPDATED_EVENT, getDispatchSelection } from "@/lib/dispatch-storage";
+import { DISPATCH_UPDATED_EVENT, getDispatchSelection, setFulfilmentSelection } from "@/lib/dispatch-storage";
 import {
   TIP_PRESET_OPTIONS,
   formatPriceFromCents,
@@ -29,16 +29,22 @@ import {
   type BasketTipInput,
 } from "@/lib/basket";
 import {
+  BAKERY_COLLECTION_METHOD,
+  BAKERY_COLLECTION_LABEL,
   UK_POSTAL_SHIPPING_LABEL,
+  UK_POSTAL_SHIPPING_METHOD,
   formatDispatchDate,
   type DispatchSelection,
 } from "@/lib/dispatch";
 import { formatGiftCardAmount } from "@/lib/gift-card-amounts";
 import GiftCardTile from "@/components/gift-card-tile";
+import CheckoutDatePicker from "@/components/checkout-date-picker";
 import type { CustomerAddress, CustomerProfile } from "@/lib/customer-profiles";
 import type { SavedPaymentMethod } from "@/lib/saved-payment-methods";
 import { publicStripeAppearance } from "@/lib/stripe-appearance";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { readOrderJourneyForCheckout } from "@/lib/order-journey-client";
+import type { OrderJourneySnapshot } from "@/lib/order-journey";
 import styles from "@/components/checkout-client.module.css";
 
 type ContactDetails = {
@@ -67,6 +73,7 @@ type ConfirmPaymentPayload = {
   dispatch?: DispatchSelection | null;
   paymentContact?: ContactDetails;
   paymentDelivery?: DeliveryDetails;
+  orderJourney: OrderJourneySnapshot;
 };
 
 type ConfirmPaymentResponse = {
@@ -395,6 +402,7 @@ async function finalizeCheckoutPayment(params: FinalizeCheckoutPaymentParams) {
             dispatch: params.dispatch,
             paymentContact: params.paymentContact,
             paymentDelivery: params.paymentDelivery,
+            orderJourney: readOrderJourneyForCheckout(),
           } satisfies ConfirmPaymentPayload),
           signal: abortController.signal,
         }),
@@ -526,6 +534,17 @@ function validateManualCheckoutDetails(
     return "";
   }
 
+  if (!dispatch?.scheduledDate) {
+    return `Choose a ${dispatch?.method === BAKERY_COLLECTION_METHOD ? "collection" : "dispatch"} date before checkout.`;
+  }
+
+  if (dispatch.method === BAKERY_COLLECTION_METHOD) {
+    if (!normalizeText(delivery.fullName) || !normalizeText(contact.phone)) {
+      return "Enter your full name and phone number for collection.";
+    }
+    return "";
+  }
+
   const requiredDeliveryValues = [
     delivery.fullName,
     delivery.address,
@@ -542,11 +561,14 @@ function validateManualCheckoutDetails(
     return "We only deliver to the United Kingdom.";
   }
 
-  if (!dispatch?.dispatchDate) {
-    return "Choose a dispatch date from your basket before checkout.";
-  }
-
   return "";
+}
+
+function buildCollectionBillingDetails(contact: ContactDetails, delivery: DeliveryDetails) {
+  return {
+    ...buildDigitalBillingDetails(contact),
+    name: normalizeText(delivery.fullName) || undefined,
+  };
 }
 
 function buildAddress(address: {
@@ -821,6 +843,7 @@ function ExpressCheckoutSection({
   const stripe = useStripe();
   const elements = useElements();
   const [localError, setLocalError] = useState("");
+  const isCollection = dispatch?.method === BAKERY_COLLECTION_METHOD;
   const [paymentProgressMessage, setPaymentProgressMessage] = useState("");
   const usingSavedPaymentMethod = Boolean(selectedSavedPaymentMethodId);
   const expressLineItems = useMemo(() => buildExpressLineItems(quote), [quote]);
@@ -863,7 +886,7 @@ function ExpressCheckoutSection({
       return;
     }
 
-    if (!isDigitalOnly && !dispatch?.dispatchDate) {
+    if (!isDigitalOnly && !dispatch?.scheduledDate) {
       const message = "Choose a dispatch date from your basket before checkout.";
       setLocalError(message);
       event.paymentFailed({
@@ -873,7 +896,7 @@ function ExpressCheckoutSection({
       return;
     }
 
-    if (!isDigitalOnly && event.shippingAddress && !isSupportedCountryCode(event.shippingAddress.address.country)) {
+    if (!isDigitalOnly && !isCollection && event.shippingAddress && !isSupportedCountryCode(event.shippingAddress.address.country)) {
       const message = "We only deliver to the United Kingdom.";
       setLocalError(message);
       event.paymentFailed({
@@ -916,7 +939,7 @@ function ExpressCheckoutSection({
                 payment_method_data: {
                   billing_details: buildExpressBillingDetails(event, contact, delivery),
                 },
-                shipping: isDigitalOnly ? undefined : buildExpressShipping(event, contact),
+                shipping: isDigitalOnly || isCollection ? undefined : buildExpressShipping(event, contact),
               },
             }),
             STRIPE_PREPARE_TIMEOUT_MS,
@@ -982,7 +1005,7 @@ function ExpressCheckoutSection({
               amazonPay: "never",
             },
             phoneNumberRequired: false,
-            shippingAddressRequired: !isDigitalOnly,
+            shippingAddressRequired: !isDigitalOnly && !isCollection,
             lineItems: expressLineItems,
             shippingRates: expressShippingRates,
           }}
@@ -1059,6 +1082,7 @@ function PaymentElementForm({
   const elements = useElements();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState("");
+  const isCollection = dispatch?.method === BAKERY_COLLECTION_METHOD;
   const [paymentProgressMessage, setPaymentProgressMessage] = useState("");
   const [isPaymentElementReady, setIsPaymentElementReady] = useState(false);
   const [hasPaymentMethodSelection, setHasPaymentMethodSelection] = useState(false);
@@ -1171,9 +1195,11 @@ function PaymentElementForm({
                 payment_method_data: {
                   billing_details: isDigitalOnly
                     ? buildDigitalBillingDetails(contact)
-                    : buildManualBillingDetails(contact, delivery),
+                    : isCollection
+                      ? buildCollectionBillingDetails(contact, delivery)
+                      : buildManualBillingDetails(contact, delivery),
                 },
-                shipping: isDigitalOnly ? undefined : buildManualShipping(delivery, contact.phone),
+                shipping: isDigitalOnly || isCollection ? undefined : buildManualShipping(delivery, contact.phone),
               },
             }),
             STRIPE_PREPARE_TIMEOUT_MS,
@@ -1250,7 +1276,9 @@ function PaymentElementForm({
           <p className={styles.sectionNote}>
             {isDigitalOnly
               ? "Your gift card code will be sent to your contact email."
-              : "Your delivery details above will be used for this saved-card payment."}
+              : isCollection
+                ? "Your collection contact details above will be used for this saved-card payment."
+                : "Your delivery details above will be used for this saved-card payment."}
           </p>
         </div>
       ) : (
@@ -1523,7 +1551,10 @@ export default function CheckoutClient() {
   }, []);
 
   useEffect(() => {
-    const refresh = () => setDispatchSelection(getDispatchSelection());
+    const refresh = () =>
+      setDispatchSelection(
+        getDispatchSelection() ?? { method: UK_POSTAL_SHIPPING_METHOD, scheduledDate: "" },
+      );
     const handleUpdate = () => refresh();
 
     refresh();
@@ -1744,6 +1775,20 @@ export default function CheckoutClient() {
     setContact((current) => ({ ...current, phone: value }));
   };
 
+  const updateFulfilmentMethod = (method: DispatchSelection["method"]) => {
+    const scheduledDate = dispatchSelection?.scheduledDate ?? "";
+    setFulfilmentSelection(method, scheduledDate);
+    setDispatchSelection({ method, scheduledDate });
+    setZeroDueError("");
+  };
+
+  const updateScheduledDate = (scheduledDate: string) => {
+    const method = dispatchSelection?.method ?? UK_POSTAL_SHIPPING_METHOD;
+    setFulfilmentSelection(method, scheduledDate);
+    setDispatchSelection({ method, scheduledDate });
+    setZeroDueError("");
+  };
+
   const setPresetTip = (value: Exclude<typeof tipChoice, "custom">) => {
     setTipChoice(value);
   };
@@ -1789,6 +1834,7 @@ export default function CheckoutClient() {
           contact: buildCheckoutContactPayload(contact),
           delivery: isDigitalOnly ? undefined : buildCheckoutDeliveryPayload(delivery),
           dispatch: checkoutDispatchSelection,
+          orderJourney: readOrderJourneyForCheckout(),
         }),
       });
       const payload = (await response.json().catch(() => ({}))) as {
@@ -1811,10 +1857,20 @@ export default function CheckoutClient() {
   const lines = quote?.lines ?? [];
   const isGiftCardBasket = items.length > 0 && items.every((item) => item.slug === "gift-card");
   const isDigitalOnly = lines.length > 0 ? lines.every((item) => item.isGiftCard) : isGiftCardBasket;
+  const selectedFulfilmentMethod = dispatchSelection?.method ?? UK_POSTAL_SHIPPING_METHOD;
+  const isCollection = !isDigitalOnly && selectedFulfilmentMethod === BAKERY_COLLECTION_METHOD;
   const checkoutDispatchSelection =
-    isDigitalOnly || (quote?.dispatchDate && dispatchSelection?.dispatchDate === quote.dispatchDate)
+    isDigitalOnly
       ? dispatchSelection
-      : null;
+      : quote?.fulfilmentMethod === selectedFulfilmentMethod
+        ? {
+            method: selectedFulfilmentMethod,
+            scheduledDate:
+              quote.scheduledDate && dispatchSelection?.scheduledDate === quote.scheduledDate
+                ? quote.scheduledDate
+                : "",
+          }
+        : dispatchSelection;
   const subtotalCents = quote?.subtotalCents ?? 0;
   const shippingCents = quote?.shippingCents ?? 0;
   const tipCents = quote?.tipCents ?? 0;
@@ -1894,6 +1950,76 @@ export default function CheckoutClient() {
               </section>
 
               {isDigitalOnly ? null : (
+                <section className={styles.section}>
+                  <h2>Delivery or collection</h2>
+                  <fieldset className={styles.fulfilmentOptions}>
+                    <legend>Choose how to receive your order</legend>
+                    <label className={selectedFulfilmentMethod === UK_POSTAL_SHIPPING_METHOD ? styles.fulfilmentOptionActive : styles.fulfilmentOption}>
+                      <input
+                        type="radio"
+                        name="checkout-fulfilment"
+                        checked={selectedFulfilmentMethod === UK_POSTAL_SHIPPING_METHOD}
+                        onChange={() => updateFulfilmentMethod(UK_POSTAL_SHIPPING_METHOD)}
+                      />
+                      <span>Delivery</span>
+                    </label>
+                    <label className={isCollection ? styles.fulfilmentOptionActive : styles.fulfilmentOption}>
+                      <input
+                        type="radio"
+                        name="checkout-fulfilment"
+                        checked={isCollection}
+                        onChange={() => updateFulfilmentMethod(BAKERY_COLLECTION_METHOD)}
+                      />
+                      <span>Collection</span>
+                    </label>
+                  </fieldset>
+
+                  <CheckoutDatePicker
+                    availableDates={quote?.availableDates ?? []}
+                    selectedDate={dispatchSelection?.scheduledDate ?? ""}
+                    onSelect={updateScheduledDate}
+                    purpose={isCollection ? "collection" : "dispatch"}
+                  />
+
+                  {isCollection && quote?.collection ? (
+                    <address className={`${styles.collectionDetails} whiteFrame`}>
+                      <strong>{quote.collection.venue}</strong>
+                      <span>{quote.collection.addressLine1}</span>
+                      <span>{quote.collection.city}, {quote.collection.postcode}</span>
+                      <span>Collect between {quote.collection.windowStart} and {quote.collection.windowEnd}</span>
+                    </address>
+                  ) : null}
+                </section>
+              )}
+
+              {isCollection ? (
+                <section className={styles.section}>
+                  <h2>Collection contact</h2>
+                  <div className={styles.fieldStack}>
+                    <label className={`${styles.field} whiteFrame`}>
+                      <span>Full name</span>
+                      <input
+                        type="text"
+                        value={delivery.fullName}
+                        autoComplete="name"
+                        onChange={(event) => updateDelivery("fullName", event.target.value)}
+                      />
+                    </label>
+                    <label className={`${styles.field} ${styles.iconField}`}>
+                      <span>Phone</span>
+                      <input
+                        type="tel"
+                        value={contact.phone}
+                        autoComplete="tel"
+                        onChange={(event) => updateContactPhone(event.target.value)}
+                      />
+                      <span className={styles.flag}>GB</span>
+                    </label>
+                  </div>
+                </section>
+              ) : null}
+
+              {isDigitalOnly || isCollection ? null : (
                 <section className={styles.section}>
                 <h2>Delivery</h2>
                 <div className={styles.fieldStack}>
@@ -2099,16 +2225,16 @@ export default function CheckoutClient() {
                 </section>
               ) : (
                 <section className={styles.section}>
-                  <h2>Shipping method</h2>
+                  <h2>{isCollection ? "Collection method" : "Shipping method"}</h2>
                   <div className={`${styles.methodCard} whiteFrame`}>
-                    <span>{UK_POSTAL_SHIPPING_LABEL}</span>
-                    <strong>{formatPriceFromCents(shippingCents)}</strong>
+                    <span>{isCollection ? BAKERY_COLLECTION_LABEL : UK_POSTAL_SHIPPING_LABEL}</span>
+                    <strong>{isCollection ? "Free" : formatPriceFromCents(shippingCents)}</strong>
                   </div>
                   <p className={styles.sectionNote}>
-                    Dispatch date:{" "}
-                    {checkoutDispatchSelection?.dispatchDate
-                      ? formatDispatchDate(checkoutDispatchSelection.dispatchDate)
-                      : "Choose a dispatch date in your basket before paying."}
+                    {isCollection ? "Collection" : "Dispatch"} date:{" "}
+                    {checkoutDispatchSelection?.scheduledDate
+                      ? formatDispatchDate(checkoutDispatchSelection.scheduledDate)
+                      : `Choose a ${isCollection ? "collection" : "dispatch"} date before paying.`}
                   </p>
                 </section>
               )}
@@ -2390,8 +2516,8 @@ export default function CheckoutClient() {
                 <dd>{formatPriceFromCents(subtotalCents)}</dd>
               </div>
               <div>
-                <dt>{isDigitalOnly ? "Digital delivery" : "Delivery fee"}</dt>
-                <dd>{isDigitalOnly ? "Email" : formatPriceFromCents(shippingCents)}</dd>
+                <dt>{isDigitalOnly ? "Digital delivery" : isCollection ? "Collection" : "Delivery fee"}</dt>
+                <dd>{isDigitalOnly ? "Email" : isCollection ? "Free" : formatPriceFromCents(shippingCents)}</dd>
               </div>
               {giftCardAppliedCents > 0 ? (
                 <div>
@@ -2401,10 +2527,10 @@ export default function CheckoutClient() {
               ) : null}
               {!isDigitalOnly ? (
                 <div>
-                  <dt>Dispatch date</dt>
+                  <dt>{isCollection ? "Collection date" : "Dispatch date"}</dt>
                   <dd>
-                    {checkoutDispatchSelection?.dispatchDate
-                      ? formatDispatchDate(checkoutDispatchSelection.dispatchDate)
+                    {checkoutDispatchSelection?.scheduledDate
+                      ? formatDispatchDate(checkoutDispatchSelection.scheduledDate)
                       : "Required"}
                   </dd>
                 </div>

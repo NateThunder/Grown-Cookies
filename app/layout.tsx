@@ -7,6 +7,7 @@ import { FaTiktok } from "react-icons/fa6";
 import { FiInstagram } from "react-icons/fi";
 import CookieConsentBanner from "@/components/cookie-consent-banner";
 import MailingListSignupForm from "@/components/mailing-list-signup-form";
+import OrderJourneyTracker from "@/components/order-journey-tracker";
 import RouteAwareBasketLink from "@/components/route-aware-basket-link";
 import SiteLockGate from "@/components/site-lock-gate";
 import { COOKIE_CONSENT_STORAGE_KEY } from "@/lib/cookie-consent";
@@ -161,14 +162,15 @@ export default async function RootLayout({
         <SiteLockGate enabled={siteLockEnabled} isUnlockedForAdmin={isUnlockedForAdmin}>
           <>
             {children}
+            {googleAnalyticsId ? <OrderJourneyTracker /> : null}
             <RouteAwareBasketLink position="floating" />
             {googleAnalyticsId ? <CookieConsentBanner /> : null}
-            <footer className="site-footer">
+            <footer id="mailing-list" className="site-footer">
               <div className="site-footer-main">
                 <div className="site-footer-inner">
                   <div className="site-footer-upper">
                     <div className="site-footer-copy">
-                      <h2>Join our cookie community</h2>
+                      <h2>Join our cookie club</h2>
                       <p>Get exclusive offers, new flavour drops, and fresh-baked updates.</p>
                     </div>
 

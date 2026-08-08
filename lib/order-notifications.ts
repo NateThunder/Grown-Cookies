@@ -1,5 +1,5 @@
 import { executeCloudflareD1, queryCloudflareD1 } from "@/lib/cloudflare-d1";
-import { formatDispatchDate, formatDispatchMethod } from "@/lib/dispatch";
+import { BAKERY_COLLECTION_METHOD, formatDispatchDate, formatDispatchMethod } from "@/lib/dispatch";
 import { getGiftCardRedemptionsForOrder, issueGiftCardsForPaidOrder } from "@/lib/gift-cards";
 import {
   getZohoOrderNotificationRecipient,
@@ -29,6 +29,14 @@ type OrderNotificationOrderRow = {
   country: string | null;
   fulfilment_method: string | null;
   dispatch_date: string | null;
+  collection_venue: string | null;
+  collection_address_line1: string | null;
+  collection_city: string | null;
+  collection_postcode: string | null;
+  collection_window_start: string | null;
+  collection_window_end: string | null;
+  collected_at: string | null;
+  collected_customer_email_sent_at: string | null;
   created_at: string;
   delivered_at: string | null;
   paid_notification_sent_at: string | null;
@@ -143,6 +151,18 @@ function getOrderDeliveryLabel(
     };
   }
 
+  if (order.fulfilment_method === BAKERY_COLLECTION_METHOD) {
+    return {
+      heading: "Collection location",
+      lines: [
+        normalizeText(order.collection_venue),
+        normalizeText(order.collection_address_line1),
+        [normalizeText(order.collection_city), normalizeText(order.collection_postcode)].filter(Boolean).join(", "),
+        `Collect between ${normalizeText(order.collection_window_start)} and ${normalizeText(order.collection_window_end)}`,
+      ].filter(Boolean),
+    };
+  }
+
   return {
     heading: "Delivery address",
     lines: addressLines.length > 0 ? addressLines : ["Not provided"],
@@ -163,7 +183,7 @@ function getOrderDispatchLabel(
   }
 
   return {
-    heading: "Dispatch",
+    heading: order.fulfilment_method === BAKERY_COLLECTION_METHOD ? "Collection" : "Dispatch",
     lines: [
       `Method: ${formatDispatchMethod(order.fulfilment_method) || "Not selected"}`,
       `Date: ${formatDispatchDate(normalizeText(order.dispatch_date)) || "Not selected"}`,
@@ -243,6 +263,14 @@ async function getOrderForNotification(orderPublicId: string) {
        country,
        fulfilment_method,
        dispatch_date,
+       collection_venue,
+       collection_address_line1,
+       collection_city,
+       collection_postcode,
+       collection_window_start,
+       collection_window_end,
+       collected_at,
+       collected_customer_email_sent_at,
        created_at,
        delivered_at,
        paid_notification_sent_at,
@@ -259,7 +287,7 @@ async function getOrderForNotification(orderPublicId: string) {
 
 async function markOrderEmailSent(
   orderPublicId: string,
-  column: "paid_notification_sent_at" | "paid_customer_email_sent_at",
+  column: "paid_notification_sent_at" | "paid_customer_email_sent_at" | "collected_customer_email_sent_at",
 ) {
   await executeCloudflareD1(
     `UPDATE orders
@@ -509,7 +537,9 @@ function buildPaidOrderCustomerEmail(
     "",
     hasOnlyGiftCards
       ? "Your gift card code is ready for checkout when you want to use it."
-      : "We will email you again when your order has been delivered.",
+      : order.fulfilment_method === BAKERY_COLLECTION_METHOD
+        ? "Your order will be ready at the selected collection time."
+        : "We will email you again when your order has been delivered.",
   ];
 
   const htmlItems = items
@@ -549,7 +579,9 @@ function buildPaidOrderCustomerEmail(
     ...(htmlRedemptions ? ["<h2>Gift card redemptions</h2>", `<ul>${htmlRedemptions}</ul>`] : []),
     hasOnlyGiftCards
       ? "<p>Your gift card code is ready for checkout when you want to use it.</p>"
-      : "<p>We will email you again when your order has been delivered.</p>",
+      : order.fulfilment_method === BAKERY_COLLECTION_METHOD
+        ? "<p>Your order will be ready at the selected collection time.</p>"
+        : "<p>We will email you again when your order has been delivered.</p>",
   ].join("");
 
   return {
@@ -648,6 +680,33 @@ function buildDeliveredOrderEmail(
   };
 }
 
+function buildCollectedOrderEmail(order: OrderNotificationOrderRow) {
+  const customerName = [order.first_name, order.last_name].map(normalizeText).filter(Boolean).join(" ");
+  const collectedAt = normalizeText(order.collected_at);
+  const collectedAtLabel = collectedAt ? formatOrderDateTime(collectedAt) : "Just now";
+  const subject = `Your Grown Cookies order ${order.public_id} has been collected`;
+  const text = [
+    subject,
+    "",
+    `Hello ${customerName || "there"},`,
+    "",
+    "Your order has been marked as collected.",
+    `Collected at: ${collectedAtLabel}`,
+    `Order number: ${order.public_id}`,
+    "",
+    "Thank you for ordering from Grown Cookies.",
+  ].join("\n");
+  const html = [
+    `<h1>${escapeHtml(subject)}</h1>`,
+    `<p>Hello ${escapeHtml(customerName || "there")},</p>`,
+    "<p>Your order has been marked as collected.</p>",
+    `<p><strong>Collected at:</strong> ${escapeHtml(collectedAtLabel)}<br />`,
+    `<strong>Order number:</strong> ${escapeHtml(order.public_id)}</p>`,
+    "<p>Thank you for ordering from Grown Cookies.</p>",
+  ].join("");
+  return { subject, text, html };
+}
+
 export async function sendPaidOrderNotification(orderPublicId: string) {
   if (!isOrderNotificationEmailConfigured()) {
     console.info("[orders.email] Skipped notification because email env is incomplete.", {
@@ -711,4 +770,27 @@ export async function sendDeliveredOrderEmail(orderPublicId: string) {
   });
 
   return { skipped: false as const };
+}
+
+export async function sendCollectedOrderEmail(orderPublicId: string) {
+  if (!isOrderNotificationEmailConfigured()) {
+    return { skipped: true as const };
+  }
+
+  const order = await getOrderForNotification(orderPublicId);
+  if (!order) throw new Error(`Order ${orderPublicId} was not found for collection email.`);
+  if (normalizeText(order.collected_customer_email_sent_at)) {
+    return { skipped: false as const, alreadySent: true as const };
+  }
+  const customerEmail = normalizeText(order.email);
+  if (!customerEmail) throw new Error(`Order ${orderPublicId} does not have a customer email address.`);
+  const email = buildCollectedOrderEmail(order);
+  await sendZohoEmail({
+    to: customerEmail,
+    from: getZohoOrderNotificationSender(),
+    subject: email.subject,
+    html: email.html,
+  });
+  await markOrderEmailSent(orderPublicId, "collected_customer_email_sent_at");
+  return { skipped: false as const, alreadySent: false as const };
 }

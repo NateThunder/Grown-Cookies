@@ -201,28 +201,47 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       return (
                         <tr key={product.slug} className={isActive ? styles.activeRow : undefined}>
                           <td>
-                            <div className={styles.productThumb}>
-                              {product.imageUrl ? (
-                                <Image
-                                  src={product.imageUrl}
-                                  alt={product.imageAlt}
-                                  fill
-                                  sizes="4rem"
-                                  className={styles.productThumbImage}
-                                />
-                              ) : (
-                                <div className={styles.productThumbPlaceholder}>
-                                  <FiImage />
-                                </div>
-                              )}
-                            </div>
+                            <Link
+                              href={getAdminHref({ view, productSlug: product.slug })}
+                              className={styles.productEditLink}
+                              aria-label={`Edit ${product.name}`}
+                            >
+                              <div className={styles.productThumb}>
+                                {product.imageUrl ? (
+                                  <Image
+                                    src={product.imageUrl}
+                                    alt={product.imageAlt}
+                                    fill
+                                    sizes="4rem"
+                                    className={styles.productThumbImage}
+                                  />
+                                ) : (
+                                  <div className={styles.productThumbPlaceholder}>
+                                    <FiImage />
+                                  </div>
+                                )}
+                              </div>
+                            </Link>
                           </td>
                           <td>
-                            <div className={styles.productNameCell}>
-                              <strong>{product.name}</strong>
-                            </div>
+                            <Link
+                              href={getAdminHref({ view, productSlug: product.slug })}
+                              className={styles.productEditLink}
+                            >
+                              <div className={styles.productNameCell}>
+                                <strong>{product.name}</strong>
+                              </div>
+                            </Link>
                           </td>
-                          <td className={styles.priceCell}>{product.price}</td>
+                          <td className={styles.priceCell}>
+                            <Link
+                              href={getAdminHref({ view, productSlug: product.slug })}
+                              className={styles.productEditLink}
+                              aria-label={`Edit ${product.name}, priced ${product.price}`}
+                            >
+                              {product.price}
+                            </Link>
+                          </td>
                           <td>
                             {product.featured ? (
                               <span className={`${styles.statusBadge} ${styles.statusFeatured}`}>

@@ -7,6 +7,7 @@ import MobileNav from "@/components/mobile-nav";
 import SearchModalTrigger from "@/components/search-modal-trigger";
 import BasketLink from "@/components/basket-link";
 import HeaderAccountLink from "@/components/header-account-link";
+import HeaderDesktopNav from "@/components/header-desktop-nav";
 import ShopNowLink from "@/components/shop-now-link";
 import styles from "./site-header.module.css";
 
@@ -57,10 +58,15 @@ export default async function SiteHeader({
   const isHeroVariant = variant === "hero";
   const isRouteActive = (itemRoutes?: NavRoute[]) =>
     activeRoute ? itemRoutes?.includes(activeRoute) ?? false : false;
-  const mobileNavItems = desktopNavItems.map((item) => ({
+  const headerNavItems = desktopNavItems.map((item) => ({
     href: item.href,
     label: item.label,
     isActive: isRouteActive(item.activeRoutes),
+  }));
+  const mobileNavItems = headerNavItems.map((item) => ({
+    href: item.href,
+    label: item.label,
+    isActive: item.isActive,
   }));
 
   return (
@@ -89,17 +95,7 @@ export default async function SiteHeader({
             </span>
           </Link>
 
-          <nav className={styles.leftNav} aria-label="Primary navigation">
-            {desktopNavItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`${styles.navLink} ${isRouteActive(item.activeRoutes) ? styles.navLinkActive : ""}`.trim()}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <HeaderDesktopNav items={headerNavItems} />
 
           <div className={styles.iconNav} aria-label="Actions">
             <ShopNowLink className={styles.shopNowLink}>

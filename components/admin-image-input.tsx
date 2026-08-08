@@ -184,6 +184,7 @@ export default function AdminImageInput({
   const cropStatesRef = useRef<CropStates>(createInitialCropStates(initialCropStates));
   const cropsAppliedRef = useRef(false);
   const cropDirtyRef = useRef(false);
+  const cropSubmitInFlightRef = useRef(false);
   const dragStateRef = useRef<DragState | null>(null);
 
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
@@ -222,8 +223,8 @@ export default function AdminImageInput({
   const helperText = disabled
     ? "Add CLOUDFLARE_R2_ACCESS_KEY_ID and CLOUDFLARE_R2_SECRET_ACCESS_KEY to enable image uploads."
     : currentCropSourceUrl
-      ? "Adjust crops to update storefront image sections without replacing the main image, or choose a new image."
-      : "Choose an image, then set crops for each storefront image section.";
+      ? "Adjust crops if needed, or choose a new image. Crop changes are applied automatically when you save."
+      : "Choose an image and adjust its storefront crops if needed. Crops are applied automatically when you save.";
 
   const setCropStates = useCallback((updater: (previous: CropStates) => CropStates) => {
     setCropStatesState((previous) => {
@@ -414,11 +415,30 @@ export default function AdminImageInput({
       return;
     }
 
+    const productForm = form;
+
     function handleSubmit(event: SubmitEvent) {
-      if (cropDirtyRef.current && !cropsAppliedRef.current) {
-        event.preventDefault();
-        setCropStatus("Use the crops before saving this product.");
+      if (!cropDirtyRef.current || cropsAppliedRef.current) {
+        return;
       }
+
+      event.preventDefault();
+
+      if (cropSubmitInFlightRef.current) {
+        return;
+      }
+
+      const submitter = event.submitter;
+      cropSubmitInFlightRef.current = true;
+      setCropStatus("Preparing crops before saving...");
+
+      void applyCrops().then((cropsReady) => {
+        cropSubmitInFlightRef.current = false;
+
+        if (cropsReady) {
+          productForm.requestSubmit(submitter ?? undefined);
+        }
+      });
     }
 
     function handleFormData(event: Event) {
@@ -468,12 +488,12 @@ export default function AdminImageInput({
       }
     }
 
-    form.addEventListener("submit", handleSubmit);
-    form.addEventListener("formdata", handleFormData);
+    productForm.addEventListener("submit", handleSubmit);
+    productForm.addEventListener("formdata", handleFormData);
 
     return () => {
-      form.removeEventListener("submit", handleSubmit);
-      form.removeEventListener("formdata", handleFormData);
+      productForm.removeEventListener("submit", handleSubmit);
+      productForm.removeEventListener("formdata", handleFormData);
     };
   }, []);
 
@@ -505,13 +525,13 @@ export default function AdminImageInput({
     setCropDirtyState(true);
     setSelectedFileName(nextFile.name);
     setActiveVariant(PRODUCT_IMAGE_VARIANTS.homepagePolaroid.key);
-    setCropStatus("Adjust each section crop, then use crops before saving.");
+    setCropStatus("Adjust the crops if needed. They will be applied automatically when you save.");
   }
 
   function updateActiveCropState(updater: (cropState: CropState) => CropState) {
     setCropsAppliedState(false);
     setCropDirtyState(true);
-    setCropStatus("Use the crops before saving this product.");
+    setCropStatus("Crop changes will be applied automatically when you save.");
     setCropStates((previous) => ({
       ...previous,
       [activeVariant]: updater(previous[activeVariant]),
@@ -582,9 +602,9 @@ export default function AdminImageInput({
     const image = sourceImageRef.current;
     const sourceFileName = sourceFileNameRef.current;
 
-    if (!cropSourceKindRef.current || !image || !sourceReady) {
-      setCropStatus("Wait for the image to load before using crops.");
-      return;
+    if (!cropSourceKindRef.current || !image) {
+      setCropStatus("Wait for the image to load before saving or applying crops.");
+      return false;
     }
 
     try {
@@ -620,8 +640,10 @@ export default function AdminImageInput({
           ? "Crops ready. Saving will update storefront image sections without replacing the main image."
           : "Crops ready for upload.",
       );
+      return true;
     } catch (error) {
       setCropStatus(error instanceof Error ? error.message : "The crops could not be created.");
+      return false;
     }
   }
 
@@ -732,7 +754,7 @@ export default function AdminImageInput({
       {selectedFileName ? (
         <p className={styles.fileName}>
           Selected: {selectedFileName}
-          {cropsApplied ? " - crops ready" : cropDirty ? " - use crops before saving" : ""}
+          {cropsApplied ? " - crops ready" : cropDirty ? " - crops will apply on save" : ""}
         </p>
       ) : null}
 

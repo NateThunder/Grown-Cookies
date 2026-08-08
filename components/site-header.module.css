@@ -93,6 +93,20 @@
   transform: scaleX(1);
 }
 
+.navLinkAnimating::after {
+  animation: navUnderlineReveal var(--public-transition) both;
+}
+
+@keyframes navUnderlineReveal {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
 .logo {
   display: flex;
   align-items: center;

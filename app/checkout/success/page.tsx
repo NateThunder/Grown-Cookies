@@ -1,10 +1,12 @@
 import Link from "next/link";
 import SiteHeader from "@/components/site-header";
 import CheckoutSuccessBasketClearer from "@/components/checkout-success-basket-clearer";
+import CheckoutSuccessFulfilment from "@/components/checkout-success-fulfilment";
 import { ensurePaidOrderEmails, isOrderNotificationEmailConfigured } from "@/lib/order-notifications";
 import { getStripeClient } from "@/lib/stripe-customer-payment-methods";
 import { STRIPE_CHECKOUT_ORDER_STATUS, updateOrderStatusByIdentifiers } from "@/lib/stripe-checkout";
 import styles from "./page.module.css";
+import { getCollectionSettings } from "@/lib/store-settings";
 
 export const runtime = "nodejs";
 
@@ -56,6 +58,7 @@ async function reconcileOrderConfirmationEmail(orderId: string | null, paymentIn
 }
 
 export default async function CheckoutSuccessPage({ searchParams }: CheckoutSuccessPageProps) {
+  const collectionSettings = await getCollectionSettings();
   const params = await searchParams;
   const orderId = getSearchParamValue(params.orderId);
   const paymentIntentId = getSearchParamValue(params.payment_intent);
@@ -112,6 +115,7 @@ export default async function CheckoutSuccessPage({ searchParams }: CheckoutSucc
             : "Email confirmation is not currently available. If you need help with this order, contact orders@growncookies.co.uk."}
         </p>
         <p>Order reference: {orderId ? <strong>{orderId}</strong> : "processing"}</p>
+        <CheckoutSuccessFulfilment collection={collectionSettings} />
         <Link href="/shop" className={styles.button}>
           Continue shopping
         </Link>

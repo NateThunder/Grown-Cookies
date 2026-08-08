@@ -1,0 +1,137 @@
+.picker {
+  position: relative;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.label {
+  color: #4b3155;
+  font-family: var(--font-public-ui);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.dateButton {
+  width: 100%;
+  min-height: 3.65rem;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  border: 1px solid rgba(76, 20, 95, 0.14);
+  border-radius: 12px;
+  background: #ffffff;
+  color: rgba(75, 49, 85, 0.58);
+  padding: 0 1rem;
+  font-family: var(--font-public-ui);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.dateButton:disabled,
+.header button:disabled {
+  color: rgba(75, 49, 85, 0.28);
+  cursor: not-allowed;
+}
+
+.dateButton svg {
+  width: 1.45rem;
+  height: 1.45rem;
+  color: #303030;
+}
+
+.calendar {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.45rem);
+  width: min(100%, 20rem);
+  z-index: 30;
+  display: grid;
+  gap: 0.55rem;
+  border: 1px solid rgba(76, 20, 95, 0.14);
+  border-radius: 14px;
+  background: #fffaf7;
+  padding: 0.7rem;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) 2rem;
+  align-items: center;
+  gap: 0.5rem;
+  color: #4b3155;
+  font-family: var(--font-public-ui);
+  text-align: center;
+}
+
+.header button {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(76, 20, 95, 0.14);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #4b3155;
+  cursor: pointer;
+}
+
+.weekdays,
+.days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.18rem;
+}
+
+.weekdays span {
+  color: rgba(75, 49, 85, 0.58);
+  font-family: var(--font-public-ui);
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.day {
+  aspect-ratio: 1 / 1;
+  border: 1px solid rgba(76, 20, 95, 0.14);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #4b3155;
+  font-family: var(--font-public-ui);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.day:disabled {
+  color: rgba(75, 49, 85, 0.28);
+  background: #f7f4f1;
+  cursor: not-allowed;
+}
+
+.muted {
+  opacity: 0.45;
+}
+
+.selected {
+  border-color: #7a4388;
+  background: #7a4388;
+  color: #ffffff;
+}
+
+.dateButton:focus-visible,
+.header button:focus-visible,
+.day:focus-visible {
+  outline: 2px solid #4b3155;
+  outline-offset: 2px;
+}
+
+@media (max-width: 520px) {
+  .calendar {
+    width: min(100%, 18rem);
+    padding: 0.65rem;
+  }
+
+  .day {
+    font-size: 0.74rem;
+  }
+}

@@ -13,12 +13,13 @@ import {
 } from "@/lib/basket-storage";
 import {
   DISPATCH_UPDATED_EVENT,
-  clearDispatchSelection,
   getDispatchSelection,
-  setDispatchDate,
+  setFulfilmentSelection,
 } from "@/lib/dispatch-storage";
 import { formatPriceFromCents, type BasketQuote, type BasketStoredItem } from "@/lib/basket";
 import {
+  BAKERY_COLLECTION_METHOD,
+  BAKERY_COLLECTION_LABEL,
   UK_POSTAL_SHIPPING_LABEL,
   UK_POSTAL_SHIPPING_METHOD,
   addDaysToIsoDate,
@@ -93,10 +94,12 @@ function DispatchDatePicker({
   availableDates,
   selectedDate,
   onSelect,
+  purpose = "dispatch",
 }: {
   availableDates: string[];
   selectedDate: string;
   onSelect: (date: string) => void;
+  purpose?: "dispatch" | "collection";
 }) {
   const firstAvailableDate = availableDates[0] ?? getLondonTodayIso();
   const lastAvailableDate = availableDates.at(-1) ?? firstAvailableDate;
@@ -146,11 +149,11 @@ function DispatchDatePicker({
         aria-expanded={isOpen}
       >
         <FiCalendar aria-hidden="true" />
-        <span>{selectedAvailableDate ? formatDispatchDate(selectedAvailableDate) : "Choose a dispatch date"}</span>
+        <span>{selectedAvailableDate ? formatDispatchDate(selectedAvailableDate) : `Choose a ${purpose} date`}</span>
       </button>
 
       {isOpen && hasDates ? (
-        <div className={styles.dispatchCalendar} role="dialog" aria-label="Choose a dispatch date">
+        <div className={styles.dispatchCalendar} role="dialog" aria-label={`Choose a ${purpose} date`}>
           <div className={styles.dispatchCalendarHeader}>
             <button
               type="button"
@@ -246,7 +249,10 @@ export default function CartClient({
   }, []);
 
   useEffect(() => {
-    const refresh = () => setDispatchSelection(getDispatchSelection());
+    const refresh = () =>
+      setDispatchSelection(
+        getDispatchSelection() ?? { method: UK_POSTAL_SHIPPING_METHOD, scheduledDate: "" },
+      );
     const handleUpdate = () => refresh();
 
     refresh();
@@ -320,18 +326,23 @@ export default function CartClient({
 
   const handleClearBasket = () => {
     clearBasket();
-    clearDispatchSelection();
+    setFulfilmentSelection(UK_POSTAL_SHIPPING_METHOD, "");
     setBasketItems(getBasket());
-    setDispatchSelection(null);
+    setDispatchSelection({ method: UK_POSTAL_SHIPPING_METHOD, scheduledDate: "" });
     setDispatchError("");
   };
 
   const handleDispatchDateSelect = (date: string) => {
-    setDispatchDate(date);
-    setDispatchSelection({
-      method: UK_POSTAL_SHIPPING_METHOD,
-      dispatchDate: date,
-    });
+    const method = dispatchSelection?.method ?? UK_POSTAL_SHIPPING_METHOD;
+    setFulfilmentSelection(method, date);
+    setDispatchSelection({ method, scheduledDate: date });
+    setDispatchError("");
+  };
+
+  const handleFulfilmentMethodChange = (method: DispatchSelection["method"]) => {
+    const scheduledDate = dispatchSelection?.scheduledDate ?? "";
+    setFulfilmentSelection(method, scheduledDate);
+    setDispatchSelection({ method, scheduledDate });
     setDispatchError("");
   };
 
@@ -341,7 +352,9 @@ export default function CartClient({
     ? lines.some((line) => !line.isGiftCard)
     : basketItems.some((item) => item.slug !== "gift-card");
   const availableDispatchDates = quote?.availableDispatchDates ?? [];
-  const selectedDispatchDate = dispatchSelection?.dispatchDate ?? "";
+  const selectedDispatchDate = dispatchSelection?.scheduledDate ?? "";
+  const selectedMethod = dispatchSelection?.method ?? UK_POSTAL_SHIPPING_METHOD;
+  const isCollection = selectedMethod === BAKERY_COLLECTION_METHOD;
   const isSelectedDispatchDateValid =
     !hasPhysicalItems ||
     Boolean(selectedDispatchDate && availableDispatchDates.includes(selectedDispatchDate));
@@ -358,11 +371,11 @@ export default function CartClient({
     }
 
     if (!availableDispatchDates.includes(selectedDispatchDate)) {
-      clearDispatchSelection();
-      setDispatchSelection(null);
-      setDispatchError("That dispatch date is no longer available. Choose a new dispatch date.");
+      setFulfilmentSelection(selectedMethod, "");
+      setDispatchSelection({ method: selectedMethod, scheduledDate: "" });
+      setDispatchError("That date is no longer available. Choose a new date.");
     }
-  }, [availableDispatchDates, hasPhysicalItems, quote, selectedDispatchDate]);
+  }, [availableDispatchDates, hasPhysicalItems, quote, selectedDispatchDate, selectedMethod]);
 
   const handleCheckout = () => {
     if (!quote || quoteError) {
@@ -370,7 +383,7 @@ export default function CartClient({
     }
 
     if (!isSelectedDispatchDateValid) {
-      setDispatchError("Choose a dispatch date before checkout.");
+      setDispatchError(`Choose a ${isCollection ? "collection" : "dispatch"} date before checkout.`);
       return;
     }
 
@@ -509,10 +522,37 @@ export default function CartClient({
 
               {quote && !quoteError && hasPhysicalItems ? (
                 <>
+                  <fieldset className={styles.fulfilmentOptions}>
+                    <legend>How would you like your order?</legend>
+                    <label className={selectedMethod === UK_POSTAL_SHIPPING_METHOD ? styles.fulfilmentOptionActive : styles.fulfilmentOption}>
+                      <input
+                        type="radio"
+                        name={`basket-fulfilment-${layout}`}
+                        value={UK_POSTAL_SHIPPING_METHOD}
+                        checked={selectedMethod === UK_POSTAL_SHIPPING_METHOD}
+                        onChange={() => handleFulfilmentMethodChange(UK_POSTAL_SHIPPING_METHOD)}
+                      />
+                      <span>Delivery</span>
+                    </label>
+                    <label className={isCollection ? styles.fulfilmentOptionActive : styles.fulfilmentOption}>
+                      <input
+                        type="radio"
+                        name={`basket-fulfilment-${layout}`}
+                        value={BAKERY_COLLECTION_METHOD}
+                        checked={isCollection}
+                        onChange={() => handleFulfilmentMethodChange(BAKERY_COLLECTION_METHOD)}
+                      />
+                      <span>Collection</span>
+                    </label>
+                  </fieldset>
                   <div className={styles.dispatchIntro}>
-                    <h2 className={styles.dispatchHeading}>{UK_POSTAL_SHIPPING_LABEL}</h2>
+                    <h2 className={styles.dispatchHeading}>
+                      {isCollection ? BAKERY_COLLECTION_LABEL : UK_POSTAL_SHIPPING_LABEL}
+                    </h2>
                     <p className={styles.dispatchCopy}>
-                      Choose your dispatch date so we know when to bake and post your cookies.
+                      {isCollection
+                        ? "Choose your collection date. Your order will be ready between 12:00 and 15:00."
+                        : "Choose your dispatch date so we know when to bake and post your cookies."}
                     </p>
                   </div>
 
@@ -520,9 +560,18 @@ export default function CartClient({
                     availableDates={availableDispatchDates}
                     selectedDate={selectedDispatchDate}
                     onSelect={handleDispatchDateSelect}
+                    purpose={isCollection ? "collection" : "dispatch"}
                   />
+                  {isCollection && quote.collection ? (
+                    <address className={styles.collectionAddress}>
+                      <strong>{quote.collection.venue}</strong>
+                      <span>{quote.collection.addressLine1}</span>
+                      <span>{quote.collection.city}, {quote.collection.postcode}</span>
+                      <span>{quote.collection.windowStart}–{quote.collection.windowEnd}</span>
+                    </address>
+                  ) : null}
                   <p className={styles.dispatchCopy}>
-                    Bank holidays in England, Wales, and Scotland are unavailable for dispatch.
+                    Bank holidays in England, Wales, and Scotland are unavailable.
                   </p>
                   {dispatchError ? <p className={styles.dispatchError}>{dispatchError}</p> : null}
                 </>

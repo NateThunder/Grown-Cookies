@@ -9,6 +9,7 @@ import {
   type BasketTipPercent,
 } from "@/lib/basket";
 import {
+  BAKERY_COLLECTION_METHOD,
   UK_POSTAL_SHIPPING_METHOD,
   parseDispatchSelection,
   type DispatchSelection,
@@ -21,7 +22,7 @@ import { validateGiftCardAmountCents } from "@/lib/gift-card-amounts";
 import { getPublicGiftCardApplicationsForQuote, parseGiftCardCodes } from "@/lib/gift-cards";
 import { resolveBasketLineGifting } from "@/lib/gifting";
 import { getAllProducts } from "@/lib/products";
-import { getDeliveryCostCents, getDispatchSettings } from "@/lib/store-settings";
+import { getCollectionSettings, getDeliveryCostCents, getDispatchSettings } from "@/lib/store-settings";
 
 export const CHECKOUT_CURRENCY = "gbp";
 
@@ -127,9 +128,10 @@ export async function buildCheckoutQuote({
     throw new Error("Your basket is empty.");
   }
 
-  const [products, deliveryShippingCents] = await Promise.all([
+  const [products, deliveryShippingCents, collectionSettings] = await Promise.all([
     getAllProducts(),
     getDeliveryCostCents(),
+    getCollectionSettings(),
   ]);
   const productMap = new Map(products.map((product) => [product.slug, product]));
   const lines: BasketQuoteLine[] = [];
@@ -255,7 +257,10 @@ export async function buildCheckoutQuote({
   const physicalSubtotalCents = lines
     .filter((line) => !line.isGiftCard)
     .reduce((sum, line) => sum + line.lineTotalCents, 0);
-  const shippingCents = hasPhysicalProducts ? deliveryShippingCents : 0;
+  const requestedMethod = dispatch?.method ?? UK_POSTAL_SHIPPING_METHOD;
+  const shippingCents = hasPhysicalProducts && requestedMethod !== BAKERY_COLLECTION_METHOD
+    ? deliveryShippingCents
+    : 0;
   const tipCents = getTipCents(subtotalCents, tip);
   const giftCardApplicableCents = physicalSubtotalCents + shippingCents;
   const giftCardApplications = await getPublicGiftCardApplicationsForQuote({
@@ -272,12 +277,13 @@ export async function buildCheckoutQuote({
   const availableDispatchDates = dispatchSettings
     ? await getAvailableDispatchDatesWithHolidayExclusions(dispatchSettings)
     : [];
-  const validDispatch =
+  const validScheduledDate =
     dispatchSettings &&
-    dispatch &&
-    (await isDispatchDateAvailableWithHolidayExclusions(dispatch.dispatchDate, dispatchSettings))
-      ? dispatch
+    dispatch?.scheduledDate &&
+    (await isDispatchDateAvailableWithHolidayExclusions(dispatch.scheduledDate, dispatchSettings))
+      ? dispatch.scheduledDate
       : null;
+  const fulfilmentMethod = hasPhysicalProducts ? requestedMethod : null;
 
   return {
     currency: CHECKOUT_CURRENCY,
@@ -294,8 +300,21 @@ export async function buildCheckoutQuote({
       percent,
       amountCents: Math.round(subtotalCents * (percent / 100)),
     })),
-    fulfilmentMethod: hasPhysicalProducts ? UK_POSTAL_SHIPPING_METHOD : null,
-    dispatchDate: validDispatch?.dispatchDate ?? null,
+    fulfilmentMethod,
+    scheduledDate: validScheduledDate,
+    availableDates: availableDispatchDates,
+    collection:
+      fulfilmentMethod === BAKERY_COLLECTION_METHOD
+        ? {
+            venue: collectionSettings.venue,
+            addressLine1: collectionSettings.addressLine1,
+            city: collectionSettings.city,
+            postcode: collectionSettings.postcode,
+            windowStart: collectionSettings.windowStart,
+            windowEnd: collectionSettings.windowEnd,
+          }
+        : null,
+    dispatchDate: validScheduledDate,
     availableDispatchDates,
   };
 }
