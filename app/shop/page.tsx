@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import QuickAddButton from "@/components/quick-add-button";
+import JsonLd from "@/components/json-ld";
 import styles from "./page.module.css";
 import { MIN_GIFT_CARD_AMOUNT_CENTS, formatGiftCardAmount } from "@/lib/gift-card-amounts";
 import { getAllProducts, type ShopProduct } from "@/lib/products";
 import { getProductImageForVariant, PRODUCT_IMAGE_VARIANTS } from "@/lib/product-image-variants";
 import SiteHeader from "@/components/site-header";
 import ShopSortDropdown from "@/components/shop-sort-dropdown";
+import { getBreadcrumbJsonLd, getItemListJsonLd } from "@/lib/seo";
 
 type SearchParamValue = string | string[] | undefined;
 
@@ -44,15 +46,15 @@ const SORT_OPTIONS: SortOption[] = [
 const GIFT_CARD_FRAME_IMAGE = "/gift card frame no crumbs.png";
 
 export const metadata: Metadata = {
-  title: "Shop Cookies",
+  title: { absolute: "Cookie Boxes Online UK | Grown Cookies" },
   description:
-    "Browse Grown Cookies flavours, gift cards, and variety boxes baked fresh for delivery across the UK.",
+    "Shop made-to-order artisan cookie boxes online for tracked UK delivery or pre-ordered collection in Glasgow.",
   alternates: {
     canonical: "/shop",
   },
   openGraph: {
-    title: "Shop Grown Cookies",
-    description: "Browse handcrafted cookie flavours, gift cards, and variety boxes.",
+    title: "Cookie Boxes Online UK | Grown Cookies",
+    description: "Browse artisan cookie flavours, variety boxes and gift cards for UK delivery.",
     url: "/shop",
     type: "website",
   },
@@ -127,10 +129,16 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
 
   return (
     <main className={styles.page}>
+      <JsonLd data={[
+        getBreadcrumbJsonLd([{ name: "Home", path: "/" }, { name: "Shop", path: "/shop" }]),
+        getItemListJsonLd(sortedProducts, { name: "Grown Cookies online shop", path: "/shop" }),
+      ]} />
       <SiteHeader activeRoute="shop" products={products} variant="hero" />
 
       <section className={styles.shop}>
-        <h1>Shop</h1>
+        <div className={styles.shopIntro}>
+          <h1>Shop</h1>
+        </div>
 
         <div className={styles.toolsRow}>
           <span className={styles.itemCount}>{sortedProducts.length} items</span>
@@ -190,6 +198,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
             );
           })}
         </div>
+
       </section>
     </main>
   );

@@ -4,15 +4,6 @@ import { buildSiteUrl } from "@/lib/site-url";
 
 export const revalidate = 300;
 
-function parseLastModified(value?: string) {
-  if (!value) {
-    return undefined;
-  }
-
-  const timestamp = Date.parse(value);
-  return Number.isNaN(timestamp) ? undefined : new Date(timestamp);
-}
-
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const products = await getAllProducts();
 
@@ -26,6 +17,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: buildSiteUrl("/shop"),
       changeFrequency: "daily",
       priority: 0.9,
+    },
+    {
+      url: buildSiteUrl("/cookie-gift-boxes"),
+      changeFrequency: "weekly",
+      priority: 0.85,
+    },
+    {
+      url: buildSiteUrl("/cookies-glasgow"),
+      changeFrequency: "weekly",
+      priority: 0.85,
     },
     {
       url: buildSiteUrl("/contact"),
@@ -56,7 +57,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const productRoutes = products.map((product) => ({
     url: buildSiteUrl(`/shop/${product.slug}`),
-    lastModified: parseLastModified(product.createdAt),
     changeFrequency: "weekly" as const,
     priority: product.featured ? 0.8 : 0.7,
   }));

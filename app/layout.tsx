@@ -3,15 +3,16 @@ import { cookies } from "next/headers";
 import { Abril_Fatface, Anonymous_Pro, Besley, Fraunces } from "next/font/google";
 import Link from "next/link";
 import Script from "next/script";
-import { FaTiktok } from "react-icons/fa6";
 import { FiInstagram } from "react-icons/fi";
 import CookieConsentBanner from "@/components/cookie-consent-banner";
+import JsonLd from "@/components/json-ld";
 import MailingListSignupForm from "@/components/mailing-list-signup-form";
 import OrderJourneyTracker from "@/components/order-journey-tracker";
 import RouteAwareBasketLink from "@/components/route-aware-basket-link";
 import SiteLockGate from "@/components/site-lock-gate";
 import { COOKIE_CONSENT_STORAGE_KEY } from "@/lib/cookie-consent";
 import { getSiteUrl } from "@/lib/site-url";
+import { getOrganizationJsonLd } from "@/lib/seo";
 import { isSiteLockEnabled } from "@/lib/site-lock";
 import { ADMIN_AUTH_COOKIE, getAdminUserFromAccessToken } from "@/lib/supabase/admin-auth";
 import "./globals.css";
@@ -159,6 +160,7 @@ export default async function RootLayout({
         ) : null}
       </head>
       <body className="antialiased">
+        <JsonLd data={getOrganizationJsonLd()} />
         <SiteLockGate enabled={siteLockEnabled} isUnlockedForAdmin={isUnlockedForAdmin}>
           <>
             {children}
@@ -189,8 +191,11 @@ export default async function RootLayout({
                     </p>
                     <div className="site-footer-links">
                       <div className="site-footer-legal-links">
+                        <Link href="/cookie-gift-boxes">Cookie Gift Boxes</Link>
+                        <Link href="/cookies-glasgow">Glasgow Collection</Link>
                         <Link href="/terms">Terms of Service</Link>
                         <Link href="/delivery">Delivery</Link>
+                        <Link href="/faqs">FAQs</Link>
                         <Link href="/privacy">Privacy Policy</Link>
                       </div>
                       <div className="site-footer-social">
@@ -201,9 +206,6 @@ export default async function RootLayout({
                           rel="noreferrer"
                         >
                           <FiInstagram />
-                        </Link>
-                        <Link href="#" aria-label="TikTok">
-                          <FaTiktok />
                         </Link>
                       </div>
                     </div>

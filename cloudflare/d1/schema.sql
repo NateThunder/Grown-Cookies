@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS products (
   name TEXT NOT NULL,
   price TEXT NOT NULL,
   description TEXT NOT NULL,
+  seo_description TEXT,
   allergens TEXT NOT NULL DEFAULT '',
   is_gift_card INTEGER NOT NULL DEFAULT 0,
   hidden INTEGER NOT NULL DEFAULT 0,

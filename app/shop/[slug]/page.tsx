@@ -3,13 +3,23 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import GiftCardTile from "@/components/gift-card-tile";
+import JsonLd from "@/components/json-ld";
 import ProductBasketControls from "@/components/product-basket-controls";
 import QuickAddButton from "@/components/quick-add-button";
 import FulfilmentSelector from "@/components/fulfilment-selector";
 import { MIN_GIFT_CARD_AMOUNT_CENTS, formatGiftCardAmount } from "@/lib/gift-card-amounts";
+import { getAvailableDispatchDates, getLondonTodayIso } from "@/lib/dispatch";
 import { getAllProducts } from "@/lib/products";
 import { getProductImageForVariant, PRODUCT_IMAGE_VARIANTS } from "@/lib/product-image-variants";
+import { getDeliveryCostSetting, getDispatchSettings } from "@/lib/store-settings";
 import SiteHeader from "@/components/site-header";
+import {
+  getBreadcrumbJsonLd,
+  getCookieProductName,
+  getProductJsonLd,
+  getProductSeoDescription,
+  getProductSeoTitle,
+} from "@/lib/seo";
 import styles from "./page.module.css";
 
 const GIFT_CARD_FRAME_IMAGE = "/gift card frame no crumbs.png";
@@ -17,14 +27,6 @@ const GIFT_CARD_FRAME_IMAGE = "/gift card frame no crumbs.png";
 type ProductPageProps = {
   params: Promise<{ slug: string }>;
 };
-
-function getMetadataDescription(description: string) {
-  if (description.length <= 155) {
-    return description;
-  }
-
-  return `${description.slice(0, 152).trimEnd()}...`;
-}
 
 export async function generateStaticParams() {
   const products = await getAllProducts();
@@ -46,16 +48,17 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
     product,
     PRODUCT_IMAGE_VARIANTS.productDetail.key,
   ) ?? product.image;
-  const description = getMetadataDescription(product.description);
+  const description = getProductSeoDescription(product);
+  const title = getProductSeoTitle(product);
 
   return {
-    title: product.name,
+    title: { absolute: title },
     description,
     alternates: {
       canonical: `/shop/${product.slug}`,
     },
     openGraph: {
-      title: `${product.name} | Grown Cookies`,
+      title,
       description,
       url: `/shop/${product.slug}`,
       type: "website",
@@ -73,7 +76,11 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
-  const products = await getAllProducts();
+  const [products, deliveryCostSetting, dispatchSettings] = await Promise.all([
+    getAllProducts(),
+    getDeliveryCostSetting(),
+    getDispatchSettings(),
+  ]);
   const product = products.find((item) => item.slug === slug);
 
   if (!product) {
@@ -95,6 +102,17 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const productPrice = product.isGiftCard
     ? `From ${formatGiftCardAmount(MIN_GIFT_CARD_AMOUNT_CENTS)}`
     : product.price;
+  const today = getLondonTodayIso();
+  const earliestDispatchDate = getAvailableDispatchDates(dispatchSettings, { limit: 1 })[0];
+  const handlingTimeDays = earliestDispatchDate
+    ? Math.max(
+        0,
+        Math.round(
+          (Date.parse(`${earliestDispatchDate}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) /
+            86_400_000,
+        ),
+      )
+    : dispatchSettings.minimumPrepDays;
 
   for (const item of fallbackProducts) {
     if (!relatedProducts.some((existing) => existing.slug === item.slug)) {
@@ -105,6 +123,17 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   return (
     <main className={styles.page}>
+      <JsonLd data={[
+        getBreadcrumbJsonLd([
+          { name: "Home", path: "/" },
+          { name: "Shop", path: "/shop" },
+          { name: product.name, path: `/shop/${product.slug}` },
+        ]),
+        getProductJsonLd(product, {
+          deliveryCostCents: deliveryCostSetting.deliveryCostCents,
+          handlingTimeDays,
+        }),
+      ]} />
       <SiteHeader activeRoute="shop" products={products} variant="hero" />
 
       <section className={styles.productSection}>
@@ -129,7 +158,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         </div>
 
         <div className={`${styles.infoColumn} whiteFrame`}>
-          <h1>{product.name}</h1>
+          <h1>{product.isGiftCard ? product.name : getCookieProductName(product.name)}</h1>
           <p className={styles.price}>{productPrice}</p>
 
           <hr className={styles.divider} />

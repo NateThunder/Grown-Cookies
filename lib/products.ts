@@ -11,6 +11,7 @@ type ProductBase = {
   name: string;
   price: string;
   description: string;
+  seoDescription?: string;
   allergens?: string;
   featured?: boolean;
   hidden?: boolean;
@@ -37,6 +38,7 @@ type ProductRow = {
   name: string;
   price: string;
   description: string;
+  seo_description: string | null;
   allergens: string | null;
   image_key: string | null;
   alt_text: string | null;
@@ -74,6 +76,18 @@ async function ensureFeaturedProductsSchema() {
     try {
       await executeCloudflareD1(
         "ALTER TABLE products ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0",
+      );
+    } catch (error) {
+      if (!(error instanceof Error) || !/duplicate column name/i.test(error.message)) {
+        throw error;
+      }
+    }
+  }
+
+  if (!columns.some((column) => column.name === "seo_description")) {
+    try {
+      await executeCloudflareD1(
+        "ALTER TABLE products ADD COLUMN seo_description TEXT",
       );
     } catch (error) {
       if (!(error instanceof Error) || !/duplicate column name/i.test(error.message)) {
@@ -284,6 +298,7 @@ function mapStaticProduct(record: StaticProductRecord): ShopProduct {
     name: record.name,
     price: formatProductPriceLabel(record.price),
     description: record.description,
+    seoDescription: record.seoDescription,
     allergens: record.allergens,
     featured: record.featured,
     hidden: record.hidden,
@@ -330,6 +345,7 @@ function mapRowToProduct(row: ProductRow): ShopProduct {
     name: row.name,
     price: formatProductPriceLabel(row.price),
     description: normalizedCopy.description,
+    seoDescription: row.seo_description?.trim() || undefined,
     allergens: normalizedCopy.allergens,
     featured: row.featured_position !== null,
     hidden: Boolean(row.hidden),
@@ -369,6 +385,7 @@ async function fetchProductsFromD1() {
        p.name,
        p.price,
        p.description,
+       p.seo_description,
        p.allergens,
        p.is_gift_card,
        p.hidden,
@@ -418,6 +435,7 @@ const getFeaturedProductsCached = unstable_cache(
          p.name,
          p.price,
          p.description,
+         p.seo_description,
          p.allergens,
          p.is_gift_card,
          p.hidden,

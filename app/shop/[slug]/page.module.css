@@ -147,6 +147,77 @@
   padding: 0 var(--public-page-padding) clamp(4rem, 7vw, 6rem);
 }
 
+.productDetailsSection {
+  max-width: var(--public-page-max);
+  margin: 0 auto;
+  padding: clamp(1rem, 3vw, 2rem) var(--public-page-padding) clamp(4rem, 7vw, 6rem);
+}
+
+.productDetailsHeader {
+  max-width: 43rem;
+  margin-bottom: clamp(2rem, 4vw, 3rem);
+}
+
+.productDetailsHeader > p {
+  margin: 0 0 0.8rem;
+  color: var(--public-plum-deep);
+  font-family: var(--font-public-ui);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.productDetailsHeader h2 {
+  margin: 0;
+  color: var(--public-plum-deep);
+  font-family: var(--font-public-display);
+  font-size: clamp(1.8rem, 4vw, 3.3rem);
+  line-height: 0.94;
+}
+
+.productDetailsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(1.2rem, 3vw, 2rem);
+}
+
+.productDetailsGrid article {
+  border-top: 1px solid var(--public-border);
+  padding-top: 1.2rem;
+}
+
+.productDetailsGrid h3,
+.productDetailsGrid p {
+  margin: 0;
+}
+
+.productDetailsGrid h3 {
+  color: var(--public-plum-deep);
+  font-family: var(--font-public-display);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.productDetailsGrid p {
+  margin-top: 0.75rem;
+  color: var(--public-ink-soft);
+  font-family: var(--font-public-ui);
+  line-height: 1.65;
+}
+
+.productDetailsGrid a {
+  display: inline-block;
+  margin-top: 0.9rem;
+  border-bottom: 1px solid currentColor;
+  color: var(--public-plum-deep);
+  font-family: var(--font-public-ui);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .relatedSection h2 {
   margin: 0;
   color: var(--public-plum-deep);
@@ -317,6 +388,10 @@
   .relatedGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .productDetailsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 520px) {
@@ -330,7 +405,12 @@
   }
 
   .productSection,
+  .productDetailsSection,
   .relatedSection {
     padding-inline: 1rem;
+  }
+
+  .productDetailsGrid {
+    grid-template-columns: 1fr;
   }
 }

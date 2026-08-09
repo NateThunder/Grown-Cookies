@@ -705,8 +705,16 @@
   line-height: 1.28;
 }
 
-.benefitItem span:last-child {
+.benefitItem span:last-child,
+.benefitLink {
   align-self: start;
+}
+
+.benefitLink {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.16em;
 }
 
 .benefitIcon {

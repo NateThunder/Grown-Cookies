@@ -1,0 +1,72 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(1rem, 2vw, 1.4rem);
+}
+
+.item {
+  min-width: 0;
+  border-top: 1px solid var(--public-border);
+  padding-top: 1rem;
+}
+
+.imageLink {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1.12;
+  overflow: hidden;
+  border-radius: var(--public-radius-lg);
+  background: var(--public-pink-soft);
+}
+
+.image {
+  object-fit: cover;
+}
+
+.copy {
+  padding-top: 1rem;
+}
+
+.copy h3,
+.copy p {
+  margin: 0;
+}
+
+.copy h3 {
+  color: var(--public-plum-deep);
+  font-family: var(--font-public-display);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.copy p {
+  margin-top: 0.45rem;
+  color: var(--public-ink);
+  font-family: var(--font-public-ui);
+  font-weight: 700;
+}
+
+.productLink {
+  display: inline-block;
+  margin-top: 0.85rem;
+  border-bottom: 1px solid currentColor;
+  color: var(--public-plum-deep);
+  font-family: var(--font-public-ui);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

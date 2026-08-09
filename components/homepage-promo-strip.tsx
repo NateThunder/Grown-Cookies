@@ -7,11 +7,17 @@ import ShopNowLink from "@/components/shop-now-link";
 import styles from "./homepage-promo-strip.module.css";
 
 const SHOP_BENEFITS = [
-  "Handcrafted cookies for every occasion",
-  "From classic favourites to limited-edition flavours",
-  "Perfect for gifting, parties, and corporate events",
-  "Baked fresh for maximum flavour",
-  "A crowd-pleaser at any gathering",
+  { text: "Handcrafted cookies for every occasion" },
+  { text: "From classic favourites to limited-edition flavours" },
+  {
+    text: "Cookie gift boxes with optional personalised notecards",
+    href: "/cookie-gift-boxes",
+  },
+  { text: "Baked fresh for maximum flavour" },
+  {
+    text: "Larger orders for corporate gifts, weddings and events",
+    href: "/contact",
+  },
 ];
 
 type HomepagePromoStripProps = {
@@ -102,11 +108,17 @@ export default function HomepagePromoStrip({
                 <p className={styles.eyebrow}>{shopIntroSetting.eyebrow}</p>
                 <div className={styles.benefitGrid} aria-label="Shop highlights">
                   {SHOP_BENEFITS.map((benefit) => (
-                    <p key={benefit} className={styles.benefitItem}>
+                    <p key={benefit.text} className={styles.benefitItem}>
                       <span className={styles.benefitIcon} aria-hidden="true">
                         •
                       </span>
-                      <span>{benefit}</span>
+                      {benefit.href ? (
+                        <Link href={benefit.href} className={styles.benefitLink}>
+                          {benefit.text}
+                        </Link>
+                      ) : (
+                        <span>{benefit.text}</span>
+                      )}
                     </p>
                   ))}
                 </div>
