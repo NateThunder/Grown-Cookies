@@ -1325,7 +1325,10 @@ function PaymentElementForm({
 export default function CheckoutClient() {
   const [items, setItems] = useState<BasketStoredItem[]>([]);
   const [hasHydratedBasket, setHasHydratedBasket] = useState(false);
-  const [dispatchSelection, setDispatchSelection] = useState<DispatchSelection | null>(null);
+  const [dispatchSelection, setDispatchSelection] = useState<DispatchSelection | null>({
+    method: UK_POSTAL_SHIPPING_METHOD,
+    scheduledDate: "",
+  });
   const [quote, setQuote] = useState<BasketQuote | null>(null);
   const [quoteError, setQuoteError] = useState("");
   const [giftCardCodes, setGiftCardCodes] = useState<string[]>(getStoredCheckoutGiftCardCodes);
@@ -1879,6 +1882,21 @@ export default function CheckoutClient() {
   const stripeAmountCents = quote?.stripeAmountCents ?? totalCents;
   const isZeroDue = Boolean(quote && quote.giftCardAppliedCents > 0 && quote.stripeAmountCents <= 0);
   const stripeConfigError = stripePromise || isZeroDue ? "" : "Stripe is not configured.";
+
+  useEffect(() => {
+    if (!quote || isDigitalOnly) {
+      return;
+    }
+
+    const selectedDate = dispatchSelection?.scheduledDate ?? "";
+    if (!quote.availableDates.includes(selectedDate)) {
+      const nextDate = quote.availableDates[0] ?? "";
+      setFulfilmentSelection(selectedFulfilmentMethod, nextDate);
+      setDispatchSelection({ method: selectedFulfilmentMethod, scheduledDate: nextDate });
+      setZeroDueError("");
+    }
+  }, [dispatchSelection?.scheduledDate, isDigitalOnly, quote, selectedFulfilmentMethod]);
+
   const giftCardDisplayItems =
     quote && quote.giftCardApplications.length > 0
       ? quote.giftCardApplications

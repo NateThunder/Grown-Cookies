@@ -86,7 +86,25 @@
 
 html {
   background: var(--browser-top-chrome);
+  overflow-y: scroll;
   scroll-behavior: auto;
+  scrollbar-gutter: stable;
+  scrollbar-color: var(--browser-bottom-chrome) #ffe9f1;
+  scrollbar-width: auto;
+}
+
+html::-webkit-scrollbar {
+  width: 16px;
+}
+
+html::-webkit-scrollbar-track {
+  background: #ffe9f1;
+}
+
+html::-webkit-scrollbar-thumb {
+  background: var(--browser-bottom-chrome);
+  border: 4px solid #ffe9f1;
+  border-radius: 999px;
 }
 
 body {

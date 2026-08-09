@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import SiteHeader from "@/components/site-header";
 import HomepagePromoStrip from "@/components/homepage-promo-strip";
+import QuickAddButton from "@/components/quick-add-button";
 import ShopNowLink from "@/components/shop-now-link";
 import { getAllProducts } from "@/lib/products";
 import {
@@ -14,15 +15,15 @@ import styles from "./page.module.css";
 const GIFT_CARD_FRAME_IMAGE = "/gift card frame no crumbs.png";
 
 export const metadata: Metadata = {
-  title: "Artisan Cookies Delivered in the UK",
+  title: { absolute: "Artisan Cookies Delivered Across the UK | Grown Cookies" },
   description:
-    "Shop handcrafted Grown Cookies, from classic favourites to limited-edition artisan flavours baked fresh for gifting, parties, and treats.",
+    "Order thick artisan cookies made fresh in Glasgow for tracked delivery across the UK or pre-ordered Glasgow collection.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Grown Cookies",
-    description: "Handcrafted artisan cookies baked fresh for grown folks.",
+    title: "Artisan Cookies Delivered Across the UK | Grown Cookies",
+    description: "Made-to-order artisan cookie boxes for UK delivery or Glasgow collection.",
     url: "/",
     type: "website",
   },
@@ -57,14 +58,16 @@ export default async function Home() {
           <div className={styles.heroCopy}>
             <h1 className={styles.heroTitle}>
               <span>
-                Order <span className={styles.heroAccent}>your</span> cookies today
+                Artisan <span className={styles.heroAccent}>Cookies</span> Delivered Across the UK
                 <span className={styles.heroAccent}>!</span>
               </span>
             </h1>
-            <p className={styles.heroBody}>Cookies for Grown folks</p>
+            <p className={styles.heroBody}>
+              Cookies for grown folks. <span className={styles.heroBodyLocation}>Handmade in Glasgow.</span>
+            </p>
             <div className={styles.heroActions}>
               <ShopNowLink className={`${styles.primaryCta} ${styles.heroCta}`}>
-                Shop Now 
+                Shop Now
               </ShopNowLink>
             </div>
           </div>
@@ -116,6 +119,10 @@ export default async function Home() {
                         />
                       ) : null}
                     </Link>
+                    <QuickAddButton
+                      product={product}
+                      className={styles.featuredQuickAdd}
+                    />
                   </div>
 
                   <Link
@@ -139,6 +146,30 @@ export default async function Home() {
         </section>
 
         <HomepagePromoStrip homepageSettings={homepageSettings} products={products} />
+
+        <section className={styles.seoIntro} aria-labelledby="fresh-cookie-delivery-title">
+          <div className={styles.seoIntroHeader}>
+            <p>Fresh cookie boxes</p>
+            <h2 id="fresh-cookie-delivery-title">Made in Glasgow, delivered across the UK</h2>
+          </div>
+          <div className={styles.seoIntroGrid}>
+            <article>
+              <h3>Six thick, made-to-order cookies</h3>
+              <p>Light crunch, full bite.</p>
+              <Link href="/shop">Shop cookie boxes</Link>
+            </article>
+            <article>
+              <h3>Royal Mail Tracked 24 delivery</h3>
+              <p>Available throughout the UK.</p>
+              <Link href="/delivery">Delivery details</Link>
+            </article>
+            <article>
+              <h3>Pre-ordered Glasgow collection</h3>
+              <p>Collect from Akara Bakery, Duke Street.</p>
+              <Link href="/cookies-glasgow">Collection details</Link>
+            </article>
+          </div>
+        </section>
       </div>
     </main>
   );

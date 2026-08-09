@@ -16,6 +16,7 @@ type AdminProductRow = {
   name: string;
   price: string;
   description: string;
+  seo_description: string | null;
   allergens: string | null;
   is_gift_card: number;
   hidden: number;
@@ -56,6 +57,7 @@ export type AdminProduct = {
   price: string;
   priceValue: string;
   description: string;
+  seoDescription: string;
   allergens: string;
   featured: boolean;
   featuredPosition?: number;
@@ -78,6 +80,7 @@ export type AdminProductInput = {
   name: string;
   priceValue: string;
   description: string;
+  seoDescription: string;
   allergens: string;
   featured: boolean;
   featuredPosition: number;
@@ -95,6 +98,7 @@ const ADMIN_PRODUCT_SELECT = `SELECT
   p.name,
   p.price,
   p.description,
+  p.seo_description,
   p.allergens,
   p.is_gift_card,
   p.hidden,
@@ -173,6 +177,18 @@ async function ensureAdminSchema() {
         try {
           await executeCloudflareD1(
             "ALTER TABLE products ADD COLUMN allergens TEXT NOT NULL DEFAULT ''",
+          );
+        } catch (error) {
+          if (!(error instanceof Error) || !/duplicate column name/i.test(error.message)) {
+            throw error;
+          }
+        }
+      }
+
+      if (!columns.some((column) => column.name === "seo_description")) {
+        try {
+          await executeCloudflareD1(
+            "ALTER TABLE products ADD COLUMN seo_description TEXT",
           );
         } catch (error) {
           if (!(error instanceof Error) || !/duplicate column name/i.test(error.message)) {
@@ -299,6 +315,16 @@ function normalizeRequiredText(value: string, label: string) {
   }
 
   return normalized;
+}
+
+function normalizeSeoDescription(value: string) {
+  const normalized = normalizeWhitespace(value);
+
+  if (normalized.length > 160) {
+    throw new Error("Keep the SEO description to 160 characters or fewer.");
+  }
+
+  return normalized || null;
 }
 
 function normalizeAllergens(value: string) {
@@ -475,6 +501,7 @@ function mapRowToAdminProduct(row: AdminProductRow): AdminProduct {
     price: formatProductPriceLabel(row.price),
     priceValue: parsePriceToValue(row.price),
     description: normalizedCopy.description,
+    seoDescription: row.seo_description?.trim() ?? "",
     allergens: normalizedCopy.allergens,
     featured: Boolean(row.featured),
     featuredPosition: row.featured_position ?? undefined,
@@ -867,6 +894,7 @@ export async function createAdminProduct(input: AdminProductInput) {
 
   const name = normalizeRequiredText(input.name, "product name");
   const description = normalizeRequiredText(input.description, "description");
+  const seoDescription = normalizeSeoDescription(input.seoDescription);
   const allergens = normalizeAllergens(input.allergens);
   const price = formatPriceFromValue(input.priceValue);
   const sortOrder = normalizeSortOrder(input.sortOrder);
@@ -878,6 +906,7 @@ export async function createAdminProduct(input: AdminProductInput) {
         name,
         price,
         description,
+        seo_description,
        allergens,
        is_gift_card,
        hidden,
@@ -885,12 +914,13 @@ export async function createAdminProduct(input: AdminProductInput) {
         sort_order,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
     [
       slug,
       name,
       price,
       description,
+      seoDescription,
       allergens,
       input.isGiftCard ? 1 : 0,
       input.hidden ? 1 : 0,
@@ -971,6 +1001,7 @@ export async function updateAdminProduct(input: AdminProductInput) {
 
   const name = normalizeRequiredText(input.name, "product name");
   const description = normalizeRequiredText(input.description, "description");
+  const seoDescription = normalizeSeoDescription(input.seoDescription);
   const allergens = normalizeAllergens(input.allergens);
   const price = formatPriceFromValue(input.priceValue);
   const sortOrder = normalizeSortOrder(input.sortOrder);
@@ -980,6 +1011,7 @@ export async function updateAdminProduct(input: AdminProductInput) {
      SET name = ?,
          price = ?,
          description = ?,
+         seo_description = ?,
          allergens = ?,
          is_gift_card = ?,
          hidden = ?,
@@ -991,6 +1023,7 @@ export async function updateAdminProduct(input: AdminProductInput) {
       name,
       price,
       description,
+      seoDescription,
       allergens,
       input.isGiftCard ? 1 : 0,
       input.hidden ? 1 : 0,

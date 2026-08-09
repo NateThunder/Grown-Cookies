@@ -220,7 +220,10 @@ export default function CartClient({
   showTitle = true,
 }: CartClientProps) {
   const [basketItems, setBasketItems] = useState<BasketStoredItem[]>([]);
-  const [dispatchSelection, setDispatchSelection] = useState<DispatchSelection | null>(null);
+  const [dispatchSelection, setDispatchSelection] = useState<DispatchSelection | null>({
+    method: UK_POSTAL_SHIPPING_METHOD,
+    scheduledDate: "",
+  });
   const [hasHydratedBasket, setHasHydratedBasket] = useState(false);
   const [quote, setQuote] = useState<BasketQuote | null>(null);
   const [quoteError, setQuoteError] = useState("");
@@ -366,14 +369,15 @@ export default function CartClient({
       : "Calculating...";
 
   useEffect(() => {
-    if (!quote || !hasPhysicalItems || !selectedDispatchDate) {
+    if (!quote || !hasPhysicalItems) {
       return;
     }
 
     if (!availableDispatchDates.includes(selectedDispatchDate)) {
-      setFulfilmentSelection(selectedMethod, "");
-      setDispatchSelection({ method: selectedMethod, scheduledDate: "" });
-      setDispatchError("That date is no longer available. Choose a new date.");
+      const nextDate = availableDispatchDates[0] ?? "";
+      setFulfilmentSelection(selectedMethod, nextDate);
+      setDispatchSelection({ method: selectedMethod, scheduledDate: nextDate });
+      setDispatchError("");
     }
   }, [availableDispatchDates, hasPhysicalItems, quote, selectedDispatchDate, selectedMethod]);
 

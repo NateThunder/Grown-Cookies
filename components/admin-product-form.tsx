@@ -131,6 +131,20 @@ export default function AdminProductForm({
             </label>
 
             <label className={styles.field}>
+              <span>SEO description (optional)</span>
+              <textarea
+                name="seoDescription"
+                rows={3}
+                maxLength={160}
+                defaultValue={product?.seoDescription ?? ""}
+                placeholder="Leave blank to generate this automatically."
+              />
+              <small>
+                Used in search results. Leave blank for an automatic description based on the product name and type. Maximum 160 characters.
+              </small>
+            </label>
+
+            <label className={styles.field}>
               <span>Allergens</span>
               <input
                 type="text"
