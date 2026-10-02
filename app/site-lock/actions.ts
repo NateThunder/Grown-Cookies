@@ -1,9 +1,8 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { authenticateAdminCredentials } from "@/lib/admin-signin";
-import { ADMIN_AUTH_COOKIE, getAdminAuthCookieOptions } from "@/lib/supabase/admin-auth";
+import { applyAuthResponseCookies } from "@/lib/auth/cookies";
 
 export type SiteLockActionState = {
   error?: string;
@@ -45,16 +44,7 @@ export async function siteLockLoginAction(
     };
   }
 
-  const cookieStore = await cookies();
-  const cookieConfig = getAdminAuthCookieOptions();
-
-  cookieStore.set(ADMIN_AUTH_COOKIE, result.accessToken, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: cookieConfig.maxAge,
-  });
+  await applyAuthResponseCookies(result.responseHeaders);
 
   redirect(returnPath);
 }

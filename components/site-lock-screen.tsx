@@ -25,7 +25,7 @@ export default function SiteLockScreen({ returnPath }: SiteLockScreenProps) {
         <h1>Grown Cookies is not open to the public yet.</h1>
         <p className={styles.copy}>
           The main site is temporarily locked while launch content, products, and checkout are being
-          finished. Sign in with the same admin Supabase account used for <code>/admin</code>.
+          finished. Sign in with the same admin account used for <code>/admin</code>.
         </p>
 
         {state.warning ? (

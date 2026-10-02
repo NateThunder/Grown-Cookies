@@ -23,7 +23,7 @@ export default async function OrdersAdminPage({ searchParams }: OrdersAdminPageP
         returnPath="/admin/orders"
         error={context.flash.error}
         warning={context.flash.warning}
-        supabaseConfigured={context.supabaseConfigured}
+        authConfigured={context.authConfigured}
       />
     );
   }

@@ -4,14 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
-import type { Session, User } from "@supabase/supabase-js";
 import AccountSignupForm from "@/components/account-signup-form";
+import { authClient, useSession } from "@/lib/auth/client";
+import type { AppAuthUser } from "@/lib/auth/types";
 import type { AccountOrderItem, AccountOrderSummary } from "@/lib/account-orders";
 import { BAKERY_COLLECTION_METHOD, formatDispatchDate, formatDispatchMethod } from "@/lib/dispatch";
 import type { CustomerAddress, CustomerProfile } from "@/lib/customer-profiles";
 import type { SavedPaymentMethod } from "@/lib/saved-payment-methods";
 import { publicStripeAppearance } from "@/lib/stripe-appearance";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import styles from "@/app/account/page.module.css";
 
 const dashboardNavItems = [
@@ -85,7 +85,7 @@ const emptyAddressForm: AddressFormState = {
 const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() ?? "";
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
-function getDisplayName(user: User | null, profile: CustomerProfile | null) {
+function getDisplayName(user: AppAuthUser | null, profile: CustomerProfile | null) {
   const profileName = [profile?.firstName, profile?.lastName].filter(Boolean).join(" ").trim();
 
   if (profileName) {
@@ -96,18 +96,11 @@ function getDisplayName(user: User | null, profile: CustomerProfile | null) {
     return "Customer";
   }
 
-  return (
-    user.user_metadata?.full_name ||
-    [user.user_metadata?.first_name, user.user_metadata?.last_name]
-      .filter(Boolean)
-      .join(" ") ||
-    user.email ||
-    "Customer"
-  );
+  return [user.firstName, user.lastName].filter(Boolean).join(" ") || user.name || user.email;
 }
 
-function getProviderLabel(user: User | null) {
-  const provider = String(user?.app_metadata?.provider ?? "").toLowerCase();
+function getProviderLabel(user: AppAuthUser | null) {
+  const provider = String(user?.lastLoginMethod ?? "").toLowerCase();
 
   if (provider === "google") {
     return "Google";
@@ -162,10 +155,10 @@ function getOrderItemSubtotal(item: AccountOrderItem) {
   return item.unitPriceCents * item.quantity;
 }
 
-function mapProfileToForm(profile: CustomerProfile, user: User | null): ProfileFormState {
+function mapProfileToForm(profile: CustomerProfile, user: AppAuthUser | null): ProfileFormState {
   return {
-    firstName: profile.firstName || String(user?.user_metadata?.first_name ?? ""),
-    lastName: profile.lastName || String(user?.user_metadata?.last_name ?? ""),
+    firstName: profile.firstName || user?.firstName || "",
+    lastName: profile.lastName || user?.lastName || "",
     phone: profile.phone,
     marketingOptIn: profile.marketingOptIn,
   };
@@ -293,9 +286,9 @@ function AddPaymentMethodForm({
 }
 
 export default function AccountPageClient() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [isInitializing, setIsInitializing] = useState(true);
+  const { data: authSession, isPending: isInitializing } = useSession();
+  const session = authSession?.session ?? null;
+  const user = (authSession?.user as AppAuthUser | undefined) ?? null;
 
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
   const [profileForm, setProfileForm] = useState<ProfileFormState>({
@@ -332,41 +325,11 @@ export default function AccountPageClient() {
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   useEffect(() => {
-    const supabase = getSupabaseBrowserClient();
-
-    if (!supabase) {
-      setIsInitializing(false);
-      return;
-    }
-
-    void supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session ?? null);
-      setUser(data.session?.user ?? null);
-      setIsInitializing(false);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-      setUser(nextSession?.user ?? null);
-      setIsSigningOut(false);
-      setIsInitializing(false);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    const accessToken = session?.access_token ?? "";
-
-    if (!accessToken || !user?.email) {
+    if (!session || !user?.email) {
       setProfile(null);
       setProfileForm({
-        firstName: String(user?.user_metadata?.first_name ?? ""),
-        lastName: String(user?.user_metadata?.last_name ?? ""),
+        firstName: user?.firstName || "",
+        lastName: user?.lastName || "",
         phone: "",
         marketingOptIn: true,
       });
@@ -392,15 +355,12 @@ export default function AccountPageClient() {
       return;
     }
 
-    const headers = { Authorization: `Bearer ${accessToken}` };
-
     async function loadProfile() {
       setIsProfileLoading(true);
       setProfileError("");
 
       try {
         const response = await fetch("/api/account/profile", {
-          headers,
           cache: "no-store",
         });
         const payload = (await response.json().catch(() => ({}))) as ProfileResponse;
@@ -427,7 +387,6 @@ export default function AccountPageClient() {
 
       try {
         const response = await fetch("/api/account/addresses", {
-          headers,
           cache: "no-store",
         });
         const payload = (await response.json().catch(() => ({}))) as AddressesResponse;
@@ -462,7 +421,6 @@ export default function AccountPageClient() {
 
       try {
         const response = await fetch("/api/account/orders", {
-          headers,
           cache: "no-store",
         });
 
@@ -489,7 +447,6 @@ export default function AccountPageClient() {
 
       try {
         const response = await fetch("/api/account/payment-methods", {
-          headers,
           cache: "no-store",
         });
         const payload = (await response.json().catch(() => ({}))) as PaymentMethodsResponse;
@@ -510,16 +467,13 @@ export default function AccountPageClient() {
     }
 
     void Promise.all([loadProfile(), loadAddresses(), loadPaymentMethods(), loadOrders()]);
-  }, [session?.access_token, user, user?.email, user?.id]);
+  }, [session?.id, user, user?.email, user?.id, user?.firstName, user?.lastName]);
 
   const displayName = useMemo(() => getDisplayName(user, profile), [user, profile]);
   const providerLabel = useMemo(() => getProviderLabel(user), [user]);
 
-  async function reloadPaymentMethods(accessToken: string) {
+  async function reloadPaymentMethods() {
     const response = await fetch("/api/account/payment-methods", {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       cache: "no-store",
     });
 
@@ -535,21 +489,14 @@ export default function AccountPageClient() {
   }
 
   async function handleSignOut() {
-    const supabase = getSupabaseBrowserClient();
-
-    if (!supabase) {
-      return;
-    }
-
     setIsSigningOut(true);
-    await supabase.auth.signOut();
+    await authClient.signOut();
     setOrders([]);
+    setIsSigningOut(false);
   }
 
   async function handleProfileSave() {
-    const accessToken = session?.access_token ?? "";
-
-    if (!accessToken) {
+    if (!session) {
       return;
     }
 
@@ -561,7 +508,6 @@ export default function AccountPageClient() {
       const response = await fetch("/api/account/profile", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(profileForm),
@@ -584,9 +530,7 @@ export default function AccountPageClient() {
   }
 
   async function handleAddressSave() {
-    const accessToken = session?.access_token ?? "";
-
-    if (!accessToken) {
+    if (!session) {
       return;
     }
 
@@ -598,7 +542,6 @@ export default function AccountPageClient() {
       const response = await fetch("/api/account/addresses", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -628,9 +571,7 @@ export default function AccountPageClient() {
   }
 
   async function handleAddressDelete(addressId: number) {
-    const accessToken = session?.access_token ?? "";
-
-    if (!accessToken) {
+    if (!session) {
       return;
     }
 
@@ -642,7 +583,6 @@ export default function AccountPageClient() {
       const response = await fetch("/api/account/addresses", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -676,9 +616,7 @@ export default function AccountPageClient() {
   }
 
   async function handlePaymentMethodDelete(paymentMethodId: string) {
-    const accessToken = session?.access_token ?? "";
-
-    if (!accessToken) {
+    if (!session) {
       return;
     }
 
@@ -690,7 +628,6 @@ export default function AccountPageClient() {
       const response = await fetch("/api/account/payment-methods", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -719,9 +656,7 @@ export default function AccountPageClient() {
   }
 
   async function handleStartAddPaymentMethod() {
-    const accessToken = session?.access_token ?? "";
-
-    if (!accessToken) {
+    if (!session) {
       return;
     }
 
@@ -738,9 +673,6 @@ export default function AccountPageClient() {
     try {
       const response = await fetch("/api/account/payment-methods/setup-intent", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
       });
 
       const payload = (await response.json().catch(() => ({}))) as SetupIntentResponse;
@@ -768,13 +700,11 @@ export default function AccountPageClient() {
   }
 
   async function handlePaymentMethodAdded() {
-    const accessToken = session?.access_token ?? "";
-
-    if (!accessToken) {
+    if (!session) {
       return;
     }
 
-    await reloadPaymentMethods(accessToken);
+    await reloadPaymentMethods();
     setIsAddingPaymentMethod(false);
     setPaymentSetupClientSecret("");
     setPaymentSetupError("");
@@ -800,7 +730,7 @@ export default function AccountPageClient() {
             <div className={styles.panelHeader}>
               <p className={styles.panelEyebrow}>Account access</p>
               <h2>Register or sign in</h2>
-              <p>Register or sign in with Supabase to access your Grown Cookies account.</p>
+              <p>Register or sign in to access your Grown Cookies account.</p>
             </div>
 
             <AccountSignupForm />

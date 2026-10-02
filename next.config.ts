@@ -92,12 +92,7 @@ function getContentSecurityPolicy() {
     scriptSrc.add("'unsafe-eval'");
   }
 
-  const supabaseOrigin = getOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const publicR2Origin = getOrigin(process.env.CLOUDFLARE_R2_PUBLIC_BASE_URL);
-
-  if (supabaseOrigin) {
-    connectSrc.add(supabaseOrigin);
-  }
 
   if (publicR2Origin) {
     connectSrc.add(publicR2Origin);

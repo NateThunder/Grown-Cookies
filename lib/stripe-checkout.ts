@@ -73,7 +73,7 @@ export type StripeCheckoutPayload = {
   initialStatus?: typeof STRIPE_CHECKOUT_ORDER_STATUS.pending | typeof STRIPE_CHECKOUT_ORDER_STATUS.paid;
   orderJourney?: unknown;
   customer?: {
-    supabaseUserId: string;
+    authUserId: string;
     customerProfileId: number;
   };
 };
@@ -312,7 +312,7 @@ export async function createPendingStripeOrder(payload: StripeCheckoutPayload): 
       isCollection ? quote.collection?.postcode ?? null : null,
       isCollection ? quote.collection?.windowStart ?? null : null,
       isCollection ? quote.collection?.windowEnd ?? null : null,
-      normalizeText(payload.customer?.supabaseUserId) || null,
+      normalizeText(payload.customer?.authUserId) || null,
       payload.customer?.customerProfileId ?? null,
       orderJourney ? JSON.stringify(orderJourney) : null,
       itemsSnapshot,

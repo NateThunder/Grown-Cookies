@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuthenticatedSupabaseUser } from "@/lib/account-auth";
+import { getAuthenticatedAccountUser } from "@/lib/account-auth";
 import { ensureCustomerProfileForUser } from "@/lib/customer-profiles";
 import {
   createSetupIntentForCustomer,
@@ -7,7 +7,7 @@ import {
 } from "@/lib/stripe-customer-payment-methods";
 
 export async function POST(request: Request) {
-  const user = await getAuthenticatedSupabaseUser(request);
+  const user = await getAuthenticatedAccountUser(request);
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });

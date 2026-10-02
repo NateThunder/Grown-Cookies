@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiMenu, FiX } from "react-icons/fi";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useSession } from "@/lib/auth/client";
 import styles from "./site-header.module.css";
 
 type MobileNavItem = {
@@ -21,36 +21,12 @@ type MobileNavProps = {
 export default function MobileNav({ items, accountItems = [] }: MobileNavProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
-  const [isSignedIn, setIsSignedIn] = useState(false);
+  const { data: session } = useSession();
+  const isSignedIn = Boolean(session?.user);
   const menuId = useId();
 
   useEffect(() => {
     setHasMounted(true);
-  }, []);
-
-  useEffect(() => {
-    const supabase = getSupabaseBrowserClient();
-
-    if (!supabase) {
-      return;
-    }
-
-    void supabase.auth.getUser().then(({ data, error }) => {
-      if (!error) {
-        setIsSignedIn(Boolean(data.user));
-      }
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsSignedIn(Boolean(session?.user));
-      setIsOpen(false);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, []);
 
   useEffect(() => {

@@ -187,7 +187,7 @@ export default async function AnalyticsAdminPage({ searchParams }: AnalyticsAdmi
         returnPath={currentAnalyticsHref}
         error={context.flash.error}
         warning={context.flash.warning}
-        supabaseConfigured={context.supabaseConfigured}
+        authConfigured={context.authConfigured}
       />
     );
   }

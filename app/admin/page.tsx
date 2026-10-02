@@ -60,7 +60,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         returnPath="/admin"
         error={context.flash.error}
         warning={context.flash.warning}
-        supabaseConfigured={context.supabaseConfigured}
+        authConfigured={context.authConfigured}
       />
     );
   }

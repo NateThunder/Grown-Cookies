@@ -24,7 +24,7 @@ export default async function AdminLaunchPage({ searchParams }: AdminLaunchPageP
         returnPath={ADMIN_LAUNCH_RETURN_PATH}
         error={context.flash.error}
         warning={context.flash.warning}
-        supabaseConfigured={context.supabaseConfigured}
+        authConfigured={context.authConfigured}
       />
     );
   }

@@ -115,8 +115,9 @@ Set required env values on the Cloudflare Worker for runtime features. The quick
 
 Runtime Worker secrets:
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `BETTER_AUTH_SECRET` (long random value; keep it stable after launch)
+- `BETTER_AUTH_URL` (`https://growncookies.co.uk` in production)
+- `BETTER_AUTH_TRUSTED_ORIGINS` (optional comma-separated preview or custom origins)
 - `CLOUDFLARE_ACCOUNT_ID`
 - `CLOUDFLARE_R2_BUCKET_NAME`
 - `CLOUDFLARE_R2_PUBLIC_BASE_URL`
@@ -133,10 +134,10 @@ Runtime Worker secrets:
 - `TURNSTILE_SITE_KEY` (required for contact-form abuse protection)
 - `TURNSTILE_SECRET_KEY` (required for contact-form abuse protection)
 - `CONTACT_THROTTLE_SECRET` (required for stable hashed contact-form throttle identifiers)
-- `ZOHO_CLIENT_ID` (required for Zoho Mail contact-form delivery)
-- `ZOHO_CLIENT_SECRET` (required for Zoho Mail contact-form delivery)
-- `ZOHO_REFRESH_TOKEN` (required for Zoho Mail contact-form delivery)
-- `ZOHO_ACCOUNT_ID` (required for Zoho Mail contact-form delivery)
+- `ZOHO_CLIENT_ID` (required for Zoho contact, verification, and password-reset email)
+- `ZOHO_CLIENT_SECRET` (required for Zoho contact, verification, and password-reset email)
+- `ZOHO_REFRESH_TOKEN` (required for Zoho contact, verification, and password-reset email)
+- `ZOHO_ACCOUNT_ID` (required for Zoho contact, verification, and password-reset email)
 - `CONTACT_FORM_FROM` (optional; defaults to `CONTACT_FORM_TO` or `orders@growncookies.co.uk`)
 - `CONTACT_FORM_TO` (optional; defaults to `orders@growncookies.co.uk`)
 
@@ -145,6 +146,8 @@ Deploy-only local or CI values:
 - `CLOUDFLARE_API_TOKEN` (optional alternative to `npx wrangler login`; never upload as a Worker secret)
 
 Runtime D1 access does not need `CLOUDFLARE_D1_DATABASE_ID`; the database id lives in `wrangler.toml` as the `DB` binding.
+
+Before the Better Auth production cutover, follow [`docs/auth-migration.md`](docs/auth-migration.md). Apply migration `0021_better_auth.sql` and its generated private account import during the same maintenance window, then deploy the Worker with the new auth secrets.
 
 ## 5a) Remove old runtime deploy token
 

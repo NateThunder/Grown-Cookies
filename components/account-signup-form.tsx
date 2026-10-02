@@ -1,10 +1,9 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { FaGoogle } from "react-icons/fa";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { authClient, useSession } from "@/lib/auth/client";
+import { getAuthUserDisplayName, type AppAuthUser } from "@/lib/auth/types";
 import styles from "./account-signup-form.module.css";
-import type { Session, User } from "@supabase/supabase-js";
 
 type AuthMode = "signup" | "signin";
 
@@ -30,20 +29,24 @@ function getCanonicalAccountRedirectUrl() {
   return `${DEFAULT_SITE_URL}/account`;
 }
 
-function hasRecoveryParams() {
+function getRecoveryState() {
   if (typeof window === "undefined") {
-    return false;
+    return { requested: false, token: "", error: "" };
   }
 
   const searchParams = new URLSearchParams(window.location.search);
-  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-  return searchParams.get("type") === "recovery" || hashParams.get("type") === "recovery";
+  return {
+    requested: Boolean(searchParams.get("token") || searchParams.get("error")),
+    token: searchParams.get("token") ?? "",
+    error: searchParams.get("error") ?? "",
+  };
 }
 
 export default function AccountSignupForm() {
+  const { data: authSession } = useSession();
+  const session = authSession?.session ?? null;
+  const user = (authSession?.user as AppAuthUser | undefined) ?? null;
   const [mode, setMode] = useState<AuthMode>("signup");
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<Status>(initialStatus);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -52,101 +55,44 @@ export default function AccountSignupForm() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const [isRequestingReset, setIsRequestingReset] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isRecoveryPasswordVisible, setIsRecoveryPasswordVisible] = useState(false);
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const [recoveryToken, setRecoveryToken] = useState("");
 
   useEffect(() => {
-    const supabase = getSupabaseBrowserClient();
-    const recoveryRequested = hasRecoveryParams();
+    const recovery = getRecoveryState();
 
-    if (recoveryRequested) {
+    if (recovery.requested && recovery.token) {
       setIsRecoveryMode(true);
+      setRecoveryToken(recovery.token);
     }
 
-    if (!supabase) {
-      return;
+    if (recovery.error) {
+      setStatus({
+        type: "error",
+        message: "This password reset link is invalid or has expired. Request a new reset email.",
+      });
     }
-
-    void supabase.auth.getSession().then(({ data, error }) => {
-      if (error) {
-        setStatus({
-          type: "error",
-          message: error.message,
-        });
-        return;
-      }
-
-      setSession(data.session ?? null);
-      setUser(data.session?.user ?? null);
-
-      if (recoveryRequested && !data.session?.user) {
-        setIsRecoveryMode(false);
-        setStatus({
-          type: "error",
-          message: "This password reset link is invalid or has expired. Request a new reset email.",
-        });
-      }
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      setSession(nextSession);
-      setUser(nextSession?.user ?? null);
-      setIsSubmitting(false);
-      setIsGoogleSubmitting(false);
-      setIsRequestingReset(false);
-      setIsResettingPassword(false);
-      setIsSigningOut(false);
-
-      if (event === "PASSWORD_RECOVERY") {
-        setIsRecoveryMode(true);
-        setStatus(initialStatus);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, []);
 
-  const displayName =
-    user?.user_metadata?.full_name ||
-    [user?.user_metadata?.first_name, user?.user_metadata?.last_name]
-      .filter(Boolean)
-      .join(" ") ||
-    user?.email ||
-    "Customer";
+  const displayName = getAuthUserDisplayName(user) || "Customer";
 
   async function handleSignOut() {
     setStatus(initialStatus);
 
-    const supabase = getSupabaseBrowserClient();
-
-    if (!supabase) {
-      setStatus({
-        type: "error",
-        message:
-          "Supabase is not configured yet. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to continue.",
-      });
-      return;
-    }
-
     setIsSigningOut(true);
-
-    const { error } = await supabase.auth.signOut();
+    const { error } = await authClient.signOut();
 
     setIsSigningOut(false);
 
     if (error) {
       setStatus({
         type: "error",
-        message: error.message,
+        message: error.message || "Sign out failed. Please try again.",
       });
       return;
     }
@@ -183,17 +129,6 @@ export default function AccountSignupForm() {
       return;
     }
 
-    const supabase = getSupabaseBrowserClient();
-
-    if (!supabase) {
-      setStatus({
-        type: "error",
-        message:
-          "Supabase is not configured yet. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to continue.",
-      });
-      return;
-    }
-
     setIsSubmitting(true);
 
     let error: string | null = null;
@@ -201,26 +136,17 @@ export default function AccountSignupForm() {
     if (mode === "signup") {
       const emailRedirectTo = getCanonicalAccountRedirectUrl();
 
-      const response = await supabase.auth.signUp({
+      const response = await authClient.signUp.email({
         email: trimmedEmail,
         password,
-        options: {
-          data: {
-            first_name: trimmedFirstName,
-            last_name: trimmedLastName,
-            full_name: `${trimmedFirstName} ${trimmedLastName}`,
-          },
-          emailRedirectTo,
-        },
+        name: `${trimmedFirstName} ${trimmedLastName}`,
+        firstName: trimmedFirstName,
+        lastName: trimmedLastName,
+        callbackURL: emailRedirectTo,
       });
 
       if (response.error) {
-        error = response.error.message;
-      } else if (response.data.session) {
-        setStatus({
-          type: "success",
-          message: "Account created and signed in.",
-        });
+        error = response.error.message || "Account creation failed. Please try again.";
       } else {
         setStatus({
           type: "success",
@@ -229,13 +155,14 @@ export default function AccountSignupForm() {
         });
       }
     } else {
-      const response = await supabase.auth.signInWithPassword({
+      const response = await authClient.signIn.email({
         email: trimmedEmail,
         password,
+        rememberMe: true,
       });
 
       if (response.error) {
-        error = response.error.message;
+        error = response.error.message || "Sign in failed. Check your email and password.";
       } else {
         setStatus({
           type: "success",
@@ -255,42 +182,9 @@ export default function AccountSignupForm() {
     }
   }
 
-  async function handleGoogleAuth() {
-    setStatus(initialStatus);
-
-    const supabase = getSupabaseBrowserClient();
-
-    if (!supabase) {
-      setStatus({
-        type: "error",
-        message:
-          "Supabase is not configured yet. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to continue.",
-      });
-      return;
-    }
-
-    setIsGoogleSubmitting(true);
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: getCanonicalAccountRedirectUrl(),
-      },
-    });
-
-    if (error) {
-      setIsGoogleSubmitting(false);
-      setStatus({
-        type: "error",
-        message: error.message,
-      });
-    }
-  }
-
   async function handleForgotPassword() {
     setStatus(initialStatus);
 
-    const supabase = getSupabaseBrowserClient();
     const trimmedEmail = email.trim();
 
     if (!trimmedEmail) {
@@ -301,18 +195,10 @@ export default function AccountSignupForm() {
       return;
     }
 
-    if (!supabase) {
-      setStatus({
-        type: "error",
-        message:
-          "Supabase is not configured yet. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to continue.",
-      });
-      return;
-    }
-
     setIsRequestingReset(true);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+    const { error } = await authClient.requestPasswordReset({
+      email: trimmedEmail,
       redirectTo: getCanonicalAccountRedirectUrl(),
     });
 
@@ -321,7 +207,7 @@ export default function AccountSignupForm() {
     if (error) {
       setStatus({
         type: "error",
-        message: error.message,
+        message: error.message || "We could not send the reset email. Please try again.",
       });
       return;
     }
@@ -336,17 +222,6 @@ export default function AccountSignupForm() {
   async function handlePasswordReset(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus(initialStatus);
-
-    const supabase = getSupabaseBrowserClient();
-
-    if (!supabase) {
-      setStatus({
-        type: "error",
-        message:
-          "Supabase is not configured yet. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to continue.",
-      });
-      return;
-    }
 
     if (!newPassword || !confirmPassword) {
       setStatus({
@@ -374,8 +249,9 @@ export default function AccountSignupForm() {
 
     setIsResettingPassword(true);
 
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
+    const { error } = await authClient.resetPassword({
+      newPassword,
+      token: recoveryToken,
     });
 
     setIsResettingPassword(false);
@@ -383,12 +259,13 @@ export default function AccountSignupForm() {
     if (error) {
       setStatus({
         type: "error",
-        message: error.message,
+        message: error.message || "We could not reset your password. Please request a new link.",
       });
       return;
     }
 
     setIsRecoveryMode(false);
+    setRecoveryToken("");
     setNewPassword("");
     setConfirmPassword("");
     setIsRecoveryPasswordVisible(false);
@@ -719,22 +596,6 @@ export default function AccountSignupForm() {
             : mode === "signup"
               ? "Create account"
             : "Sign in"}
-        </button>
-
-        <div className={styles.divider} aria-hidden="true">
-          <span>or</span>
-        </div>
-
-        <button
-          className={styles.oauthButton}
-          type="button"
-          onClick={() => void handleGoogleAuth()}
-          disabled={isGoogleSubmitting || isSubmitting}
-        >
-          <span className={styles.oauthIconBadge} aria-hidden="true">
-            <FaGoogle />
-          </span>
-          <span>{isGoogleSubmitting ? "Redirecting to Google..." : "Continue with Google"}</span>
         </button>
 
         <p

@@ -43,8 +43,7 @@ export default function PrivacyPage() {
             <p>
               We use your information to fulfil orders, provide customer
               support, send account-related updates, and maintain the security
-              of the website. If you choose social login, we may receive basic
-              profile information from that provider.
+              of the website.
             </p>
           </div>
 
@@ -52,10 +51,10 @@ export default function PrivacyPage() {
             <h2>Sharing</h2>
             <p>
               We only share data with service providers needed to operate the
-              store, such as payment, analytics, and delivery platforms. We use
-              Supabase for account authentication and Cloudflare services for
-              other store data, hosting, and related operational data. We do not
-              sell your personal information.
+              store, such as payment, analytics, authentication, and delivery
+              platforms. Account authentication is handled by Better Auth, with
+              account and session data stored in Cloudflare D1. We do not sell
+              your personal information.
             </p>
           </div>
 

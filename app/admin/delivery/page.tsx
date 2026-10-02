@@ -47,7 +47,7 @@ export default async function DeliveryAdminPage({ searchParams }: DeliveryAdminP
         returnPath="/admin/delivery"
         error={context.flash.error}
         warning={context.flash.warning}
-        supabaseConfigured={context.supabaseConfigured}
+        authConfigured={context.authConfigured}
       />
     );
   }

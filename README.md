@@ -8,21 +8,21 @@ A custom Next.js storefront for Grown Cookies with product discovery, basket and
 
 Grown Cookies is a website for a cookie store built to feel warm, easy to use, and enjoyable to browse. The aim is to make the product feel tempting from the first screen, with an interactive UI that encourages people to click, explore flavours, add items to their basket, and complete checkout without friction.
 
-The site focuses on pretty, responsive UI design that supports the buying journey rather than getting in the way of it. It uses Next.js, React, TypeScript, Supabase, Stripe, Cloudflare D1, and Cloudflare R2 to combine a polished storefront with practical ecommerce features.
+The site focuses on pretty, responsive UI design that supports the buying journey rather than getting in the way of it. It uses Next.js, React, TypeScript, Better Auth, Stripe, Cloudflare D1, and Cloudflare R2 to combine a polished storefront with practical ecommerce features.
 
 ## Highlights
 
 - Brand-led homepage and featured product merchandising
 - Shop grid, product detail pages, search, and gift card support
 - Basket flow and deferred Stripe Elements checkout with server-side confirmation and webhook handling
-- Supabase-powered customer sign-in and account area
+- Better Auth customer sign-in and account area with email/password
 - Admin editing flow for products and featured storefront content
 - Cloudflare-ready deployment path with D1 and R2 integrations
 
 ## Stack
 
 - Next.js 16 + React 19 + TypeScript
-- Supabase Auth for customer and admin identity
+- Better Auth on Cloudflare D1 for customer and admin identity
 - Stripe for checkout and payment reconciliation
 - Cloudflare D1 for storefront data
 - Cloudflare R2 for media storage
@@ -33,7 +33,7 @@ All Cloudflare D1-backed admin data uses the `DB` binding in `wrangler.toml`, wh
 
 | Admin area / element | Connected storage |
 | --- | --- |
-| Admin sign-in | Supabase Auth. Cloudflare D1 only stores failed login throttle records in `admin_login_attempts`. |
+| Admin sign-in | Better Auth on D1. Only `orders@growncookies.co.uk` with the `admin` role is accepted; failed-login throttles remain in `admin_login_attempts`. |
 | Product list | D1 `products`, joined with `featured_products`, `product_images`, and `product_image_variants`. |
 | Add/edit product fields | D1 `products`: `name`, `slug`, `price`, `description`, `allergens`, `is_gift_card`, `hidden`, `featured`, and `sort_order`. |
 | Product image upload, thumbnail, and crop data | Image files are uploaded to Cloudflare R2 under `products/{slug}/...`; D1 stores image keys and crop metadata in `product_images` and `product_image_variants`. |
@@ -79,13 +79,13 @@ npm run cloudflare:d1:migrate
 
 Create `.env.local` with the services this app depends on:
 
-- Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`
+- Better Auth: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, optional `BETTER_AUTH_TRUSTED_ORIGINS`, and `NEXT_PUBLIC_SITE_URL`
 - Admin security: `ADMIN_LOGIN_THROTTLE_SECRET`
 - Checkout security: `CHECKOUT_THROTTLE_SECRET`, optional `CHECKOUT_RETURN_ALLOWED_ORIGINS`
 - Stripe: `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`
 - Google Analytics: optional browser tracking `NEXT_PUBLIC_GA_MEASUREMENT_ID`; optional admin reporting `GOOGLE_ANALYTICS_PROPERTY_ID`, `GOOGLE_ANALYTICS_CLIENT_EMAIL`, `GOOGLE_ANALYTICS_PRIVATE_KEY`
 - Order email notifications: `RESEND_API_KEY`, `ORDER_NOTIFICATION_FROM`, optional `ORDER_NOTIFICATION_TO`
-- Contact/order enquiry form: `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `CONTACT_THROTTLE_SECRET`, `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN`, `ZOHO_ACCOUNT_ID`, optional `CONTACT_FORM_FROM`, optional `CONTACT_FORM_TO`
+- Zoho contact and account-auth email: `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN`, `ZOHO_ACCOUNT_ID`; the contact form also uses `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `CONTACT_THROTTLE_SECRET`, optional `CONTACT_FORM_FROM`, and optional `CONTACT_FORM_TO`
 - Cloudflare runtime: `CLOUDFLARE_ACCOUNT_ID` and R2 values used by admin media upload/delete. D1 uses the `DB` binding in `wrangler.toml`, not runtime account API credentials.
 - Cloudflare deploy: keep `CLOUDFLARE_API_TOKEN`, if used, in your local shell or CI secrets only. Do not put it in `.env.local` or upload it to the Worker runtime.
 
@@ -95,13 +95,11 @@ Set `NEXT_PUBLIC_GA_MEASUREMENT_ID` to your Google Analytics 4 measurement ID, f
 
 The admin analytics dashboard uses Google Analytics Data API read access separately from the browser tracking ID. Set `GOOGLE_ANALYTICS_PROPERTY_ID` to the numeric GA4 property ID, then create a Google service account with Viewer access to that GA4 property and set `GOOGLE_ANALYTICS_CLIENT_EMAIL` and `GOOGLE_ANALYTICS_PRIVATE_KEY` from its key file. Store `GOOGLE_ANALYTICS_PRIVATE_KEY` as a single-line secret with escaped `\n` line breaks.
 
-`NEXT_PUBLIC_SUPABASE_ANON_KEY` is expected to be public in the browser bundle for Supabase Auth. This app uses Supabase for authentication only; storefront and admin data access in this repo is handled through server-side routes and Cloudflare services, not direct browser table queries.
+Set `BETTER_AUTH_URL` and `NEXT_PUBLIC_SITE_URL` to the canonical public origin, `https://growncookies.co.uk`, in production. Use one stable, long random `BETTER_AUTH_SECRET`; changing it invalidates signed auth state.
 
-Set `NEXT_PUBLIC_SITE_URL` to the canonical public origin used by customer auth redirects, for example `https://growncookies.co.uk`. The social OAuth flows and Supabase email confirmation links now prefer this value over browser-origin fallbacks, which prevents production auth from bouncing back to `localhost` when Supabase redirect settings fall back to the project site URL.
+Customer sessions last seven days and refresh after one day of activity. Verification links last 24 hours, password-reset links last one hour, and a successful password reset revokes all existing sessions. Customer and admin pages currently use email/password only.
 
-Supabase Row Level Security still needs to be verified in the Supabase project itself. This repository does not contain repo-managed Supabase policy files, so confirm in the Supabase dashboard or SQL editor that `anon` and non-admin authenticated users cannot read or mutate any admin-only data.
-
-Admin access is controlled from Supabase user `app_metadata`, not from an environment-variable allowlist. Mark an admin user in Supabase by setting either `role: "admin"`, `user_role: "admin"`, or `is_admin: true` inside that user's `raw_app_meta_data`.
+Admin access requires both the D1 `admin` role and the exact normalized email `orders@growncookies.co.uk`. No other email is accepted as an administrator.
 
 Admin sign-in applies a temporary cooldown after repeated failed attempts and stores only hashed email/IP identifiers in D1. Set `ADMIN_LOGIN_THROTTLE_SECRET` to a long random server-only value before deploying so those hashes are salted consistently across instances.
 
@@ -111,15 +109,7 @@ Stripe return URLs only use allowlisted origins. Production domains and the defa
 
 Contact form submissions require Cloudflare Turnstile validation and a D1-backed IP/email throttle before any Zoho or Resend email is sent. Set `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, and `CONTACT_THROTTLE_SECRET` before production deploys. Local development uses Cloudflare's official Turnstile test keys when real keys are absent, but production fails closed if Turnstile is not configured.
 
-Enable Supabase MFA for every admin user in the Supabase dashboard. This repo now hardens the login surface with throttling and browser security headers, but MFA still needs to be enforced in Supabase itself.
-
-Example SQL for the Supabase SQL editor:
-
-```sql
-update auth.users
-set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"admin"}'::jsonb
-where email = 'adminemail@host.com';
-```
+The complete account export, validation, rollback, and cutover sequence is in [`docs/auth-migration.md`](docs/auth-migration.md). Follow it before applying migration `0021_better_auth.sql` remotely.
 
 ## Deployment
 

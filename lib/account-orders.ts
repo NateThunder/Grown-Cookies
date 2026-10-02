@@ -63,7 +63,7 @@ type AccountOrderRow = {
   collection_postcode: string | null;
   collection_window_start: string | null;
   collection_window_end: string | null;
-  supabase_user_id: string | null;
+  auth_user_id: string | null;
   items_json: string | null;
 };
 
@@ -247,10 +247,10 @@ async function getOrderItemsByOrderId(orderIds: number[]) {
 }
 
 export async function getAccountOrderSummariesForCustomer(params: {
-  supabaseUserId: string;
+  authUserId: string;
   email: string;
 }): Promise<AccountOrderSummary[]> {
-  const normalizedUserId = normalizeText(params.supabaseUserId);
+  const normalizedUserId = normalizeText(params.authUserId);
   const normalizedEmail = normalizeText(params.email).toLowerCase();
 
   if ((!normalizedUserId && !normalizedEmail) || !hasCloudflareD1Config()) {
@@ -285,11 +285,11 @@ export async function getAccountOrderSummariesForCustomer(params: {
        collection_postcode,
        collection_window_start,
        collection_window_end,
-       supabase_user_id,
+       auth_user_id,
        items_json
      FROM orders
-     WHERE supabase_user_id = ?
-        OR (lower(email) = ? AND (supabase_user_id IS NULL OR trim(supabase_user_id) = ''))
+     WHERE auth_user_id = ?
+        OR (lower(email) = ? AND (auth_user_id IS NULL OR trim(auth_user_id) = ''))
      ORDER BY datetime(created_at) DESC, id DESC`,
     [normalizedUserId, normalizedEmail],
     { cache: "no-store" },
@@ -356,7 +356,7 @@ export async function getAccountOrderSummariesByEmail(email: string): Promise<Ac
        collection_postcode,
        collection_window_start,
        collection_window_end,
-       supabase_user_id,
+       auth_user_id,
        items_json
      FROM orders
      WHERE lower(email) = ?

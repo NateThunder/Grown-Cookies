@@ -51,6 +51,8 @@ yarn-error.log*
 
 # local database files
 Products.db
+.auth-schema.sqlite*
+/migration-private/
 
 # typescript
 *.tsbuildinfo

@@ -1,18 +1,15 @@
-import { cookies } from "next/headers";
-import type { User } from "@supabase/supabase-js";
+import { headers } from "next/headers";
+import type { AppAuthUser } from "@/lib/auth/types";
 import { hasCloudflareD1Config } from "@/lib/cloudflare-d1";
-import {
-  ADMIN_AUTH_COOKIE,
-  getAdminUserFromAccessToken,
-  hasSupabasePublicConfig,
-} from "@/lib/supabase/admin-auth";
+import { getAdminUserFromHeaders } from "@/lib/auth/admin";
+import { hasBetterAuthConfig } from "@/lib/auth/server";
 import { getAdminFlashState, type AdminFlashState, type SearchParamValue } from "./admin-ui";
 
 export type AdminPageContext = {
   params: Record<string, SearchParamValue>;
   flash: AdminFlashState;
-  adminUser: User | null;
-  supabaseConfigured: boolean;
+  adminUser: AppAuthUser | null;
+  authConfigured: boolean;
   d1Configured: boolean;
 };
 
@@ -22,15 +19,13 @@ export async function getAdminPageContext(
   const params = await searchParams;
   const flash = getAdminFlashState(params);
 
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get(ADMIN_AUTH_COOKIE)?.value;
-  const adminSessionUser = await getAdminUserFromAccessToken(accessToken);
+  const adminSessionUser = await getAdminUserFromHeaders(await headers());
 
   return {
     params,
     flash,
     adminUser: adminSessionUser,
-    supabaseConfigured: hasSupabasePublicConfig(),
+    authConfigured: hasBetterAuthConfig(),
     d1Configured: hasCloudflareD1Config(),
   };
 }

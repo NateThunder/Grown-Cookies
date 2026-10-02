@@ -5,7 +5,7 @@ import {
   parseQuoteItems,
   parseQuoteTip,
 } from "@/lib/checkout-quote";
-import { getAuthenticatedSupabaseUser } from "@/lib/account-auth";
+import { getAuthenticatedAccountUser } from "@/lib/account-auth";
 import { consumeCheckoutAttempt } from "@/lib/checkout-attempt-throttle";
 import { ensureCustomerProfileForUser } from "@/lib/customer-profiles";
 import { parseDispatchSelection } from "@/lib/dispatch";
@@ -195,7 +195,7 @@ export async function POST(request: Request) {
     const delivery = getDeliveryFromSource(parseCheckoutDelivery(body.delivery), {
       requiresDelivery,
     });
-    const authenticatedUser = await getAuthenticatedSupabaseUser(request);
+    const authenticatedUser = await getAuthenticatedAccountUser(request);
 
     await consumeCheckoutAttempt({
       request,
@@ -222,7 +222,7 @@ export async function POST(request: Request) {
       initialStatus: STRIPE_CHECKOUT_ORDER_STATUS.paid,
       customer: customerProfile
         ? {
-            supabaseUserId: customerProfile.supabaseUserId,
+            authUserId: customerProfile.authUserId,
             customerProfileId: customerProfile.id,
           }
         : undefined,

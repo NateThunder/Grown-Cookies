@@ -7,7 +7,7 @@ type AdminLoginScreenProps = {
   returnPath: string;
   error?: string;
   warning?: string;
-  supabaseConfigured: boolean;
+  authConfigured: boolean;
 };
 
 export default function AdminLoginScreen({
@@ -15,7 +15,7 @@ export default function AdminLoginScreen({
   returnPath,
   error,
   warning,
-  supabaseConfigured,
+  authConfigured,
 }: AdminLoginScreenProps) {
   return (
     <main className={styles.loginPage}>
@@ -23,15 +23,15 @@ export default function AdminLoginScreen({
         <p className={styles.loginEyebrow}>Admin access</p>
         <h1>{title}</h1>
         <p className={styles.loginCopy}>
-          Use your Supabase account to access the Grown Cookies product studio. Repeated failed
-          attempts trigger a temporary cooldown. Enable Supabase MFA for every admin account.
+          Use your admin account to access the Grown Cookies product studio. Repeated failed
+          attempts trigger a temporary cooldown.
         </p>
 
-        {!supabaseConfigured ? (
+        {!authConfigured ? (
           <div className={`${styles.banner} ${styles.bannerError}`}>
             <FiAlertCircle />
             <span>
-              Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.
+              Authentication is not configured. Set BETTER_AUTH_SECRET.
             </span>
           </div>
         ) : null}
@@ -66,7 +66,7 @@ export default function AdminLoginScreen({
           <button
             type="submit"
             className={styles.loginButton}
-            disabled={!supabaseConfigured}
+            disabled={!authConfigured}
           >
             Sign in
           </button>

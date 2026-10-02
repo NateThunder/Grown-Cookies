@@ -27,7 +27,7 @@ export default async function MailingListAdminPage({
         returnPath={MAILING_LIST_RETURN_PATH}
         error={context.flash.error}
         warning={context.flash.warning}
-        supabaseConfigured={context.supabaseConfigured}
+        authConfigured={context.authConfigured}
       />
     );
   }

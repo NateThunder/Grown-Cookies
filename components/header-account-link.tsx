@@ -3,24 +3,9 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { FiUser } from "react-icons/fi";
-import type { User } from "@supabase/supabase-js";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { authClient, useSession } from "@/lib/auth/client";
+import { getAuthUserDisplayName, type AppAuthUser } from "@/lib/auth/types";
 import styles from "./site-header.module.css";
-
-function getDisplayName(user: User | null) {
-  if (!user) {
-    return "";
-  }
-
-  return (
-    user.user_metadata?.full_name ||
-    [user.user_metadata?.first_name, user.user_metadata?.last_name]
-      .filter(Boolean)
-      .join(" ") ||
-    user.email ||
-    ""
-  );
-}
 
 function getInitials(name: string) {
   const parts = name
@@ -40,36 +25,11 @@ function getInitials(name: string) {
 }
 
 export default function HeaderAccountLink() {
-  const [user, setUser] = useState<User | null>(null);
+  const { data: session } = useSession();
+  const user = (session?.user as AppAuthUser | undefined) ?? null;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const supabase = getSupabaseBrowserClient();
-
-    if (!supabase) {
-      return;
-    }
-
-    void supabase.auth.getUser().then(({ data, error }) => {
-      if (!error) {
-        setUser(data.user ?? null);
-      }
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setIsMenuOpen(false);
-      setIsSigningOut(false);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -94,15 +54,8 @@ export default function HeaderAccountLink() {
   }, []);
 
   async function handleSignOut() {
-    const supabase = getSupabaseBrowserClient();
-
-    if (!supabase) {
-      return;
-    }
-
     setIsSigningOut(true);
-
-    const { error } = await supabase.auth.signOut();
+    const { error } = await authClient.signOut();
 
     if (error) {
       setIsSigningOut(false);
@@ -112,7 +65,7 @@ export default function HeaderAccountLink() {
     setIsMenuOpen(false);
   }
 
-  const displayName = getDisplayName(user);
+  const displayName = getAuthUserDisplayName(user);
   const initials = getInitials(displayName);
   const isSignedIn = Boolean(user);
 

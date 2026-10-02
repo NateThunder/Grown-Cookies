@@ -5,7 +5,7 @@ import {
   parseQuoteItems,
   parseQuoteTip,
 } from "@/lib/checkout-quote";
-import { getAuthenticatedSupabaseUser } from "@/lib/account-auth";
+import { getAuthenticatedAccountUser } from "@/lib/account-auth";
 import { consumeCheckoutAttempt } from "@/lib/checkout-attempt-throttle";
 import { ensureCustomerProfileForUser } from "@/lib/customer-profiles";
 import {
@@ -346,7 +346,7 @@ export async function POST(request: Request) {
     const fallbackDelivery = parseCheckoutDelivery(body.delivery);
     const paymentContact = parseCheckoutContact(body.paymentContact);
     const paymentDelivery = parseCheckoutDelivery(body.paymentDelivery);
-    const authenticatedUserPromise = getAuthenticatedSupabaseUser(request);
+    const authenticatedUserPromise = getAuthenticatedAccountUser(request);
     const contact = getContactFromSources(paymentContact, fallbackContact);
     const delivery = getDeliveryFromSources(paymentDelivery, fallbackDelivery, {
       requiresDelivery,
@@ -378,7 +378,7 @@ export async function POST(request: Request) {
 
     const authenticatedUser = await withCheckoutServerTiming(
       attemptId,
-      "getAuthenticatedSupabaseUser",
+      "getAuthenticatedAccountUser",
       () => authenticatedUserPromise,
       {
         requiresAuthenticatedCustomer: Boolean(savePaymentMethod || savedPaymentMethodId),
@@ -438,7 +438,7 @@ export async function POST(request: Request) {
           orderJourney: body.orderJourney,
           customer: customerProfile
             ? {
-                supabaseUserId: customerProfile.supabaseUserId,
+                authUserId: customerProfile.authUserId,
                 customerProfileId: customerProfile.id,
               }
             : undefined,

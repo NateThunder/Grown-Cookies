@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
 import { Abril_Fatface, Anonymous_Pro, Besley, Fraunces } from "next/font/google";
 import Link from "next/link";
 import Script from "next/script";
@@ -14,7 +14,7 @@ import { COOKIE_CONSENT_STORAGE_KEY } from "@/lib/cookie-consent";
 import { getSiteUrl } from "@/lib/site-url";
 import { getOrganizationJsonLd } from "@/lib/seo";
 import { isSiteLockEnabled } from "@/lib/site-lock";
-import { ADMIN_AUTH_COOKIE, getAdminUserFromAccessToken } from "@/lib/supabase/admin-auth";
+import { getAdminUserFromHeaders } from "@/lib/auth/admin";
 import "./globals.css";
 
 const besley = Besley({
@@ -139,9 +139,7 @@ export default async function RootLayout({
   let isUnlockedForAdmin = false;
 
   if (siteLockEnabled) {
-    const cookieStore = await cookies();
-    const accessToken = cookieStore.get(ADMIN_AUTH_COOKIE)?.value;
-    const adminUser = await getAdminUserFromAccessToken(accessToken);
+    const adminUser = await getAdminUserFromHeaders(await headers());
     isUnlockedForAdmin = Boolean(adminUser);
   }
 

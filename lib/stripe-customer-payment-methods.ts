@@ -62,7 +62,7 @@ export async function ensureStripeCustomerForProfile(profile: CustomerProfile) {
     phone: profile.phone || undefined,
     metadata: {
       customerProfileId: String(profile.id),
-      supabaseUserId: profile.supabaseUserId,
+      authUserId: profile.authUserId,
       source: "grown-cookies",
     },
   });

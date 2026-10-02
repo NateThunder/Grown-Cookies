@@ -1,18 +1,13 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getAdminProductById } from "@/lib/product-admin";
-import { ADMIN_AUTH_COOKIE, getAdminUserFromAccessToken } from "@/lib/supabase/admin-auth";
+import { getAdminUserFromHeaders } from "@/lib/auth/admin";
 
-async function requireAdmin() {
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get(ADMIN_AUTH_COOKIE)?.value;
-  const adminUser = await getAdminUserFromAccessToken(accessToken);
-
-  return Boolean(adminUser);
+async function requireAdmin(request: Request) {
+  return Boolean(await getAdminUserFromHeaders(request.headers));
 }
 
 export async function GET(request: Request) {
-  if (!(await requireAdmin())) {
+  if (!(await requireAdmin(request))) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 

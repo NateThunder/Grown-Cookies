@@ -29,7 +29,7 @@ export default async function HomepageAdminPage({ searchParams }: HomepageAdminP
         returnPath="/admin/homepage"
         error={context.flash.error}
         warning={context.flash.warning}
-        supabaseConfigured={context.supabaseConfigured}
+        authConfigured={context.authConfigured}
       />
     );
   }

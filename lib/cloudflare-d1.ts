@@ -1,4 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import type { D1Database } from "@cloudflare/workers-types";
 
 const D1_BINDING_ERROR_MESSAGE = "Cloudflare D1 binding is not configured.";
 
@@ -70,7 +71,7 @@ function bindStatement(
   return normalizedParams.length > 0 ? statement.bind(...normalizedParams) : statement;
 }
 
-async function getRequiredD1Binding() {
+export async function getRequiredD1Binding() {
   const db = await getD1Binding();
 
   if (!db) {

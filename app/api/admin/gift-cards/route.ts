@@ -1,7 +1,6 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { createGiftCard } from "@/lib/gift-cards";
-import { ADMIN_AUTH_COOKIE, getAdminUserFromAccessToken } from "@/lib/supabase/admin-auth";
+import { getAdminUserFromHeaders } from "@/lib/auth/admin";
 
 type CreateGiftCardPayload = {
   initialAmountPence?: unknown;
@@ -10,12 +9,8 @@ type CreateGiftCardPayload = {
 const ADMIN_CSRF_HEADER = "x-gc-admin-csrf";
 const ADMIN_CSRF_HEADER_VALUE = "1";
 
-async function requireAdmin() {
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get(ADMIN_AUTH_COOKIE)?.value;
-  const adminUser = await getAdminUserFromAccessToken(accessToken);
-
-  return Boolean(adminUser);
+async function requireAdmin(request: Request) {
+  return Boolean(await getAdminUserFromHeaders(request.headers));
 }
 
 function hasJsonContentType(request: Request) {
@@ -58,7 +53,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  if (!(await requireAdmin())) {
+  if (!(await requireAdmin(request))) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 

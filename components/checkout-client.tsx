@@ -41,8 +41,8 @@ import GiftCardTile from "@/components/gift-card-tile";
 import CheckoutDatePicker from "@/components/checkout-date-picker";
 import type { CustomerAddress, CustomerProfile } from "@/lib/customer-profiles";
 import type { SavedPaymentMethod } from "@/lib/saved-payment-methods";
+import { useSession } from "@/lib/auth/client";
 import { publicStripeAppearance } from "@/lib/stripe-appearance";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { readOrderJourneyForCheckout } from "@/lib/order-journey-client";
 import type { OrderJourneySnapshot } from "@/lib/order-journey";
 import styles from "@/components/checkout-client.module.css";
@@ -344,7 +344,7 @@ type FinalizeCheckoutPaymentParams = {
   contact: ContactDetails;
   delivery: DeliveryDetails;
   dispatch: DispatchSelection | null;
-  authAccessToken: string;
+  isAuthenticated: boolean;
   setPaymentProgressMessage: (message: string) => void;
   attemptId: string;
   confirmationTokenId?: string;
@@ -364,9 +364,6 @@ function redirectToCheckoutSuccess(params: {
 }
 
 async function finalizeCheckoutPayment(params: FinalizeCheckoutPaymentParams) {
-  const shouldSendAuthToken = Boolean(
-    params.authAccessToken && (params.savePaymentMethod || params.savedPaymentMethodId),
-  );
   let response: Response;
   const abortController = new AbortController();
   const slowNoticeTimeoutId = window.setTimeout(() => {
@@ -388,7 +385,6 @@ async function finalizeCheckoutPayment(params: FinalizeCheckoutPaymentParams) {
           headers: {
             "Content-Type": "application/json",
             "X-Checkout-Attempt-Id": params.attemptId,
-            ...(shouldSendAuthToken ? { Authorization: `Bearer ${params.authAccessToken}` } : {}),
           },
           body: JSON.stringify({
             confirmationTokenId: params.confirmationTokenId,
@@ -820,7 +816,6 @@ function ExpressCheckoutSection({
   contact,
   delivery,
   dispatch,
-  authAccessToken,
   isAuthenticated,
   selectedSavedPaymentMethodId,
   savePaymentMethod,
@@ -833,7 +828,6 @@ function ExpressCheckoutSection({
   contact: ContactDetails;
   delivery: DeliveryDetails;
   dispatch: DispatchSelection | null;
-  authAccessToken: string;
   isAuthenticated: boolean;
   selectedSavedPaymentMethodId: string;
   savePaymentMethod: boolean;
@@ -869,7 +863,7 @@ function ExpressCheckoutSection({
       contact,
       delivery,
       dispatch,
-      authAccessToken,
+      isAuthenticated,
       setPaymentProgressMessage,
       ...params,
     });
@@ -1052,7 +1046,6 @@ function PaymentElementForm({
   contact,
   delivery,
   dispatch,
-  authAccessToken,
   isAuthenticated,
   savedPaymentMethods,
   selectedSavedPaymentMethodId,
@@ -1068,7 +1061,6 @@ function PaymentElementForm({
   contact: ContactDetails;
   delivery: DeliveryDetails;
   dispatch: DispatchSelection | null;
-  authAccessToken: string;
   isAuthenticated: boolean;
   savedPaymentMethods: SavedPaymentMethod[];
   selectedSavedPaymentMethodId: string;
@@ -1111,7 +1103,7 @@ function PaymentElementForm({
       contact,
       delivery,
       dispatch,
-      authAccessToken,
+      isAuthenticated,
       setPaymentProgressMessage,
       ...params,
     });
@@ -1323,6 +1315,7 @@ function PaymentElementForm({
 }
 
 export default function CheckoutClient() {
+  const { data: authSession } = useSession();
   const [items, setItems] = useState<BasketStoredItem[]>([]);
   const [hasHydratedBasket, setHasHydratedBasket] = useState(false);
   const [dispatchSelection, setDispatchSelection] = useState<DispatchSelection | null>({
@@ -1342,7 +1335,6 @@ export default function CheckoutClient() {
   const [tipChoice, setTipChoice] = useState<"none" | "custom" | (typeof TIP_PRESET_OPTIONS)[number]>("none");
   const [customTip, setCustomTip] = useState("0.00");
   const [marketingOptIn, setMarketingOptIn] = useState(true);
-  const [authAccessToken, setAuthAccessToken] = useState("");
   const [savedAddresses, setSavedAddresses] = useState<CustomerAddress[]>([]);
   const [selectedSavedAddressId, setSelectedSavedAddressId] = useState<number | null>(null);
   const [savedPaymentMethods, setSavedPaymentMethods] = useState<SavedPaymentMethod[]>([]);
@@ -1377,7 +1369,7 @@ export default function CheckoutClient() {
     };
   }, [customTip, tipChoice]);
 
-  const isAuthenticated = Boolean(authAccessToken);
+  const isAuthenticated = Boolean(authSession?.user);
 
   const stripeOptions = useMemo<StripeElementsOptions | null>(() => {
     if (!quote || quote.stripeAmountCents <= 0) {
@@ -1407,29 +1399,7 @@ export default function CheckoutClient() {
   const normalizedPostcode = normalizeText(delivery.postcode);
 
   useEffect(() => {
-    const supabase = getSupabaseBrowserClient();
-
-    if (!supabase) {
-      return;
-    }
-
-    void supabase.auth.getSession().then(({ data }) => {
-      setAuthAccessToken(data.session?.access_token ?? "");
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setAuthAccessToken(session?.access_token ?? "");
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!authAccessToken) {
+    if (!isAuthenticated) {
       setSavedAddresses([]);
       setSelectedSavedAddressId(null);
       setSavedPaymentMethods([]);
@@ -1447,12 +1417,7 @@ export default function CheckoutClient() {
       setAccountLoadError("");
 
       try {
-        const headers = {
-          Authorization: `Bearer ${authAccessToken}`,
-        };
-
         const response = await fetch("/api/account/checkout", {
-          headers,
           cache: "no-store",
           signal: abortController.signal,
         });
@@ -1519,7 +1484,7 @@ export default function CheckoutClient() {
     return () => {
       abortController.abort();
     };
-  }, [authAccessToken]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!selectedSavedAddressId) {
@@ -1828,7 +1793,6 @@ export default function CheckoutClient() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(authAccessToken ? { Authorization: `Bearer ${authAccessToken}` } : {}),
         },
         body: JSON.stringify({
           items,
@@ -1934,7 +1898,6 @@ export default function CheckoutClient() {
                   contact={contact}
                   delivery={delivery}
                   dispatch={checkoutDispatchSelection}
-                  authAccessToken={authAccessToken}
                   isAuthenticated={isAuthenticated}
                   selectedSavedPaymentMethodId={selectedSavedPaymentMethodId}
                   savePaymentMethod={savePaymentMethod}
@@ -2441,7 +2404,6 @@ export default function CheckoutClient() {
                     contact={contact}
                     delivery={delivery}
                     dispatch={checkoutDispatchSelection}
-                    authAccessToken={authAccessToken}
                     isAuthenticated={isAuthenticated}
                     savedPaymentMethods={savedPaymentMethods}
                     selectedSavedPaymentMethodId={selectedSavedPaymentMethodId}

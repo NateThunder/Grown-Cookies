@@ -1,9 +1,9 @@
-import type { User } from "@supabase/supabase-js";
+import type { AppAuthUser } from "@/lib/auth/types";
 import { executeCloudflareD1, hasCloudflareD1Config, queryCloudflareD1 } from "@/lib/cloudflare-d1";
 
 export type CustomerProfile = {
   id: number;
-  supabaseUserId: string;
+  authUserId: string;
   email: string;
   firstName: string;
   lastName: string;
@@ -58,7 +58,7 @@ export type EnsureCustomerProfileOptions = {
 
 type CustomerProfileRow = {
   id: number;
-  supabase_user_id: string;
+  auth_user_id: string;
   email: string;
   first_name: string | null;
   last_name: string | null;
@@ -121,7 +121,7 @@ function normalizeBoolean(value: unknown, fallback = false) {
 function toCustomerProfile(row: CustomerProfileRow): CustomerProfile {
   return {
     id: row.id,
-    supabaseUserId: normalizeText(row.supabase_user_id),
+    authUserId: normalizeText(row.auth_user_id),
     email: normalizeText(row.email),
     firstName: normalizeText(row.first_name),
     lastName: normalizeText(row.last_name),
@@ -162,8 +162,8 @@ async function getTableColumnNames(tableName: string) {
 async function ensureOrderTableColumns() {
   const orderColumns = await getTableColumnNames("orders");
 
-  if (!orderColumns.has("supabase_user_id")) {
-    await executeCloudflareD1("ALTER TABLE orders ADD COLUMN supabase_user_id TEXT");
+  if (!orderColumns.has("auth_user_id")) {
+    await executeCloudflareD1("ALTER TABLE orders ADD COLUMN auth_user_id TEXT");
   }
 
   if (!orderColumns.has("customer_profile_id")) {
@@ -310,7 +310,7 @@ export async function ensureCustomerAccountSchema() {
       await executeCloudflareD1(
         `CREATE TABLE IF NOT EXISTS customer_profiles (
            id INTEGER PRIMARY KEY AUTOINCREMENT,
-           supabase_user_id TEXT NOT NULL UNIQUE,
+           auth_user_id TEXT NOT NULL UNIQUE,
            email TEXT NOT NULL,
            first_name TEXT,
            last_name TEXT,
@@ -351,7 +351,7 @@ export async function ensureCustomerAccountSchema() {
         "CREATE INDEX IF NOT EXISTS idx_orders_payment_intent ON orders(stripe_payment_intent_id)",
       );
       await executeCloudflareD1(
-        "CREATE INDEX IF NOT EXISTS idx_orders_supabase_user_id ON orders(supabase_user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_orders_auth_user_id ON orders(auth_user_id)",
       );
       await executeCloudflareD1(
         "CREATE INDEX IF NOT EXISTS idx_orders_email ON orders(email)",
@@ -388,16 +388,15 @@ export async function ensureCustomerAccountSchema() {
   await schemaReadyPromise;
 }
 
-function getNamePartsFromUser(user: User) {
-  const metadata = user.user_metadata && typeof user.user_metadata === "object" ? user.user_metadata : {};
-  const firstName = normalizeText((metadata as { first_name?: unknown }).first_name);
-  const lastName = normalizeText((metadata as { last_name?: unknown }).last_name);
+function getNamePartsFromUser(user: AppAuthUser) {
+  const firstName = normalizeText(user.firstName);
+  const lastName = normalizeText(user.lastName);
 
   if (firstName || lastName) {
     return { firstName, lastName };
   }
 
-  const fullName = normalizeText((metadata as { full_name?: unknown }).full_name);
+  const fullName = normalizeText(user.name);
   const parts = fullName.split(/\s+/).filter(Boolean);
 
   return {
@@ -406,11 +405,11 @@ function getNamePartsFromUser(user: User) {
   };
 }
 
-async function getCustomerProfileRowByUserId(supabaseUserId: string) {
+async function getCustomerProfileRowByUserId(authUserId: string) {
   const rows = await queryCloudflareD1<CustomerProfileRow>(
     `SELECT
        id,
-       supabase_user_id,
+       auth_user_id,
        email,
        first_name,
        last_name,
@@ -420,9 +419,9 @@ async function getCustomerProfileRowByUserId(supabaseUserId: string) {
        created_at,
        updated_at
      FROM customer_profiles
-     WHERE supabase_user_id = ?
+     WHERE auth_user_id = ?
      LIMIT 1`,
-    [supabaseUserId],
+    [authUserId],
     { cache: "no-store" },
   );
 
@@ -430,7 +429,7 @@ async function getCustomerProfileRowByUserId(supabaseUserId: string) {
 }
 
 export async function linkOrdersToCustomerProfileByEmail(
-  supabaseUserId: string,
+  authUserId: string,
   profileId: number,
   email: string,
 ) {
@@ -444,36 +443,32 @@ export async function linkOrdersToCustomerProfileByEmail(
 
   await executeCloudflareD1(
     `UPDATE orders
-     SET supabase_user_id = ?, customer_profile_id = ?, updated_at = CURRENT_TIMESTAMP
+     SET auth_user_id = ?, customer_profile_id = ?, updated_at = CURRENT_TIMESTAMP
      WHERE lower(email) = ?
-       AND (supabase_user_id IS NULL OR trim(supabase_user_id) = '')`,
-    [supabaseUserId, profileId, normalizedEmail],
+       AND (auth_user_id IS NULL OR trim(auth_user_id) = '')`,
+    [authUserId, profileId, normalizedEmail],
   );
 }
 
 export async function ensureCustomerProfileForUser(
-  user: User,
+  user: AppAuthUser,
   options: EnsureCustomerProfileOptions = {},
 ) {
-  const supabaseUserId = normalizeText(user.id);
+  const authUserId = normalizeText(user.id);
   const email = normalizeText(user.email).toLowerCase();
   const shouldLinkOrdersByEmail = options.linkOrdersByEmail !== false;
   const shouldSyncMissingProfileFields = options.syncMissingProfileFields !== false;
 
-  if (!supabaseUserId || !email) {
+  if (!authUserId || !email) {
     throw new Error("Authenticated customer details are incomplete.");
   }
 
   await ensureCustomerAccountSchema();
 
   const { firstName, lastName } = getNamePartsFromUser(user);
-  const phone = normalizeText(
-    user.user_metadata && typeof user.user_metadata === "object"
-      ? (user.user_metadata as { phone?: unknown }).phone
-      : "",
-  );
+  const phone = "";
 
-  const existing = await getCustomerProfileRowByUserId(supabaseUserId);
+  const existing = await getCustomerProfileRowByUserId(authUserId);
 
   if (existing) {
     const nextFirstName = shouldSyncMissingProfileFields
@@ -499,19 +494,19 @@ export async function ensureCustomerProfileForUser(
              last_name = ?,
              phone = ?,
              updated_at = CURRENT_TIMESTAMP
-         WHERE supabase_user_id = ?`,
+         WHERE auth_user_id = ?`,
         [
           email,
           normalizeNullableText(nextFirstName),
           normalizeNullableText(nextLastName),
           normalizeNullableText(nextPhone),
-          supabaseUserId,
+          authUserId,
         ],
       );
     }
 
     const row = shouldUpdateProfile
-      ? await getCustomerProfileRowByUserId(supabaseUserId)
+      ? await getCustomerProfileRowByUserId(authUserId)
       : existing;
 
     if (!row) {
@@ -519,7 +514,7 @@ export async function ensureCustomerProfileForUser(
     }
 
     if (shouldLinkOrdersByEmail) {
-      await linkOrdersToCustomerProfileByEmail(supabaseUserId, row.id, email);
+      await linkOrdersToCustomerProfileByEmail(authUserId, row.id, email);
     }
 
     return toCustomerProfile(row);
@@ -527,7 +522,7 @@ export async function ensureCustomerProfileForUser(
 
   await executeCloudflareD1(
     `INSERT INTO customer_profiles (
-       supabase_user_id,
+       auth_user_id,
        email,
        first_name,
        last_name,
@@ -537,7 +532,7 @@ export async function ensureCustomerProfileForUser(
      )
      VALUES (?, ?, ?, ?, ?, NULL, 1)`,
     [
-      supabaseUserId,
+      authUserId,
       email,
       normalizeNullableText(firstName),
       normalizeNullableText(lastName),
@@ -545,25 +540,25 @@ export async function ensureCustomerProfileForUser(
     ],
   );
 
-  const created = await getCustomerProfileRowByUserId(supabaseUserId);
+  const created = await getCustomerProfileRowByUserId(authUserId);
 
   if (!created) {
     throw new Error("Customer profile could not be created.");
   }
 
   if (shouldLinkOrdersByEmail) {
-    await linkOrdersToCustomerProfileByEmail(supabaseUserId, created.id, email);
+    await linkOrdersToCustomerProfileByEmail(authUserId, created.id, email);
   }
 
   return toCustomerProfile(created);
 }
 
-export async function getCustomerProfileForUser(user: User) {
+export async function getCustomerProfileForUser(user: AppAuthUser) {
   const profile = await ensureCustomerProfileForUser(user);
   return profile;
 }
 
-export async function updateCustomerProfileForUser(user: User, input: UpdateCustomerProfileInput) {
+export async function updateCustomerProfileForUser(user: AppAuthUser, input: UpdateCustomerProfileInput) {
   const profile = await ensureCustomerProfileForUser(user);
 
   await executeCloudflareD1(
@@ -587,7 +582,7 @@ export async function updateCustomerProfileForUser(user: User, input: UpdateCust
     ],
   );
 
-  const updated = await getCustomerProfileRowByUserId(profile.supabaseUserId);
+  const updated = await getCustomerProfileRowByUserId(profile.authUserId);
 
   if (!updated) {
     throw new Error("Customer profile could not be updated.");
@@ -596,7 +591,7 @@ export async function updateCustomerProfileForUser(user: User, input: UpdateCust
   return toCustomerProfile(updated);
 }
 
-export async function listCustomerAddressesForUser(user: User) {
+export async function listCustomerAddressesForUser(user: AppAuthUser) {
   const profile = await ensureCustomerProfileForUser(user);
   return listCustomerAddressesForProfileId(profile.id);
 }
@@ -665,7 +660,7 @@ async function getAddressCountForProfile(profileId: number) {
   return Number(rows[0]?.count ?? 0);
 }
 
-export async function upsertCustomerAddressForUser(user: User, input: UpsertCustomerAddressInput) {
+export async function upsertCustomerAddressForUser(user: AppAuthUser, input: UpsertCustomerAddressInput) {
   const profile = await ensureCustomerProfileForUser(user);
   const addressCount = await getAddressCountForProfile(profile.id);
   const shouldBeDefault = Boolean(input.isDefault) || addressCount === 0;
@@ -748,7 +743,7 @@ export async function upsertCustomerAddressForUser(user: User, input: UpsertCust
   return listCustomerAddressesForUser(user);
 }
 
-export async function deleteCustomerAddressForUser(user: User, addressId: number) {
+export async function deleteCustomerAddressForUser(user: AppAuthUser, addressId: number) {
   const profile = await ensureCustomerProfileForUser(user);
   const existingAddress = await getAddressByIdForProfile(profile.id, addressId);
 

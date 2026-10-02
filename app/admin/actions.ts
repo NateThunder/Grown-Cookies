@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
@@ -34,11 +34,9 @@ import {
   updateShopIntroSectionSetting,
 } from "@/lib/store-settings";
 import { authenticateAdminCredentials } from "@/lib/admin-signin";
-import {
-  ADMIN_AUTH_COOKIE,
-  getAdminAuthCookieOptions,
-  getAdminUserFromAccessToken,
-} from "@/lib/supabase/admin-auth";
+import { getAdminUserFromHeaders } from "@/lib/auth/admin";
+import { applyAuthResponseCookies } from "@/lib/auth/cookies";
+import { getAuth } from "@/lib/auth/server";
 
 function getTextField(formData: FormData, key: string) {
   return String(formData.get(key) ?? "");
@@ -176,17 +174,9 @@ function redirectToAdmin({
 }
 
 async function requireAdminSession() {
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get(ADMIN_AUTH_COOKIE)?.value;
-
-  if (!accessToken) {
-    throw new Error("Please sign in to continue.");
-  }
-
-  const user = await getAdminUserFromAccessToken(accessToken);
+  const user = await getAdminUserFromHeaders(await headers());
 
   if (!user) {
-    cookieStore.delete(ADMIN_AUTH_COOKIE);
     throw new Error("Your admin session expired. Sign in again.");
   }
 }
@@ -227,16 +217,7 @@ export async function adminLoginAction(formData: FormData) {
     return;
   }
 
-  const cookieStore = await cookies();
-  const cookieConfig = getAdminAuthCookieOptions();
-
-  cookieStore.set(cookieConfig.name, result.accessToken, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: cookieConfig.maxAge,
-  });
+  await applyAuthResponseCookies(result.responseHeaders);
 
   redirectToAdmin({
     returnPath,
@@ -245,8 +226,12 @@ export async function adminLoginAction(formData: FormData) {
 }
 
 export async function adminLogoutAction(formData: FormData) {
-  const cookieStore = await cookies();
-  cookieStore.delete(ADMIN_AUTH_COOKIE);
+  const auth = await getAuth();
+  const result = await auth.api.signOut({
+    headers: await headers(),
+    returnHeaders: true,
+  });
+  await applyAuthResponseCookies(result.headers);
 
   redirectToAdmin({
     returnPath: getTextField(formData, "returnPath"),
@@ -398,6 +383,7 @@ export async function updateCollectionSettingsAction(formData: FormData) {
     });
   }
 }
+
 
 export async function updateCookieOfMonthContentAction(formData: FormData) {
   try {

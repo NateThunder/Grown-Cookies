@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuthenticatedSupabaseUser } from "@/lib/account-auth";
+import { getAuthenticatedAccountUser } from "@/lib/account-auth";
 import { ensureCustomerProfileForUser } from "@/lib/customer-profiles";
 import {
   detachSavedPaymentMethod,
@@ -11,7 +11,7 @@ function normalizeText(value: unknown) {
 }
 
 export async function GET(request: Request) {
-  const user = await getAuthenticatedSupabaseUser(request);
+  const user = await getAuthenticatedAccountUser(request);
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const user = await getAuthenticatedSupabaseUser(request);
+  const user = await getAuthenticatedAccountUser(request);
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });

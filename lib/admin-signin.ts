@@ -7,15 +7,16 @@ import {
 } from "@/lib/admin-login-throttle";
 import {
   getAdminAccessDeniedMessage,
-  getSupabaseUserFromAccessToken,
-  isAdminUser,
-  signInToSupabaseWithPassword,
-} from "@/lib/supabase/admin-auth";
+} from "@/lib/auth/admin";
+import { getSessionTokenFromAuthHeaders } from "@/lib/auth/cookies";
+import { getAuth } from "@/lib/auth/server";
+import { isAdminAuthUser } from "@/lib/auth/types";
+import { executeCloudflareD1 } from "@/lib/cloudflare-d1";
 
 export type AdminSignInResult =
   | {
       ok: true;
-      accessToken: string;
+      responseHeaders: Headers;
     }
   | {
       ok: false;
@@ -48,24 +49,37 @@ export async function authenticateAdminCredentials({
     };
   }
 
-  const result = await signInToSupabaseWithPassword({
-    email: normalizedEmail,
-    password,
-  });
+  let responseHeaders: Headers;
+  let user: unknown;
 
-  if ("errorMessage" in result) {
+  try {
+    const auth = await getAuth();
+    const result = await auth.api.signInEmail({
+      body: {
+        email: normalizedEmail,
+        password,
+      },
+      returnHeaders: true,
+    });
+    responseHeaders = result.headers;
+    user = result.response.user;
+  } catch {
     const failedState = await recordAdminLoginFailure(normalizedEmail);
 
     return {
       ok: false,
-      error: failedState.blocked ? getAdminLoginBlockedMessage(failedState) : result.errorMessage,
+      error: failedState.blocked
+        ? getAdminLoginBlockedMessage(failedState)
+        : "Sign in failed. Check your email and password.",
       warning: getAdminLoginWarningMessage(failedState) ?? undefined,
     };
   }
 
-  const user = result.user ?? (await getSupabaseUserFromAccessToken(result.accessToken));
-
-  if (!isAdminUser(user)) {
+  if (!isAdminAuthUser(user as Parameters<typeof isAdminAuthUser>[0])) {
+    const sessionToken = getSessionTokenFromAuthHeaders(responseHeaders);
+    if (sessionToken) {
+      await executeCloudflareD1("DELETE FROM session WHERE token = ?", [sessionToken]).catch(() => null);
+    }
     const failedState = await recordAdminLoginFailure(normalizedEmail);
 
     return {
@@ -87,6 +101,6 @@ export async function authenticateAdminCredentials({
 
   return {
     ok: true,
-    accessToken: result.accessToken,
+    responseHeaders,
   };
 }

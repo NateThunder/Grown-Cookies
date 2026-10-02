@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS orders (
   collection_window_end TEXT,
   collected_at TEXT,
   collected_customer_email_sent_at TEXT,
-  supabase_user_id TEXT,
+  auth_user_id TEXT,
   customer_profile_id INTEGER,
   stripe_payment_intent_id TEXT,
   paid_notification_sent_at TEXT,
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS order_webhook_events (
 
 CREATE TABLE IF NOT EXISTS customer_profiles (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  supabase_user_id TEXT NOT NULL UNIQUE,
+  auth_user_id TEXT NOT NULL UNIQUE,
   email TEXT NOT NULL,
   first_name TEXT,
   last_name TEXT,
@@ -229,8 +229,8 @@ CREATE INDEX IF NOT EXISTS idx_orders_public_id
 CREATE INDEX IF NOT EXISTS idx_orders_payment_intent
   ON orders(stripe_payment_intent_id);
 
-CREATE INDEX IF NOT EXISTS idx_orders_supabase_user_id
-  ON orders(supabase_user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_auth_user_id
+  ON orders(auth_user_id);
 
 CREATE INDEX IF NOT EXISTS idx_orders_email
   ON orders(email);
